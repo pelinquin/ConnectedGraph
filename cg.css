@@ -1,0 +1,48 @@
+/*----------------------------------------------------------------------------
+ ©  Copyright 2010, Rockwell Collins, Inc 
+    This file is part of TRAMweb.
+
+    TRAMweb is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    TRAMweb is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with TRAMweb.  If not, see <http://www.gnu.org/licenses/>.
+---------------------------------------------------------------------------*/
+
+svg { fill: #555;}
+a { fill: #48F;}
+text { font-size: 10pt; }
+text[href], g[href] { fill: #48F;}
+g.button:hover { fill:#48F; }
+text.hd:hover { fill:#48F;}
+text.hd,text.hd1, input { font-size: 8pt;}
+div,a,textarea,h6,input,help,p,opt,text {font-family: sans-serif; outline: none;}
+p { font-size: 11pt; }
+textarea { border:1px solid #555;}
+g:hover g#history ,g:hover g#bar { display: inline; cursor:pointer;}
+
+g#history text tspan:hover { fill:#48F; }
+
+/*stop.end { stop-color:#DD7; }  */
+/*foreignObject input{background-color:green; color:gray}*/
+/*input { background-color : #c00; color : #000;}*/
+/*radialGradient { stop-color : #0F0;}*/
+/*background: -moz-linear-gradient( top left, white, black );*/
+/*background: -moz-linear-gradient(left top 315deg, #00abeb, #fff);*/
+/*background: -moz-element(#pattern);*/
+/*-moz-element(#gradyellow);*/
+/*g:hover foreignObject { display: inline; }*/
+/*a#up:hover, g#mode:hover, g#link:hover, g#undo:hover { fill:#AAA; }*/
+/*g.node:hover { fill:#FFF; cursor:crosshair; font-weight: bold;}*/
+
+g.node:hover, g[href]:hover{ fill:#FFF; cursor:crosshair;}
+
+/*g.node:hover { cursor:crosshair; font-weight: bold;}*/
+
