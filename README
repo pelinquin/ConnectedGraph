@@ -1,4 +1,7 @@
-How to install 'Connected Graph' Web Application ?
+
+***** Welcome to 'Connected Graph' ! *****
+
+*** How to install 'Connected Graph' Web Application ?
 
 You need :
     apache2  
@@ -6,17 +9,14 @@ You need :
     git
     yui-compressor
 
-*** compress js file
-yui-compressor cg.js > cgmin.js
+Browsers currently supported:
+    Firefox (v>3.6)
 
-*** Run tests. All test cases should pass
-./cg_test.py
+*** Run the install script
+sudo ./install.sh
 
-*** copy the config file (edit directories for your own system) 
-sudo cp formose.conf /etc/apache2/conf.d/
-
-*** Restart Apache
-sudo /etc/init/apache2 restart 
-
-*** Run Firefox on your local web app 
+*** Run Firefox on your local web app; for instance: 
 firefox http://pelinquin/formose/cg.py
+
+
+*** Contact: pelinquin@gmail.com
