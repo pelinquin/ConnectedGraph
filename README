@@ -1,6 +1,14 @@
 
 ***** Welcome to 'Connected Graph' ! *****
 
+*** What is that ! ***
+'Connected Graph' is a Web application that provides
+- Full SVG nested diagrams for Requirements Engineering.
+- A transparent git database for persistence and version control
+- Editing on the graph, on the text or on the url.
+
+This is part of the upcoming FORMOSE open-source Project.
+
 *** How to install 'Connected Graph' Web Application ?
 
 You need :
@@ -17,6 +25,20 @@ sudo ./install.sh
 
 *** Run Firefox on your local web app; for instance: 
 firefox http://pelinquin/formose/cg.py
+
+
+*** setup ssl on Apache/Ubuntu
+
+
+sudo a2enmod ssl
+sudo service apache2 force-reload
+sudo make-ssl-cert /usr/share/ssl-cert/ssleay.cnf /etc/ssl/private/localhost.pem
+cd /etc/apache2/sites-available/
+sudo cp default ssl
+sudo sed -i '1,2s/\*:80/*:443/' ssl
+sudo sed -i "3a\\\tSSLEngine On\n\tSSLCertificateFile /etc/ssl/private/localhost.pem" ssl
+sudo a2ensite ssl
+sudo /etc/init.d/apache2 reload
 
 
 *** Contact: pelinquin@gmail.com

@@ -25,9 +25,7 @@
 
  Another way to investicate is to use the Pyjama toolkit
 
-MAIN TODO LIST (see Trac for the full feature request and bug tracking list:
-- Install Trac (yes!)
-- Define a GitHub project for source sharign
+MAIN TODO LIST (see GitHub for the full bug tracking list:
 - Solve the problem of permalink on nested diagrams (Git expertise)
 - Fix event capture bug for editing (shift click on a node)
 - Implement a State Automaton on diagrams
@@ -38,7 +36,7 @@ MAIN TODO LIST (see Trac for the full feature request and bug tracking list:
 - Improve shapes for KAOS nodes types
 - Fix problem of adjusting the page size to the current diagram size
 - Improve the layout algorithm to avoid link crossing
-- Chose MediaWiki or the Trac wiki
+- Chose MediaWiki, Trac wiki or GitHub Wiki
 - Fix authentification code
 - Find a way to insure that given source code = web application
 
@@ -53,7 +51,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__  = '0.1.8'
+__version__  = '0.1.9'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
