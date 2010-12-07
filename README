@@ -9,6 +9,17 @@
 
 This is part of the upcoming FORMOSE open-source Project.
 
+*** Where is the repository ? ***
+
+* Source Code, Issue Tracker and Wiki:
+https://github.com/pelinquin/ConnectedGraph
+
+* Play with the application 
+http://tramweb.net/formose/cg.py
+
+* Download 
+http://tramweb.net/formose/cg.py/download
+
 *** How to install 'Connected Graph' Web Application ?
 
 You need :
@@ -29,7 +40,6 @@ firefox http://pelinquin/formose/cg.py
 
 *** setup ssl on Apache/Ubuntu
 
-
 sudo a2enmod ssl
 sudo service apache2 force-reload
 sudo make-ssl-cert /usr/share/ssl-cert/ssleay.cnf /etc/ssl/private/localhost.pem
@@ -39,6 +49,5 @@ sudo sed -i '1,2s/\*:80/*:443/' ssl
 sudo sed -i "3a\\\tSSLEngine On\n\tSSLCertificateFile /etc/ssl/private/localhost.pem" ssl
 sudo a2ensite ssl
 sudo /etc/init.d/apache2 reload
-
 
 *** Contact: pelinquin@gmail.com

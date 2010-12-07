@@ -1176,7 +1176,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
         o += '</text></g>'
 
     if edit or pfx == '.':
-        o += formose() 
+        o += '<g onclick="load_github();">' + formose() + '</g>' 
         
     #return graphviz(content)
     return o + '</svg>'

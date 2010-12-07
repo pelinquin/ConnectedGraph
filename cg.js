@@ -48,6 +48,7 @@ if (typeof($)=='undefined') {
 */
 
 
+
 function is_gecko() {
   var str = navigator.userAgent;
   var gecko = str.replace(/^Mozilla.*rv:|\).*$/g, '' ) || ( /^rv\:|\).*$/g, '' );
@@ -1141,41 +1142,47 @@ function add_node(e) {
   change_title(true);
 }
 
+
 function check() {
-  $('myform').submit();
-  save_session(); 
+    $('myform').submit();
+    save_session(); 
 }
 
 function login(way) {
-  if (way == 'True') {
-    if (!confirm ('Are you sure you want to logout ?')) { return; }
-    //document.location.replace(content.document.location);
-    $('.user').firstChild.nodeValue = 'anonymous';
-    $('.user').setAttribute('onclick','login(\'False\');');
-    $('.user').setAttribute('title','login');
-  } else {
-    $('loginform').setAttribute('display','inline');
-    $('.status').firstChild.nodeValue='';
-  }
-  save_session(); 
+    if (way == 'True') {
+	if (!confirm ('Are you sure you want to logout ?')) { return; }
+	//document.location.replace(content.document.location);
+	$('.user').firstChild.nodeValue = 'anonymous';
+	$('.user').setAttribute('onclick','login(\'False\');');
+	$('.user').setAttribute('title','login');
+    } else {
+	$('loginform').setAttribute('display','inline');
+	$('.status').firstChild.nodeValue='';
+    }
+    save_session(); 
 }
+
 
 function createlogin(way) {
-  if (way == 'True') {
-    document.location.replace(get_base_url()+'/edit');
-  } else {
-    $('loginform').setAttribute('display','inline');
-    $('.status').firstChild.nodeValue='';
-  }
+    if (way == 'True') {
+	document.location.replace(get_base_url()+'/edit');
+    } else {
+	$('loginform').setAttribute('display','inline');
+	$('.status').firstChild.nodeValue='';
+    }
 }
 
-function connect(e) { 
-  if ($('_connect').getAttribute('state') == 'on') {
-    $('_connect').setAttribute('state','off');
-  } else {
-    $('_connect').setAttribute('state','on');
-  }
-  alert ($('_connect').getAttribute('state'));
+function to_connect(e) { 
+    if ($('_connect').getAttribute('state') == 'on') {
+	$('_connect').setAttribute('state','off');
+    } else {
+	$('_connect').setAttribute('state','on');
+    }
+    alert ($('_connect').getAttribute('state'));
+}
+
+function load_github() { 
+    document.location.replace('https://github.com/pelinquin/ConnectedGraph');
 }
 
 // end
