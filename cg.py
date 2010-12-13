@@ -23,7 +23,7 @@
  As 'mod_python' will soon no longer be supported by Apache,
  ...this shall move to 'mod_wsgi'
 
- Another way to investicate is to use the Pyjama toolkit
+ Another way to investigate is to use the Pyjama toolkit
 
 MAIN TODO LIST (see GitHub for the full bug tracking list:
 - Solve the problem of permalink on nested diagrams (Git expertise)
@@ -37,9 +37,7 @@ MAIN TODO LIST (see GitHub for the full bug tracking list:
 - Fix problem of adjusting the page size to the current diagram size
 - Improve the layout algorithm to avoid link crossing
 - Chose MediaWiki, Trac wiki or GitHub Wiki
-- Fix authentification code
 - Find a way to insure that given source code = web application
-
 """
 
 import os,re
@@ -51,13 +49,13 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__  = '0.1.9'
+__version__  = '0.1.10'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
 # Better use a directory not cleaned at server reset
-#__BASE__ = '/db'
-__BASE__ = '/tmp'
+__BASE__ = '/db'
+#__BASE__ = '/tmp'
 __TITLE__ = 'Connected Graph'
 
 ##### COMMON REGULAR EXPRESSIONS #####
@@ -145,7 +143,6 @@ def emphasis(buf):
     italic: 1 quote
     bold: 2 quotes
     italic bold: 3 quotes
-
     """
     buf = re.sub(r'\'{3}(\w+)\'{3}','<tspan style="font-style:italic;font-weight:bold;">\\1</tspan>',buf)
     buf = re.sub(r'\'\'(\w+)\'\'','<tspan style="font-weight:bold;">\\1</tspan>',buf)
@@ -772,19 +769,13 @@ def connect_button():
     o += '<g transform="translate(3,3) scale(0.04)"><path fill="white" d="M 7,404 C 7,404 122,534 145,587 L 244,587 C 286,460 447,158 585,52 C 614,15 542,0 484,24 C 396,61 231,341 201,409 C 157,420 111,335 111,335 L 7,404 z"/></g>'
     return o + '</g>'
 
-def get_mode_user(req):
+def load_session(req):
     """ """
     from mod_python import Session
     session = Session.DbmSession(req)
     session.load()
-    if session.has_key('mode'):
-        mode = session['mode']
-    else:
-        mode = 'graph'
-    if session.has_key('user'):
-        user = session['user']
-    else:
-        user = ''
+    mode = session['mode'] if session.has_key('mode') else 'graph'
+    user = session['user'] if session.has_key('user') else ''
     return mode,user
 
 #### UTILITIES ####
@@ -888,7 +879,7 @@ def shortlog(content):
     else:
         return sh
 
-def save_session(req,mode,user):
+def save_session(req,user='',mode=''):
     """ """
     from mod_python import Session
     session = Session.DbmSession(req)
@@ -896,7 +887,8 @@ def save_session(req,mode,user):
         session['hits'] += 1
     except:
         session['hits'] = 1
-    session['mode'] = mode
+    if mode:
+        session['mode'] = mode
     session['user'] = user
     session.save()
     req.content_type = 'text/plain'
@@ -973,42 +965,32 @@ def list(req):
     out += '<table>'
     return out + '</html>'
 
-def createlogin(req,login='',pw1='',pw2=''):
+def edit(req,login='',pw='',pw2=''):
     """ """
-    ip = get_ip(req) 
-    ch = True if register_user(login,pw1,pw2,ip) else False
-    user = 'Welcome \'' + login + '\', your account is well created' if ch else 'Create a new login'
-    msg =  'Error: login already used or more than 10 logins/ip or difference in repeated password or password too much simple' if login and not ch else ' '
-    req.content_type = 'application/xhtml+xml'
-    o = '<?xml version="1.0" encoding="UTF-8" ?>\n'
-    o += '<?xml-stylesheet href="../cg.css" type="text/css" ?>\n'
-    o += '<svg %s >\n'%_SVGNS
-    o += '<title id=".title">%s</title>'%(__TITLE__)
-    o += '<link %s rel="shortcut icon" href="../logo16.png"/>\n'%(_XHTMLNS)
-    o += js('..')
-    title = 'go to main editor' if ch else 'create login'
-    o += '<text class="hd" id=".user" title="%s" x="10" y="12" fill="#999" onclick="createlogin(\'%s\');">%s</text>'%(title,ch,user)
-    o += '<text class="hd1" id="status" title="ip adsress" x="10" y="32" fill="red">%s</text>'%msg
-    o += '<g id="loginform" display="none">'
-    o += '<foreignObject display="inline" y="1" x="220" width="80" height="70">' 
-    o += '<div %s>'%_XHTMLNS
-    o += '<form id="myform" action="createlogin" method="post">'
-    o += '<input id="login" name="login" title="Login" size="8" value=""/>'
-    o += '<input id="pw1" name="pw1" type="password" title="Password" size="8" value=""/>'
-    o += '<input id="pw2" name="pw2" type="password" title="Password repeat" size="8" value=""/>'
-    o += '</form>'
-    o += '</div>'
-    o += '</foreignObject>'
-    o += '<g onclick="check();" title="submit login/password" class="button" fill="#CCC" transform="translate(300,12)"><rect x="1" width="15" height="30" rx="5"/><path transform="translate(0,6)" d="M4,4 4,14 14,9" fill="white"/></g>'
-    o += '</g>'
-    return o + '</svg>'
+    #ch = True if check_user(login,pw) else False
+    #mode,user_old = get_mode_user(req)
+    #user = login if ch else user_old
+    #msg =  'Bad login/password!' if login and not ch else ' '
 
-def edit(req,login='',pw=''):
-    """ """
-    ch = True if check_user(login,pw) else False
-    mode,user_old = get_mode_user(req)
-    user = login if ch else user_old
-    msg =  'Bad login/password!' if login and not ch else ' '
+    msg,mode,user = ' ','graph',''
+    ip = get_ip(req)
+    if login:
+        if pw2:
+            if register_user(login,pw,pw2,ip):
+                msg = 'Welcome \'%s\', your account is well created'%login
+                user = login
+                save_session(req,user)
+            else:
+                msg = 'Error: login already used or more than 10 logins/ip or difference in repeated password or password too much simple'
+        else:
+            if check_user(login,pw):
+                user = login
+                msg = 'Welcome \'%s\''%login
+                save_session(req,user)
+            else:
+                msg = 'Error: bad login/password'
+    else:
+        mode,user = load_session(req)
     return basic(req,True,mode,'','..',user,msg)
 
 def view(req):
@@ -1028,7 +1010,8 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
         os.mkdir(base)
 
     if not user:
-        user = get_user(req)
+        #user = get_user(req)
+        user = 'anonymous'
     ip = get_ip(req)
     mygit = _git(user,ip)
         
@@ -1111,21 +1094,25 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     o += '</g>'
 
     if edit:
-        (title,way) = ('login',False) if user == 'anonymous' else ('logout',True)
-        o += '<text class="hd" id=".user" title="%s" x="470" y="12" fill="#999" onclick="login(\'%s\');">%s</text>'%(title,way,user)
-        o += '<text class="hd1" id=".status" title="status" x="640" y="12" fill="#999">%s</text>'%msg
-        o += '<text class="hd1" id=".ip" title="ip address" x="540" y="12" fill="#999">%s</text>'%ip
-        o += '<g id="loginform" display="none">'
-        o += '<foreignObject display="inline" y="1" x="320" width="80" height="52">' 
-        o += '<div %s>'%_XHTMLNS
-        o += '<form id="myform" action="edit?%s" method="post">'%req.args
-        o += '<input id="login" name="login" title="Login" size="8" value=""/>'
-        o += '<input id="pw" name="pw" type="password" title="Password" size="8" value=""/>'
-        o += '</form>'
-        o += '</div>'
+
+        if user != 'anonymous':
+            o += '<text class="hd1" id=".user" title="logout" x="470" y="12" onclick="logout();">%s</text>'%user
+        else:
+            o += '<text id=".user">anonymous</text>'
+            o += '<text class="hd" x="460" y="12" title="log in with existing account" onclick="login();">Login</text>'
+            o += '<text class="hd" x="500" y="12" title="create a new account" onclick="create();">Signup</text>'
+        o += '<text class="hd1" id=".ip" title="ip address" x="540" y="12">%s</text>'%ip
+        o += '<g id=".form" display="none">'
+        o += '<foreignObject display="inline" y="1" x="320" width="80" height="70">' 
+        o += '<div %s><form id="myform" method="post">'%_XHTMLNS
+        o += '<input id="login" name="login" title="Login" size="7" value=""/>'
+        o += '<input id="pw" name="pw" type="password" title="Password" size="7" value=""/>'
+        o += '<input id="pw2" style="display:none" name="pw2" type="password" title="Password repeat" size="7" value=""/>'
+        o += '</form></div>'
         o += '</foreignObject>'
         o += '<g onclick="check();" title="submit login/password" class="button" fill="#CCC" transform="translate(390,1)"><rect x="1" width="15" height="30" rx="5"/><path transform="translate(0,6)" d="M4,4 4,14 14,9" fill="white"/></g>'
         o += '</g>'
+        o += '<text class="hd1" id=".status" title="status" x="640" y="12" fill="#999">%s</text>'%msg
     
     if attrib:
         server = get_server(req)
@@ -1277,13 +1264,13 @@ def get_ip(r):
     return ip
 
 def sha1(req):
-    """ """
+    """ return a partial sha1 to check version easilly """
     (pwd, name,ip) = get_env(req)
     dig = hashlib.sha1(open('%s/%s.py'%(pwd,name)).read())    
     return dig.hexdigest()[:5]
     
 def download(req):
-    """ """
+    """ dowload all files to rebuild the application"""
     import zipfile
     req.content_type = 'application/zip'
     req.headers_out['Content-Disposition'] = 'attachment; filename=SVG_connectedGraph_%s.zip'%re.sub('\.','_',__version__)
