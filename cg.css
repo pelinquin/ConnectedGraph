@@ -17,32 +17,21 @@
 ---------------------------------------------------------------------------*/
 
 svg { fill: #555;}
-a { fill: #48F;}
-text { font-size: 10pt; }
-text[href], g[href] { fill: #48F;}
-g.button:hover { fill:#48F; }
-text.hd:hover { fill:#48F;}
-text.hd,text.hd1, input { font-size: 8pt;}
-div,a,textarea,h6,input,help,p,opt,text {font-family: sans-serif; outline: none;}
+text {font-family: "Comic Sans MS",cursive; font-size: 10pt;}
+text.header {font-size: 16pt; fill: #777;}
+text.noderole {font-size: 5pt; fill: #777;}
+text.stat {font-family: sans-serif; font-size: 8pt;  fill:gray;} 
+text.history {font-family: courier; font-size: 11pt;  fill:#CCC;} 
+text.hd {font-family: sans-serif; font-size: 8pt;  fill:#EEE;} 
+text.hd1 {font-family: sans-serif; font-size: 8pt;  fill:#999;} 
+div,a,textarea,h6,input,help,p,opt,text.hd,text.hd1 {font-family: sans-serif; outline: none;}
+a, text[href], g[href], g.button:hover, text.hd:hover, g#history text tspan:hover { fill:#48F; }
+g.attach:hover path, g.attach:hover rect { stroke:#48F; cursor:pointer;}
+text.hd1, input { font-size: 8pt;}
 p { font-size: 11pt; }
 textarea { border:1px solid #555;}
 g:hover g#history ,g:hover g#bar { display: inline; cursor:pointer;}
-
-g#history text tspan:hover { fill:#48F; }
-
-/*stop.end { stop-color:#DD7; }  */
-/*foreignObject input{background-color:green; color:gray}*/
-/*input { background-color : #c00; color : #000;}*/
-/*radialGradient { stop-color : #0F0;}*/
-/*background: -moz-linear-gradient( top left, white, black );*/
-/*background: -moz-linear-gradient(left top 315deg, #00abeb, #fff);*/
-/*background: -moz-element(#pattern);*/
-/*-moz-element(#gradyellow);*/
-/*g:hover foreignObject { display: inline; }*/
-/*a#up:hover, g#mode:hover, g#link:hover, g#undo:hover { fill:#AAA; }*/
-/*g.node:hover { fill:#FFF; cursor:crosshair; font-weight: bold;}*/
-
 g.node:hover, g[href]:hover{ fill:#FFF; cursor:crosshair;}
 
-/*g.node:hover { cursor:crosshair; font-weight: bold;}*/
+
 

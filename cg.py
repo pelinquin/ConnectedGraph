@@ -25,19 +25,10 @@
 
  Another way to investigate is to use the Pyjama toolkit
 
-MAIN TODO LIST (see GitHub for the full bug tracking list:
-- Solve the problem of permalink on nested diagrams (Git expertise)
+SMALL FIXING REMINDER:
 - Fix event capture bug for editing (shift click on a node)
-- Implement a State Automaton on diagrams
-   - Use a Metamodel to define the automaton
-   - define user roles
-   - Send emails on transitions on demand
 - Implement Graphic Connector editing (drag&drop)
 - Improve shapes for KAOS nodes types
-- Fix problem of adjusting the page size to the current diagram size
-- Improve the layout algorithm to avoid link crossing
-- Chose MediaWiki, Trac wiki or GitHub Wiki
-- Find a way to insure that given source code = web application
 """
 
 import os,re
@@ -49,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__  = '0.1.10'
+__version__  = '0.1.11'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -84,7 +75,7 @@ __REG_EDGES__ = re.compile(r""" # capture OR connected nodes
         :?(\w*) #g3:typ1
         ( @\S{10} | ) #g4:child1
         \s*
-        (->|<-|-!-) #g5 connector
+        (->|<-|-!-|[\d\.]*-[\d\.]*) #g5 connector
         \s*
         (\w*) #g6: name2
         ( #g7:label2
@@ -138,6 +129,10 @@ def cutline(txt,r=2.4):
         buf += '<tspan x="0" dy="1em">%s</tspan>'%txt[pos:]
     return emphasis(buf) + '</text>'
 
+def cutline_class(txt):
+    """ cut lines on ';' for new line and '|' for class cathegory """
+    return '<text><tspan style="font-weight:bold;">' + re.sub(r'\|','</tspan><tspan sep="y" x="0" dy="20">',re.sub(r';','</tspan><tspan x="0" dy="20">',txt + '</tspan></text>'))
+    
 def emphasis(buf):
     """ 3 levels of emphasis
     italic: 1 quote
@@ -178,7 +173,7 @@ def cutline_other(txt,r=2.4,x=0,y=10):
 def defs():
     """ SVG gradients and markers"""
     o = '<defs>'
-    o += '<radialGradient id=".gradyellow" cx="0%" cy="0%" r="90%"><stop offset="0%" stop-color="#FF5"/><stop offset="100%" stop-color="#DD5"/></radialGradient>'
+    o += '<radialGradient id=".grady" cx="0%" cy="0%" r="90%"><stop offset="0%" stop-color="#FFD"/><stop offset="100%" stop-color="#DDA" class="end"/></radialGradient>'
     #o += '<linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id=".grad2"><stop class="begin" offset="0%"/><stop class="end" offset="100%"/></linearGradient>'
     o += '<radialGradient id=".grad" cx="0%" cy="0%" r="90%"><stop offset="0%" stop-color="#FFF"/><stop offset="100%" stop-color="#DDD" class="end"/></radialGradient>'
     o += '<radialGradient id=".gradbackground" cx="5%" cy="5%" r="95%"><stop offset="0%" stop-color="#FFF"/><stop offset="100%" stop-color="#EEE" class="end"/></radialGradient>'
@@ -187,8 +182,14 @@ def defs():
     o += '<marker id=".arrow" viewBox="-13 -6 15 12" refX="0" refY="0" markerWidth="8" markerHeight="10" orient="auto"><path d="M-8,-6 L0,0 -8,6 Z" stroke="gray" fill="gray" stroke-linejoin="round" stroke-linecap="round"/></marker>'
     o += '<marker id=".conflict" viewBox="0 0 1000 1000" preserveAspectRatio="none" refX="0" refY="100" markerWidth="30" markerHeight="80" orient="auto"><path d="M100,0 l-20,80 l120,-20 l-100,140 l20,-80 l-120,20 Z" stroke="none" fill="red"/></marker>'
 
+    o += '<marker id=".simple_start" viewBox="-10 -10 100 100" preserveAspectRatio="xMidYMin meet" refX="-10" refY="-15" markerWidth="160" markerHeight="30" orient="0"><text  stroke-width="0" fill="gray">0..1</text></marker>'
+    o += '<marker id=".simple_end" viewBox="-10 -10 100 100" preserveAspectRatio="xMinYMin meet" refX="20" refY="5" markerWidth="160" markerHeight="30" orient="auto"><text  stroke-width="0" fill="gray">0..*</text></marker>'
+
     o += '<marker id=".not" viewBox="-13 -6 10 12" refX="-20" markerWidth="8" markerHeight="16" orient="auto"><path d="M-10,-5 L-10,5" stroke="gray"/></marker>'
     o += '<filter id=".shadow" filterUnits="userSpaceOnUse"><feGaussianBlur in="SourceAlpha" result="blur" id=".feGaussianBlur" stdDeviation="2" /><feOffset dy="3" dx="3" in="blur" id=".feOffset" result="offsetBlur"/><feMerge><feMergeNode in="offsetBlur"/><feMergeNode in="SourceGraphic" /></feMerge></filter>'
+    o += '<filter id = "i1" width = "150%" height = "150%"><feOffset result = "offOut" in = "SourceGraphic" dx = "30" dy = "30"/><feBlend in = "SourceGraphic" in2 = "offOut" mode = "normal"/></filter>'
+
+
     return o + '</defs>\n'
 
 def parse_typ(t):
@@ -220,6 +221,8 @@ def parse_typ(t):
             return 'PROPERTY'
         elif re.match('^(v|ev|event)$',t,re.IGNORECASE):
             return 'EVENT'
+        elif re.match('^(c|cl|class)$',t,re.IGNORECASE):
+            return 'CLASS'
     return ''
 
 ####
@@ -265,8 +268,8 @@ def cg_parent(raw,idc):
             label = lab[ch[idc]]
         if typ.has_key(ch[idc]):
             role = typ[ch[idc]]
-    o = '<text x="18" y="50" id=".noderole" fill="#777" style="font-family:Arial;font-size:4pt;">%s </text>\n'%role
-    o += '<text x="60" y="50" id=".nodelabel" fill="#777" style="font-family:purisa,cursive;font-size:16pt;">%s </text>\n'%emphasis(label)
+    o = '<text x="18" y="50" class="noderole" id=".noderole">%s </text>\n'%role
+    o += '<text class="header" x="60" y="50" id=".nodelabel">%s </text>\n'%emphasis(label)
     return o     
 
 class cg:
@@ -341,7 +344,9 @@ class cg:
                 elif m.group(5) == '<-':
                     self.connectors.append((key1,key2))
                 elif m.group(5) == '-!-':
-                    self.connectors.append((key1,key2,'conflict'))        
+                    self.connectors.append((key1,key2,'conflict'))
+                elif re.match('^[\d\.]*-[\d\.]*$',m.group(5)):
+                    self.connectors.append((key1,key2,m.group(5)))     
         for m1 in __REG_AND__.finditer(raw):
             key1,key2 = 'error3','error4'
             if m1.group(2) or m1.group(3):
@@ -470,7 +475,7 @@ class cg:
     def graph(self):
         """  """
         out = '<g %s>'%_SVGNS
-        out += '<g id=".nodes" style="font-family:purisa,cursive;">\n'
+        out += '<g id=".nodes">\n'
         for i in self.lab.keys():
             (x,y) = self.pos[i]
             style = (1,'gray','GOAL')
@@ -480,10 +485,15 @@ class cg:
             ref = ''
             if self.child.has_key(i):
                 ref = ' href="%s"'%self.child[i]
+                if os.path.isfile('%s/cg/ath/%s'%(__BASE__,self.child[i])):
+                    ref += ' attach="yes"'
             label = xml.sax.saxutils.quoteattr(self.lab[i])
             ed = ' class="node"' if self.edit else ' '
             out += '<g id="%s"%s%s label=%s transform="translate(%s,%s)" %s title="%s">'%(i,ref,role,label,x,y,ed,i)
-            out += cutline(xml.sax.saxutils.escape(self.lab[i]))
+            if self.typ.has_key(i) and self.typ[i] == 'CLASS':
+                out += cutline_class(xml.sax.saxutils.escape(self.lab[i]))
+            else:
+                out += cutline(xml.sax.saxutils.escape(self.lab[i]))
             out += '</g>'
         out += '</g>\n'
         for c in self.connectors:
@@ -491,7 +501,9 @@ class cg:
                 out += '<connector n1="#%s" n2="#%s" type="%s"/>\n'%(c[0],c[1],c[2])
             else:
                 out += '<connector n1="#%s" n2="#%s"/>\n'%(c[0],c[1])
-        out += '<text id=".stat" x="10" y="99%%" fill="gray" style="font-family:Arial;font-size:8pt;">%d nodes %d connectors</text>'%(len(self.lab.keys()),len(self.connectors))
+        out += '<text class="stat" id=".stat" x="10" y="99%%" >%d nodes %d connectors</text>'%(len(self.lab.keys()),len(self.connectors))
+        #out += '<g transform="translate(200,200)"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#s1"/></g>'
+        #out += '<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#s1"/>'
         return out + '</g>\n'
 
 def lrac(x):
@@ -598,6 +610,29 @@ class _git:
             r = Popen(('git', 'commit-tree', q.communicate(li)[0].strip()), env=e, stdout=PIPE, stdin=PIPE)
             Popen(('git', 'update-ref', 'refs/heads/master',r.communicate('start')[0].strip()), env=e, stdout=PIPE).communicate()
 
+    def add_old(self):
+        """ """
+        p1 = Popen(('git', 'add','/tmp/cg/ath/2kuSN7rMzf'), env=self.e,stdout=PIPE,stderr=PIPE)
+        out1, err1 = p1.communicate('')
+        p2 = Popen(('git', 'commit','-a','-m0'), env=self.e,stdout=PIPE,stderr=PIPE)
+        out2, err2 = p2.communicate('')
+        return (err1,err2)
+
+    def save_file(self,key):
+        """ """
+        k1 = '@%s'%key
+        p = Popen(('git', 'show', 'master^{tree}:'+k1), env=self.e, stdout=PIPE, stderr=PIPE)
+        out, err = p.communicate('')
+        p = Popen(('git', 'ls-tree', 'master^{tree}'), env=self.e, stdout=PIPE)
+        liste = p.communicate()[0].strip()
+        if err:
+            liste += '\n100644 blob %s\t%s'%(self.sha_file(key),k1) 
+            self.commit (liste,k1)
+        else:
+            self.commit(re.sub(r'(100644 blob) [0-9a-f]{40}(\t%s)'%k1,'\\1 %s\\2'%self.sha_file(key),liste),k1)
+        p = Popen(('git', 'log','--pretty=format:%H','-1'), env=self.e, stdout=PIPE)
+        return p.communicate()[0].strip()
+
     def save(self,key,c,state=''):
         """ """
         p = Popen(('git', 'show', 'master^{tree}:'+key), env=self.e, stdout=PIPE, stderr=PIPE)
@@ -637,6 +672,11 @@ class _git:
         """ """
         p = Popen(('git', 'hash-object','-w','--stdin'), env=self.e, stdout=PIPE, stdin=PIPE)
         return p.communicate(content+'\n')[0].strip()
+
+    def sha_file(self,key):
+        """ """
+        p = Popen(('git', 'hash-object','-w','%s/cg/ath/%s'%(__BASE__,key)), env=self.e, stdout=PIPE, stdin=PIPE)
+        return p.communicate()[0].strip()
     
     def commit(self,li,msg):
         """ """
@@ -665,15 +705,9 @@ class _git:
 
     def gethead(self,key):
         """ """
-        p = Popen(('git', 'log', '-1', '--pretty=format:%H:%an:%ar','--',key), env=self.e, stdout=PIPE)
+        p = Popen(('git', 'log', '-1', '--pretty=format:%H:%an:%ar:%at','--',key), env=self.e, stdout=PIPE) # ar
         return p.communicate()[0].strip()
     
-    def load(self,key):
-        """ """
-        p = Popen(('git', 'show', 'master^{tree}:'+key), env=self.e, stdout=PIPE, stderr=PIPE)
-        out, err = p.communicate()
-        return '' if err else out[:-1]
-
     def revision(self,key):
         """ """
         c = Popen(('git', 'log', '-1', '--pretty=format:%H','--', key), env=self.e, stdout=PIPE)
@@ -702,22 +736,31 @@ class _git:
         content, err = p.communicate()
         c = Popen(('git', 'log', '-1', '--pretty=format:%H', '--', gid), env=self.e, stdout=PIPE)
         rev = c.communicate()[0]
-        return ('','[Diagram Not Found cat_revision!]') if err else (rev,content[:-1])
+        return ('','[Diagram Not Found cat_revision!]') if err else (rev[:15],content[:-1])
 
-    def getrev(self,rev):
+    def cat_getrev(self,rev):
         """ """
         c = Popen(('git', 'log', '--pretty=format:%H:%s','-1',rev), env=self.e, stdout=PIPE, stderr=PIPE)
         out,err = c.communicate()
-        if err:
-            idd,cont = ['',''],'[Diagram Not Found!]'
-        else:
-            if out == '':
-                idd,cont = ['',''],'[Diagram Not Found! 2]'
-            else:
+        idd,cont = ['',''],'[Diagram Not Found!]'
+        if not err:
+            if out != '':
                 idd = out.strip().split(':')
                 p = Popen(('git', 'show','%s:%s'%(rev,idd[1])), env=self.e, stdout=PIPE, stderr=PIPE)
                 cont = p.communicate()[0][:-1]
-        return idd[0],idd[1],cont
+        return idd[0][:15],idd[1],cont
+
+    def cat_full(self,key,arev):
+        """ """
+        c = Popen(('git', 'log', '--pretty=format:%H','-1',arev), env=self.e, stdout=PIPE, stderr=PIPE)
+        out,err = c.communicate()
+        rev,cont = '','[Diagram Not Found!]'
+        if not err:
+            if out != '':
+                rev = out.strip()
+                p = Popen(('git', 'show','%s:%s'%(rev,key)), env=self.e, stdout=PIPE, stderr=PIPE)
+                cont = p.communicate()[0][:-1]
+        return rev[:15],cont
 
 #### GRAPHVIZ (DEPRECATED) ####
 
@@ -754,7 +797,7 @@ def save_button(mygit,gid):
     o = '<g class="button" title="save current diagram" onclick="save_all(evt);" fill="#CCC" transform="translate(32,1)">'
     o += '<rect width="30" height="30" rx="5"/>'
     o += '<g transform="translate(3,3) scale(0.04)"><path fill="white" d="M 7,404 C 7,404 122,534 145,587 L 244,587 C 286,460 447,158 585,52 C 614,15 542,0 484,24 C 396,61 231,341 201,409 C 157,420 111,335 111,335 L 7,404 z"/></g>'
-    o += '<g id="history" display="none" transform="translate(-25,26)"><text fill="#CCC" style="font-family:courier;font-size:11pt;">'
+    o += '<g id="history" display="none" transform="translate(-25,26)"><text class="history">'
     for i in mygit.gethistory(gid)[:-1]:
         l = i.split(':')
         cat = mygit.cat(l[3])
@@ -781,25 +824,30 @@ def load_session(req):
 #### UTILITIES ####
 
 def extract_all(raw):
-    """ """
+    """
+    line1:parent id
+    line2:ref table
+    line3:layout
+    line4:content
+    """
     lines = raw.split('\n')
     lout = {}
-    for n in lines[1].split():
+    for n in lines[2].split():   #ici
         [tid,x,y] = n.split(':')
         lout[tid] = (int(x),int(y))
-    content = '\n'.join(lines[2:])
+    content = '\n'.join(lines[3:]) #ici
     return lines[0],lout,content
 
 def extract_content(raw):
-    """ """
+    """ all lines after line 3"""
     lines = raw.split('\n')
-    content = '\n'.join(lines[2:])
+    content = '\n'.join(lines[3:]) # ici
     return content
 
 def extract_lout(raw):
-    """ """
+    """ Third line"""
     lout,lines = {},raw.split('\n')
-    for n in lines[1].split():
+    for n in lines[2].split(): # ici
         [tid,x,y] = n.split(':')
         lout[tid] = (int(x),int(y))
     return lout
@@ -807,7 +855,7 @@ def extract_lout(raw):
 def update_child(raw,gid,name):
     """ inserts gid adress after the node(name,label)"""
     l = raw.split('\n')
-    content = '\n'.join(l[1:])
+    content = '\n'.join(l[1:]) 
     rev,n = {},0
     for m in __REG_NODES__.finditer(content):
         if m.group(1) or m.group(2):
@@ -915,12 +963,51 @@ def new_graph(req,g,user,ip,name='',parent=''):
     gid = register_graph()
     old_content = mygit.cat(parent)
     remove_rev(old_content)
-    new_raw = old_content.split('\n')[0] + '\n' + update_child(g.value,gid,name)
-    mygit.save_mult(gid,parent,'%s\n\n'%parent,new_raw,'NEW')
+    tab = old_content.split('\n')
+    new_raw = tab[0] + '\n' + tab[1] + '\n' + update_child(g.value,gid,name) # g->layout+content
+    mygit.save_mult(gid,parent,'%s\n\n\n'%parent,new_raw,'NEW_CHILD') # ici
     return gid
 
+def new_attach(req,g,user,ip,gid,typ):
+    """ GIT """
+    mygit = _git(user,ip)
+    base='%s/cg/ath'%__BASE__
+    if not os.path.isdir(base):
+        os.mkdir(base)
+    import tempfile
+    (fd,dfile) = tempfile.mkstemp()
+    da = os.fdopen(fd,'w')
+    da.write(urllib.unquote(g.value))
+    da.close()
+    os.chmod(dfile,0777)
+    target = '%s/cg/ath/%s'%(__BASE__,gid)
+    import shutil
+    pdfile = '%s.pdf'%dfile
+    if typ == 'text/x-tex':
+        Popen(('cd /tmp; pdflatex %s;mv %s %s'%(dfile,pdfile,target)), shell=True).communicate()
+    elif typ == 'application/vnd.oasis.opendocument.text':
+        Popen(('openoffice.org -headless -nofirststartwisard -accept="socket,host=localhost,port=8100;urp;StarOffice.Service"'), shell=True).communicate()
+        sys.path.append('/home/laurent/formose/ConnectedGraph')
+        import DocumentConverter
+        cv = DocumentConverter.DocumentConverter()    
+        cv.convert(dfile, pdfile)
+        shutil.copy(pdfile,target)
+    else:
+        shutil.copy(dfile,target)
+    if os.path.isfile(dfile):
+        os.remove(dfile)
+    rev = mygit.save_file(gid)
+    return "Document saved with Git\n%s"%(rev)
+
+def load_pdf(req,gid):
+    """ GIT """
+    user = 'anybody'
+    mygit = _git(user,get_ip(req))
+    req.content_type = 'application/pdf'
+    return mygit.cat('@'+gid)
+
 def list(req):
-    """ """
+    """ temporary html listing (to be removed) """
     req.content_type = 'text/html'
     user = 'anybody'
     mygit = _git(user,get_ip(req))
@@ -932,11 +1019,11 @@ def list(req):
         if m:
             rev = m.group(1)
             gid = m.group(2)
-            hh =  mygit.gethead(gid)
+            hh =  mygit.gethead(gid).split(':')
             if gid != 'start':
                 n+=1
                 cat = mygit.cat_blob(rev)
-                out += '<tr><td>%05d</td><td title="%s"><a href="edit?@%s" style="font-family:courier;">%s</a></td><td>%s</td><td>%s</td></tr>'%(n,rev,gid,gid,short( extract_content(cat)),hh)
+                out += '<tr><td>%05d</td><td title="%s"><a href="edit?@%s" style="font-family:courier;">%s</a></td><td>%s</td><td>%s</td><td>%s</td></tr>'%(n,rev,gid,gid,short( extract_content(cat)),hh[0],hh[1])
     out += '<table>'
 
     out += '<table border="1" cellspacing="0" style="font-family: sans-serif; font-size: 10pt;}">'
@@ -953,8 +1040,6 @@ def list(req):
                 out += '<tr><td>%05d</td><td title="%s"><a href="edit?@%s" style="font-family:courier;">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>'%(n,rev,gid,gid,short( extract_content(cat)),hh[0][:20],hh[1],hh[2],gid)
     out += '<table>'
 
-
-
     out += '<table border="1" cellspacing="0" style="font-family: sans-serif; font-size: 10pt;">'
     n = 0
     for i in mygit.gethistory()[:-1]:
@@ -966,7 +1051,7 @@ def list(req):
     return out + '</html>'
 
 def edit(req,login='',pw='',pw2=''):
-    """ """
+    """ edit mode """
     #ch = True if check_user(login,pw) else False
     #mode,user_old = get_mode_user(req)
     #user = login if ch else user_old
@@ -999,12 +1084,12 @@ def view(req):
 
 def index(req,edit=False):
     """ if called with no parameter"""
-    valGet = '"Welcome to Connected Diagram Tool!"'
+    valGet = '"Welcome to \'\'\'ConnectedGraph\'\'\' Tool!"'
     return basic(req,False,'graph',valGet,'.')
     
 def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     """ common call """
-    debug=''
+    debug = ''
     base='%s/cg'%__BASE__
     if not os.path.isdir(base):
         os.mkdir(base)
@@ -1020,12 +1105,11 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
             valGet = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(req.args)))
             #valGet = re.sub('\$','#',re.sub('\\\\n','\n',req.args))
             #valGet = valGet.encode('iso-8859-1',replace)
-            #debug = valGet
     ##
     gid,rev,content,attrib,lout,praw = '','','','',{},''
     m0 = re.match('^([\da-f]{5,40})\s*$',valGet)
     if m0:
-        rev,gid,raw = mygit.getrev(m0.group(1))
+        rev,gid,raw = mygit.cat_getrev(m0.group(1))
         if rev != '':
             attrib,lout,content = extract_all(raw)
             praw = extract_content(mygit.cat(attrib))
@@ -1040,23 +1124,28 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
             else:
                 content,gid = '',''
         else:
-            content = valGet
-            if edit:
-                gid = register_graph(content)
-                rev = mygit.revision(gid)
-                if rev :
-                    raw = mygit.cat(gid)
+            m2 = re.match('^@(\S{10}):([\da-f]{5,40})\s*$',valGet)
+            if m2:
+                gid = m2.group(1)
+                rev,raw = mygit.cat_full(gid,m2.group(2))
+                if rev:
                     attrib,lout,content = extract_all(raw)
                     praw = extract_content(mygit.cat(attrib))
-                else:
-                    raw = '\n\n%s'%content
-                    rev = mygit.save(gid,raw,'NEW') # no parent
+            else:
+                content = valGet
+                if edit:
+                    gid = register_graph(content)
+                    rev = mygit.revision(gid)
+                    if rev :
+                        raw = mygit.cat(gid)
+                        attrib,lout,content = extract_all(raw)
+                        praw = extract_content(mygit.cat(attrib))
+                    else:
+                        raw = '\n\n\n%s'%content # ici
+                        rev = mygit.save(gid,raw,'NEW') # no parent
         ###
     git_date = mygit.date(gid) if edit else ''
     req.content_type = 'application/xhtml+xml'
-    #req.headers_out['Content-Disposition'] = 'attachment; filename=toto.txt'
-    #req.content_type = 'application/zip'
-    #req.headers_out['Content-Disposition'] = 'attachment; filename=SVG_connectedGraph_%s.zip'%re.sub('\.','_',__version__)
 
     # log
     log = open('%s/cg/cg.log'%__BASE__,'a')
@@ -1072,38 +1161,37 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
 
     (cjs,jsdone) = (init_g,'yes') if (mode == 'graph') and not empty else ('','no')
     
-    o += '<svg %s %s onclick="closelink();" width="1066" height="852">\n'%(_SVGNS,cjs)
+    o += '<svg %s %s id=".base" onclick="closelink();" width="1066" height="852">\n'%(_SVGNS,cjs)
     #o += '<title id=".title">&#10025;%s%s&#8211;</title>'%('' if lout else '*',__TITLE__)
-    o += '<title id=".title">%s%s &#8211; %s</title>'%('' if lout else '*',__TITLE__,short(content,True))
+    o += '<title id=".title">%s%s &#8211; %s</title>'%('' if (lout or pfx == '.') else '*',__TITLE__,short(content,True))
 
     # Find a way to have SVG fav icon instead of png !
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
     o += js(pfx) + defs()
-        
+
     (mG,mT) = ('inline','none') if mode == 'graph' else ('none','inline')
-    xpos = 80 if edit else 10
+    xpos = 85 if edit else 10
     clicable = 'onclick="update_url(evt,true);"' if edit else 'onclick="update_url(evt,false);" '
-    o += '<g transform="translate(%s,10)" stroke-width="1px" fill="#EEE" %s style="font-family:Arial;font-size:8pt;">'%(xpos,clicable)
+    o += '<g transform="translate(%s,10)" %s>'%(xpos,clicable)
     o += '<text class="hd" id=".content" title="content" y="0">%s</text>'%short(content)
     o += '<text class="hd" id=".gid" title="diagram id" y="10">%s</text>'%gid
     o += '<text class="hd" id=".rev" title="revision" y="20">%s</text>'%rev
     o += '</g>' + link_button()
-    o += '<g transform="translate(%s,10)" fill="#999">'%xpos
-    o += '<text class="hd1" id=".date" title="commit date" y="10" x="100" >%s</text>'%git_date
+    o += '<g transform="translate(%s,0)">'%xpos
+    o += '<text class="hd1" id=".date" title="commit date" y="10" x="230" >%s</text>'%git_date
     #o += '<text class="hd1" id=".state" title="Process based state (not yet supported!)" y="2" x="280">NEW</text>'
     o += '</g>'
 
     if edit:
-
         if user != 'anonymous':
             o += '<text class="hd1" id=".user" title="logout" x="470" y="12" onclick="logout();">%s</text>'%user
         else:
-            o += '<text id=".user">anonymous</text>'
-            o += '<text class="hd" x="460" y="12" title="log in with existing account" onclick="login();">Login</text>'
-            o += '<text class="hd" x="500" y="12" title="create a new account" onclick="create();">Signup</text>'
-        o += '<text class="hd1" id=".ip" title="ip address" x="540" y="12">%s</text>'%ip
+            o += '<text display="none" id=".user">anonymous</text>' # revoir
+            o += '<text class="hd" x="505" y="12" title="create a new account" onclick="create();">Signup</text>'
+            o += '<text class="hd" x="465" y="12" title="log in with existing account" onclick="login();">Login</text>'
+        o += '<text class="hd1" id=".ip" title="ip address" x="550" y="12">%s</text>'%ip
         o += '<g id=".form" display="none">'
-        o += '<foreignObject display="inline" y="1" x="320" width="80" height="70">' 
+        o += '<foreignObject display="inline" y="1" x="328" width="80" height="70">' 
         o += '<div %s><form id="myform" method="post">'%_XHTMLNS
         o += '<input id="login" name="login" title="Login" size="7" value=""/>'
         o += '<input id="pw" name="pw" type="password" title="Password" size="7" value=""/>'
@@ -1142,15 +1230,17 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
         o += '<text id="debug" x="10" y="90%%">DEBUG: %s</text>'%debug
     o += '<text x="96%%" y="10" fill="gray" title="Tool version id:%s" style="font-family:Arial;font-size:8pt;">%s</text>'%(sha1(req),__version__)
     o += '<g display="%s" id=".canvas" updated="yes" unsaved="%s" jsdone="%s" title="version %s">'%(mG,unsaved,jsdone,__version__) + run(content,lout,edit) + '</g>'
+
+    
     if edit:
         o += mode_button(mG,mT) + save_button(mygit,gid)
         #o += connect_button()
+        #o += attach_button()
         o += '<g class="button" fill="#CCC" transform="translate(62,1)"><rect x="1" width="15" height="30" rx="5"/><path transform="translate(0,6)" d="M4,4 4,14 14,9" fill="white"/>'+ nodes_bar() + '</g>'
-
+        
     if pfx == '.':
-        o += '<g id="history" onclick="load_item(evt);" transform="translate(10,15)"><text id=".list" fill="#CCC" style="font-family:courier;font-size:11pt;">'
-        n = 0
-        for i in mygit.getlist():
+        n,t = 0,[]
+        for i in sorted(mygit.getlist()):
             m = re.search(r'^100644 blob ([0-9a-f]{40})\t(\w+)$',i)
             if m:
                 rev = m.group(1)
@@ -1159,12 +1249,18 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
                 if gid != 'start':
                     n+=1
                     cat = mygit.cat_blob(rev)
-                    o += '<tspan x="0" dy="0.9em" gid="%s" title="%s">%05d %s %s %s %s</tspan>'%(gid,rev,n,gid,h[1],h[2],short( extract_content(cat)))
+                    t.append([h[3],gid,rev,h[1],h[2],short( extract_content(cat))])
+        o += '<g id="history" onclick="load_item(evt);" transform="translate(10,25)"><text id=".list" fill="#CCC" style="font-family:courier;font-size:11pt;">%d diagrams'%n
+        for i in sorted(t, key = lambda item:item[0],reverse=True):
+            o += '<tspan gid="%s" title="%s" dy="0.9em">'%(i[1],i[2])
+            o += '<tspan x="0">%s %s</tspan>'%(i[1],i[3])
+            o += '<tspan x="180">%s</tspan>'%i[4]
+            o += '<tspan x="300">%s</tspan>'%i[5]
+            o += '</tspan>'
         o += '</text></g>'
 
     if edit or pfx == '.':
         o += '<g onclick="load_github();">' + formose() + '</g>' 
-        
     #return graphviz(content)
     return o + '</svg>'
 
@@ -1185,10 +1281,16 @@ def nodes_bar():
     for n in nodes.keys():
         o += '<g id="%s" class="button" cl="%s" fill="#CCC" display="inline" title="%s" transform="translate(%d,0)">'%(n,nodes[n][0],n,32*i)
         o += '<rect width="32" height="32" rx="5" stroke-width="1px" stroke="white"/>'
-        o += '<g fill="white">' + nodes[n][1] + '<text x="11" y="25" fill="#CCC">%s</text>'%nodes[n][0] +'</g>'
-        o += '<text x="3" y="10" stroke-width="1px" fill="white" style="font-family:Arial;font-size:6pt;">%s</text></g>'%n.upper()
+        o += '<g fill="white">' + nodes[n][1] + '<text style="font-family:sans-serif;" x="11" y="25" fill="#CCC">%s</text>'%nodes[n][0] +'</g>'
+        o += '<text x="3" y="10" stroke-width="1px" fill="white" style="font-family:sans-serif;font-size:6pt;">%s</text></g>'%n.upper()
         i += 1
     return o + '</g>'
+
+def attach_button():
+    """ """
+    o = '<g class="button" onclick="save_attach();" title="Attach PDF document to current node" fill="#CCC" transform="translate(62,1)"><rect x="1" width="20" height="30" rx="5"/><g transform="translate(-1,4) scale(0.5)"><path stroke-linecap="round" fill="none" stroke="#fff" stroke-width="3" d="m21.615,8.810l-11.837,19.944l-0.349,2.677l0.582,2.67l1.28,1.746l5.122,3.143l2.793,0.349l2.095,-0.46l1.746,-1.047l1.746,-2.095l11.990,-20.838l0.698,-2.91l-0.465,-2.444l-1.28,-2.095l-1.746,-0.931l-1.979,-0.349l-1.629,0.349l-1.513,0.582l-1.746,1.280l-1.047,1.746l-9.080,16.065l-0.698,2.444l0.465,1.979l0.931,1.047l1.746,0.349l1.629,-0.814l1.164,-1.164l1.280,-1.629l4.656,-7.79l0.46,-0.81"/></g></g>'
+    o += '<foreignObject display="none"><form %s id="myform" method="post"><input type="file" id="fileElem" accept="pdf/*" style="display:none" onchange="new_attach(this.files)"/></form></foreignObject>'%_XHTMLNS
+    return o
 
 def link_button():
     """ """
@@ -1198,8 +1300,13 @@ def link_button():
 
 def run(content='',lout={},edit=False):
     """ """
-    empty = True if re.match('^\s*$',content) else False
-    if empty:
+    if content[:14] == 'data:image/svg':
+        o = ''
+        for l in base64.b64decode(content[25:]).split('\n'):
+            if not re.search(r'^<(\?|\/?svg)',l):
+                o += re.sub(r'font-size="(\d+)"','style="font-size:\\1pt;"',l)
+        return o
+    if re.match('^\s*$',content):
         bullet = 'Empty diagram...use canvas toolbox or add text in text view'
         return '<text %s x="150" y="150" stroke-width="1px" fill="#EEE" style="font-family:Arial;font-size:64pt;" title="%s" gid="" rev="">&#8709;</text><g id=".nodes"/>'%(_SVGNS,bullet)
     else:
@@ -1223,9 +1330,9 @@ def update_graph(req,g,gid,user,ip,name='',label=''):
     return mygraph.graph()
     
 def remove_rev(raw):
-    """ """
+    """ remove rev from rev database """
     lines = raw.split('\n')
-    content =  '\n'.join(lines[2:])
+    content =  '\n'.join(lines[3:]) # ici
     rev = dbhash.open('%s/cg/rev.db'%__BASE__,'c')
     if rev.has_key(content):
         del rev[content]
@@ -1235,7 +1342,8 @@ def save_layout(req,lout,gid,user,ip):
     """ IN GIT DB"""
     req.content_type = 'plain/text'
     mygit = _git(user,ip)
-    new_raw = re.sub('\n([^\n]*)\n','\n%s\n'%lout,mygit.cat(gid),1)
+    #new_raw = re.sub('\n([^\n]*)\n','\n%s\n'%lout,mygit.cat(gid),1)
+    new_raw = re.sub('(\n[^\n]*\n)[^\n]*\n','\\1%s\n'%lout,mygit.cat(gid),1)
     return mygit.save(gid,new_raw,'NEW')
 
 def save_content(req,g,gid,user,ip,msg=''):
@@ -1244,7 +1352,7 @@ def save_content(req,g,gid,user,ip,msg=''):
     mygit = _git(user,ip)
     raw = mygit.cat(gid)
     remove_rev(raw)
-    new_raw = raw.split('\n')[0]+'\n'+g.value
+    new_raw = raw.split('\n')[0]+'\n' + raw.split('\n')[1]+'\n'+g.value
     return mygit.save(gid,new_raw,msg)
 
 def get_env(r):
@@ -1311,8 +1419,7 @@ def reset(req):
     (pwd, name,ip) = get_env(req)
     req.content_type = 'text/plain'
     #Popen(('rm -rf %s/cg;'%__BASE__), shell=True).communicate()
-    return 'reset no possible'
-    #return 'reset done'
+    return 'reset no allowed !'
 
 def js(pfx):
     """ The content is copied and compressed from cg.js. Do not change this function"""
@@ -1337,13 +1444,19 @@ def update_js():
         py.write(out)
         py.close() 
 
+#matrix(0.28,0,0,0.28,410,233)"
 def formose():
     """ FORMOSE logo """
-    return '<!-- Copyright 2010 Stephane Macario --><defs><radialGradient fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(84.70,0.76,-0.76,84.70,171.57,-156.43)" spreadMethod="pad" id=".rd1"><stop style="stop-color:#94d787" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient><radialGradient fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(84.69,0.76,-0.76,84.69,171.58,-156.42)" spreadMethod="pad" id=".rd2"><stop style="stop-color:#94d787" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient><radialGradient fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(161.13,1.45,-1.45,161.13,99.46,-256.92)" spreadMethod="pad" id=".rd3"><stop style="stop-color:#bae381" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient></defs><g transform="matrix(0.28,0,0,0.28,410,233)" style="fill:#ffffff;stroke:none" title="FOrmal Requirements Modelling in an Open-Source Environment"><g style="fill:#231f20;stroke:none"><path d="m 536.70,-701.72 c 0,0 -332.09,0 -332.09,0 0,0 0,-65.40 0,-65.40 0,0 332.09,0 332.09,0 0,0 0,65.40 0,65.40 z"/><path d="m 561.06,-675.65 c 0,0 -330.70,0 -330.70,0 0,0 0,-68.26 0,-68.26 0,0 330.70,0 330.70,0 0,0 0,68.26 0,68.26 z"/></g><path d="m 237.89,-737.15 c 0,0 0,9.74 0,9.74 0,0 15.65,0 15.65,0 0,0 0,6.37 0,6.37 0,0 -15.65,0 -15.65,0 0,0 0,19.25 0,19.25 0,0 -7.88,0 -7.88,0 0,0 0,-41.98 0,-41.98 0,0 29.34,0 29.34,0 0,0 0,6.61 0,6.61 0,0 -21.45,0 -21.45,0 z"/><path d="m 278.83,-723.11 c 0,4.90 0.88,8.69 2.64,11.38 1.76,2.68 4.32,4.03 7.69,4.03 3.95,0 6.96,-1.31 9.04,-3.94 2.07,-2.63 3.11,-6.45 3.11,-11.47 0,-9.82 -3.85,-14.73 -11.55,-14.73 -3.52,0 -6.23,1.33 -8.11,3.99 -1.88,2.66 -2.82,6.24 -2.82,10.74 z m -8.23,0 c 0,-5.96 1.73,-11.02 5.22,-15.15 3.47,-4.13 8.13,-6.19 13.95,-6.19 6.41,0 11.31,1.87 14.70,5.61 3.38,3.73 5.08,8.98 5.08,15.73 0,6.75 -1.77,12.11 -5.31,16.07 -3.54,3.96 -8.56,5.95 -15.08,5.95 -5.98,0 -10.58,-1.96 -13.77,-5.89 -3.19,-3.92 -4.79,-9.30 -4.79,-16.13 z" /><path d="m 331.08,-737.32 c 0,0 0,11.60 0,11.60 1.45,0.11 2.57,0.17 3.34,0.17 3.29,0 5.71,-0.43 7.24,-1.30 1.52,-0.87 2.29,-2.57 2.29,-5.10 0,-2.05 -0.82,-3.48 -2.45,-4.30 -1.63,-0.81 -4.22,-1.22 -7.74,-1.22 -0.85,0 -1.74,0.05 -2.67,0.17 z m 16.93,35.54 c 0,0 -11.91,-17.39 -11.91,-17.39 -1.19,-0.01 -2.86,-0.08 -5.01,-0.19 0,0 0,17.59 0,17.59 0,0 -8.23,0 -8.23,0 0,0 0,-42.01 0,-42.01 0.44,0 2.16,-0.06 5.14,-0.21 2.98,-0.14 5.38,-0.21 7.21,-0.21 11.32,0 16.98,4.12 16.98,12.37 0,2.48 -0.78,4.74 -2.34,6.78 -1.56,2.04 -3.52,3.48 -5.90,4.32 0,0 13.22,18.96 13.22,18.96 0,0 -9.16,0 -9.16,0 z" /><path d="m 408.88,-701.77 c 0,0 -7.65,0 -7.65,0 0,0 -4.69,-22.61 -4.69,-22.61 0,0 -8.98,23.19 -8.98,23.19 0,0 -2.78,0 -2.78,0 0,0 -8.98,-23.19 -8.98,-23.19 0,0 -4.81,22.61 -4.81,22.61 0,0 -7.65,0 -7.65,0 0,0 9.04,-41.98 9.04,-41.98 0,0 4.17,0 4.17,0 0,0 9.62,28.29 9.62,28.29 0,0 9.39,-28.29 9.39,-28.29 0,0 4.17,0 4.17,0 0,0 9.16,41.98 9.16,41.98 z" /><path d="m 426.17,-723.11 c 0,4.90 0.87,8.69 2.64,11.38 1.76,2.68 4.32,4.03 7.69,4.03 3.95,0 6.96,-1.31 9.04,-3.94 2.07,-2.63 3.11,-6.45 3.11,-11.47 0,-9.82 -3.85,-14.73 -11.55,-14.73 -3.52,0 -6.23,1.33 -8.11,3.99 -1.88,2.66 -2.82,6.24 -2.82,10.74 z m -8.23,0 c 0,-5.96 1.73,-11.02 5.22,-15.15 3.48,-4.13 8.13,-6.19 13.95,-6.19 6.41,0 11.31,1.87 14.70,5.61 3.38,3.73 5.08,8.98 5.08,15.73 0,6.75 -1.77,12.11 -5.31,16.07 -3.54,3.96 -8.56,5.95 -15.08,5.95 -5.98,0 -10.57,-1.96 -13.77,-5.89 -3.19,-3.92 -4.79,-9.30 -4.79,-16.13 z" /><path d="m 468.10,-704.12 c 0,0 2.92,-6.69 2.92,-6.69 3.12,2.08 6.20,3.13 9.23,3.13 4.65,0 6.97,-1.52 6.97,-4.57 0,-1.42 -0.54,-2.79 -1.64,-4.08 -1.09,-1.29 -3.35,-2.75 -6.77,-4.35 -3.41,-1.60 -5.71,-2.93 -6.90,-3.97 -1.18,-1.04 -2.10,-2.27 -2.73,-3.71 -0.64,-1.43 -0.95,-3.01 -0.95,-4.75 0,-3.24 1.25,-5.94 3.78,-8.08 2.52,-2.13 5.75,-3.21 9.70,-3.21 5.14,0 8.92,0.91 11.33,2.72 0,0 -2.40,6.43 -2.40,6.43 -2.77,-1.85 -5.70,-2.78 -8.78,-2.78 -1.82,0 -3.23,0.45 -4.24,1.35 -1.00,0.90 -1.50,2.08 -1.50,3.53 0,2.40 2.83,4.89 8.50,7.48 2.98,1.37 5.14,2.63 6.46,3.79 1.31,1.15 2.32,2.49 3.01,4.03 0.69,1.53 1.03,3.24 1.03,5.13 0,3.39 -1.42,6.18 -4.28,8.37 -2.85,2.19 -6.67,3.28 -11.47,3.28 -4.16,0 -7.92,-1.01 -11.27,-3.04 z" /><path d="m 516.24,-737.15 c 0,0 0,9.74 0,9.74 0,0 14.49,0 14.49,0 0,0 0,6.37 0,6.37 0,0 -14.49,0 -14.49,0 0,0 0,12.64 0,12.64 0,0 20.29,0 20.29,0 0,0 0,6.61 0,6.61 0,0 -28.18,0 -28.18,0 0,0 0,-41.98 0,-41.98 0,0 28.18,0 28.18,0 0,0 0,6.61 0,6.61 0,0 -20.29,0 -20.29,0 z" /><g transform="translate(-5.80,-492.07)"><path d="m 86.77,-176.29 c 0,0 -1.34,-5.21 -1.34,-5.21 -0.84,0.01 -1.69,0.03 -2.54,0.03 -16.44,-0.14 -32.02,-3.82 -46.07,-10.26 10.86,15.09 26.44,26.58 44.59,32.30 -0.05,-0.18 -0.12,-0.36 -0.17,-0.56 -1.57,-6.07 0.78,-12.28 5.55,-16.29 z" style="fill:url(#.rd1);stroke:none"/></g><g transform="translate(-5.80,-492.07)"><path d="m 194.97,-241.90 c 0.06,-7.29 -0.78,-14.39 -2.40,-21.18 -12.30,42.46 -48.78,74.56 -93.44,80.57 0,0 0.49,1.90 0.49,1.90 7.36,0.32 13.85,5.02 15.66,12.04 1.18,4.60 0.10,9.27 -2.55,13.00 45.51,-2.58 81.83,-40.09 82.25,-86.34 z" style="fill:url(#.rd2);stroke:none"/></g><g transform="translate(-5.80,-492.07)"><path d="m 174.53,-298.79 c -1.33,2.19 -3.38,4.04 -6.02,5.16 -5.24,2.22 -11.13,0.93 -14.64,-2.79 0,0 -66.45,27.28 -66.45,27.28 -1.04,4.29 -3.88,8.13 -7.94,10.55 0,0 7.64,29.58 7.64,29.58 0,0 50.14,-4.17 50.14,-4.17 0.72,-3.86 3.44,-7.37 7.59,-9.13 6.47,-2.74 13.96,-0.12 16.70,5.84 2.74,5.97 -0.28,13.04 -6.77,15.78 -5.77,2.44 -12.33,0.62 -15.64,-4.01 0,0 -49.83,4.15 -49.83,4.15 0,0 9.82,38.03 9.82,38.03 -4.48,0.60 -9.05,0.94 -13.69,1.00 0,0 -19.33,-74.79 -19.33,-74.79 -6.12,-1.26 -11.20,-5.59 -12.77,-11.67 -2.25,-8.71 3.54,-17.68 12.95,-20.06 8.58,-2.16 17.20,1.96 20.35,9.33 0,0 64.21,-26.35 64.21,-26.35 0.34,-3.82 2.68,-7.39 6.39,-9.47 -13.86,-9.58 -30.63,-15.26 -48.76,-15.42 -48.21,-0.43 -87.64,38.29 -88.07,86.50 -0.17,19.29 5.94,37.17 16.41,51.72 14.04,6.43 29.62,10.11 46.07,10.26 51.89,0.46 95.91,-34.09 109.68,-81.60 -3.19,-13.35 -9.47,-25.51 -18.03,-35.70 z" style="fill:url(#.rd3);stroke:none"/></g><path d="m 145.03,-797.14 c 0,0 -64.21,26.35 -64.21,26.35 -3.14,-7.37 -11.76,-11.49 -20.35,-9.33 -9.40,2.37 -15.20,11.35 -12.95,20.06 1.57,6.08 6.65,10.41 12.77,11.67 0,0 19.33,74.79 19.33,74.79 4.63,-0.05 9.20,-0.39 13.69,-1.00 0,0 -9.82,-38.03 -9.82,-38.03 0,0 49.83,-4.15 49.83,-4.15 3.30,4.64 9.86,6.45 15.64,4.01 6.48,-2.74 9.51,-9.81 6.77,-15.78 -2.74,-5.96 -10.22,-8.59 -16.70,-5.84 -4.14,1.75 -6.86,5.26 -7.59,9.13 0,0 -50.14,4.17 -50.14,4.17 0,0 -7.64,-29.58 -7.64,-29.58 4.05,-2.42 6.89,-6.25 7.94,-10.55 0,0 66.45,-27.28 66.45,-27.28 3.51,3.72 9.40,5.01 14.64,2.79 2.64,-1.11 4.68,-2.96 6.02,-5.16 -5.03,-5.99 -10.84,-11.29 -17.30,-15.75 -3.71,2.08 -6.05,5.65 -6.39,9.47 z" /><path d="m 109.47,-660.64 c -1.81,-7.01 -8.29,-11.71 -15.66,-12.04 0,0 -0.49,-1.90 -0.49,-1.90 -4.48,0.60 -9.05,0.94 -13.69,1.00 0,0 1.34,5.21 1.34,5.21 -4.76,4.00 -7.12,10.21 -5.55,16.29 0.04,0.19 0.12,0.37 0.17,0.56 8.05,2.54 16.61,3.95 25.49,4.03 1.95,0.01 3.89,-0.05 5.82,-0.16 2.65,-3.73 3.74,-8.40 2.55,-13.00 z"/></g>'
+    return '<!-- Copyright 2010 Stephane Macario --><defs><radialGradient fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(84.70,0.76,-0.76,84.70,171.57,-156.43)" spreadMethod="pad" id=".rd1"><stop style="stop-color:#94d787" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient><radialGradient fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(84.69,0.76,-0.76,84.69,171.58,-156.42)" spreadMethod="pad" id=".rd2"><stop style="stop-color:#94d787" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient><radialGradient fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(161.13,1.45,-1.45,161.13,99.46,-256.92)" spreadMethod="pad" id=".rd3"><stop style="stop-color:#bae381" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient></defs><g transform="matrix(0.21,0,0,0.21,424,176)" style="fill:#ffffff;stroke:none" title="FOrmal Requirements Modelling in an Open-Source Environment"><g style="fill:#231f20;stroke:none"><path d="m 536.70,-701.72 c 0,0 -332.09,0 -332.09,0 0,0 0,-65.40 0,-65.40 0,0 332.09,0 332.09,0 0,0 0,65.40 0,65.40 z"/><path d="m 561.06,-675.65 c 0,0 -330.70,0 -330.70,0 0,0 0,-68.26 0,-68.26 0,0 330.70,0 330.70,0 0,0 0,68.26 0,68.26 z"/></g><path d="m 237.89,-737.15 c 0,0 0,9.74 0,9.74 0,0 15.65,0 15.65,0 0,0 0,6.37 0,6.37 0,0 -15.65,0 -15.65,0 0,0 0,19.25 0,19.25 0,0 -7.88,0 -7.88,0 0,0 0,-41.98 0,-41.98 0,0 29.34,0 29.34,0 0,0 0,6.61 0,6.61 0,0 -21.45,0 -21.45,0 z"/><path d="m 278.83,-723.11 c 0,4.90 0.88,8.69 2.64,11.38 1.76,2.68 4.32,4.03 7.69,4.03 3.95,0 6.96,-1.31 9.04,-3.94 2.07,-2.63 3.11,-6.45 3.11,-11.47 0,-9.82 -3.85,-14.73 -11.55,-14.73 -3.52,0 -6.23,1.33 -8.11,3.99 -1.88,2.66 -2.82,6.24 -2.82,10.74 z m -8.23,0 c 0,-5.96 1.73,-11.02 5.22,-15.15 3.47,-4.13 8.13,-6.19 13.95,-6.19 6.41,0 11.31,1.87 14.70,5.61 3.38,3.73 5.08,8.98 5.08,15.73 0,6.75 -1.77,12.11 -5.31,16.07 -3.54,3.96 -8.56,5.95 -15.08,5.95 -5.98,0 -10.58,-1.96 -13.77,-5.89 -3.19,-3.92 -4.79,-9.30 -4.79,-16.13 z" /><path d="m 331.08,-737.32 c 0,0 0,11.60 0,11.60 1.45,0.11 2.57,0.17 3.34,0.17 3.29,0 5.71,-0.43 7.24,-1.30 1.52,-0.87 2.29,-2.57 2.29,-5.10 0,-2.05 -0.82,-3.48 -2.45,-4.30 -1.63,-0.81 -4.22,-1.22 -7.74,-1.22 -0.85,0 -1.74,0.05 -2.67,0.17 z m 16.93,35.54 c 0,0 -11.91,-17.39 -11.91,-17.39 -1.19,-0.01 -2.86,-0.08 -5.01,-0.19 0,0 0,17.59 0,17.59 0,0 -8.23,0 -8.23,0 0,0 0,-42.01 0,-42.01 0.44,0 2.16,-0.06 5.14,-0.21 2.98,-0.14 5.38,-0.21 7.21,-0.21 11.32,0 16.98,4.12 16.98,12.37 0,2.48 -0.78,4.74 -2.34,6.78 -1.56,2.04 -3.52,3.48 -5.90,4.32 0,0 13.22,18.96 13.22,18.96 0,0 -9.16,0 -9.16,0 z" /><path d="m 408.88,-701.77 c 0,0 -7.65,0 -7.65,0 0,0 -4.69,-22.61 -4.69,-22.61 0,0 -8.98,23.19 -8.98,23.19 0,0 -2.78,0 -2.78,0 0,0 -8.98,-23.19 -8.98,-23.19 0,0 -4.81,22.61 -4.81,22.61 0,0 -7.65,0 -7.65,0 0,0 9.04,-41.98 9.04,-41.98 0,0 4.17,0 4.17,0 0,0 9.62,28.29 9.62,28.29 0,0 9.39,-28.29 9.39,-28.29 0,0 4.17,0 4.17,0 0,0 9.16,41.98 9.16,41.98 z" /><path d="m 426.17,-723.11 c 0,4.90 0.87,8.69 2.64,11.38 1.76,2.68 4.32,4.03 7.69,4.03 3.95,0 6.96,-1.31 9.04,-3.94 2.07,-2.63 3.11,-6.45 3.11,-11.47 0,-9.82 -3.85,-14.73 -11.55,-14.73 -3.52,0 -6.23,1.33 -8.11,3.99 -1.88,2.66 -2.82,6.24 -2.82,10.74 z m -8.23,0 c 0,-5.96 1.73,-11.02 5.22,-15.15 3.48,-4.13 8.13,-6.19 13.95,-6.19 6.41,0 11.31,1.87 14.70,5.61 3.38,3.73 5.08,8.98 5.08,15.73 0,6.75 -1.77,12.11 -5.31,16.07 -3.54,3.96 -8.56,5.95 -15.08,5.95 -5.98,0 -10.57,-1.96 -13.77,-5.89 -3.19,-3.92 -4.79,-9.30 -4.79,-16.13 z" /><path d="m 468.10,-704.12 c 0,0 2.92,-6.69 2.92,-6.69 3.12,2.08 6.20,3.13 9.23,3.13 4.65,0 6.97,-1.52 6.97,-4.57 0,-1.42 -0.54,-2.79 -1.64,-4.08 -1.09,-1.29 -3.35,-2.75 -6.77,-4.35 -3.41,-1.60 -5.71,-2.93 -6.90,-3.97 -1.18,-1.04 -2.10,-2.27 -2.73,-3.71 -0.64,-1.43 -0.95,-3.01 -0.95,-4.75 0,-3.24 1.25,-5.94 3.78,-8.08 2.52,-2.13 5.75,-3.21 9.70,-3.21 5.14,0 8.92,0.91 11.33,2.72 0,0 -2.40,6.43 -2.40,6.43 -2.77,-1.85 -5.70,-2.78 -8.78,-2.78 -1.82,0 -3.23,0.45 -4.24,1.35 -1.00,0.90 -1.50,2.08 -1.50,3.53 0,2.40 2.83,4.89 8.50,7.48 2.98,1.37 5.14,2.63 6.46,3.79 1.31,1.15 2.32,2.49 3.01,4.03 0.69,1.53 1.03,3.24 1.03,5.13 0,3.39 -1.42,6.18 -4.28,8.37 -2.85,2.19 -6.67,3.28 -11.47,3.28 -4.16,0 -7.92,-1.01 -11.27,-3.04 z" /><path d="m 516.24,-737.15 c 0,0 0,9.74 0,9.74 0,0 14.49,0 14.49,0 0,0 0,6.37 0,6.37 0,0 -14.49,0 -14.49,0 0,0 0,12.64 0,12.64 0,0 20.29,0 20.29,0 0,0 0,6.61 0,6.61 0,0 -28.18,0 -28.18,0 0,0 0,-41.98 0,-41.98 0,0 28.18,0 28.18,0 0,0 0,6.61 0,6.61 0,0 -20.29,0 -20.29,0 z" /><g transform="translate(-5.80,-492.07)"><path d="m 86.77,-176.29 c 0,0 -1.34,-5.21 -1.34,-5.21 -0.84,0.01 -1.69,0.03 -2.54,0.03 -16.44,-0.14 -32.02,-3.82 -46.07,-10.26 10.86,15.09 26.44,26.58 44.59,32.30 -0.05,-0.18 -0.12,-0.36 -0.17,-0.56 -1.57,-6.07 0.78,-12.28 5.55,-16.29 z" style="fill:url(#.rd1);stroke:none"/></g><g transform="translate(-5.80,-492.07)"><path d="m 194.97,-241.90 c 0.06,-7.29 -0.78,-14.39 -2.40,-21.18 -12.30,42.46 -48.78,74.56 -93.44,80.57 0,0 0.49,1.90 0.49,1.90 7.36,0.32 13.85,5.02 15.66,12.04 1.18,4.60 0.10,9.27 -2.55,13.00 45.51,-2.58 81.83,-40.09 82.25,-86.34 z" style="fill:url(#.rd2);stroke:none"/></g><g transform="translate(-5.80,-492.07)"><path d="m 174.53,-298.79 c -1.33,2.19 -3.38,4.04 -6.02,5.16 -5.24,2.22 -11.13,0.93 -14.64,-2.79 0,0 -66.45,27.28 -66.45,27.28 -1.04,4.29 -3.88,8.13 -7.94,10.55 0,0 7.64,29.58 7.64,29.58 0,0 50.14,-4.17 50.14,-4.17 0.72,-3.86 3.44,-7.37 7.59,-9.13 6.47,-2.74 13.96,-0.12 16.70,5.84 2.74,5.97 -0.28,13.04 -6.77,15.78 -5.77,2.44 -12.33,0.62 -15.64,-4.01 0,0 -49.83,4.15 -49.83,4.15 0,0 9.82,38.03 9.82,38.03 -4.48,0.60 -9.05,0.94 -13.69,1.00 0,0 -19.33,-74.79 -19.33,-74.79 -6.12,-1.26 -11.20,-5.59 -12.77,-11.67 -2.25,-8.71 3.54,-17.68 12.95,-20.06 8.58,-2.16 17.20,1.96 20.35,9.33 0,0 64.21,-26.35 64.21,-26.35 0.34,-3.82 2.68,-7.39 6.39,-9.47 -13.86,-9.58 -30.63,-15.26 -48.76,-15.42 -48.21,-0.43 -87.64,38.29 -88.07,86.50 -0.17,19.29 5.94,37.17 16.41,51.72 14.04,6.43 29.62,10.11 46.07,10.26 51.89,0.46 95.91,-34.09 109.68,-81.60 -3.19,-13.35 -9.47,-25.51 -18.03,-35.70 z" style="fill:url(#.rd3);stroke:none"/></g><path d="m 145.03,-797.14 c 0,0 -64.21,26.35 -64.21,26.35 -3.14,-7.37 -11.76,-11.49 -20.35,-9.33 -9.40,2.37 -15.20,11.35 -12.95,20.06 1.57,6.08 6.65,10.41 12.77,11.67 0,0 19.33,74.79 19.33,74.79 4.63,-0.05 9.20,-0.39 13.69,-1.00 0,0 -9.82,-38.03 -9.82,-38.03 0,0 49.83,-4.15 49.83,-4.15 3.30,4.64 9.86,6.45 15.64,4.01 6.48,-2.74 9.51,-9.81 6.77,-15.78 -2.74,-5.96 -10.22,-8.59 -16.70,-5.84 -4.14,1.75 -6.86,5.26 -7.59,9.13 0,0 -50.14,4.17 -50.14,4.17 0,0 -7.64,-29.58 -7.64,-29.58 4.05,-2.42 6.89,-6.25 7.94,-10.55 0,0 66.45,-27.28 66.45,-27.28 3.51,3.72 9.40,5.01 14.64,2.79 2.64,-1.11 4.68,-2.96 6.02,-5.16 -5.03,-5.99 -10.84,-11.29 -17.30,-15.75 -3.71,2.08 -6.05,5.65 -6.39,9.47 z" /><path d="m 109.47,-660.64 c -1.81,-7.01 -8.29,-11.71 -15.66,-12.04 0,0 -0.49,-1.90 -0.49,-1.90 -4.48,0.60 -9.05,0.94 -13.69,1.00 0,0 1.34,5.21 1.34,5.21 -4.76,4.00 -7.12,10.21 -5.55,16.29 0.04,0.19 0.12,0.37 0.17,0.56 8.05,2.54 16.61,3.95 25.49,4.03 1.95,0.01 3.89,-0.05 5.82,-0.16 2.65,-3.73 3.74,-8.40 2.55,-13.00 z"/></g>'
  
 if __name__ == '__main__': 
     import sys
-    print 'look at cg_test.py for non regression testing'
+    #print 'look at cg_test.py for non regression testing'
+    raw = 'PARENT\nTABLE\nLAYOUT\nA\nB'
+    lout = 'toto'
+    print raw
+    print re.sub('(\n[^\n]*\n)[^\n]*\n','\\1%s\n'%lout,raw,1)
+
     #update_js()
 
 #end

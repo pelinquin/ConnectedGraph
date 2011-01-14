@@ -34,6 +34,7 @@ The initial Doug Schepers's library has been :
 */
 
 const svgns   = 'http://www.w3.org/2000/svg';
+const xlinkns = 'http://www.w3.org/1999/xlink';
 const xhtmlns = 'http://www.w3.org/1999/xhtml';
 
 /* Globals !*/
@@ -46,8 +47,6 @@ if (typeof($)=='undefined') {
 /*
 * initialize
 */
-
-
 
 function is_gecko() {
   var str = navigator.userAgent;
@@ -100,11 +99,19 @@ function enterFocus(evt) {
 }
 
 function enterNode(evt) {
-  var nod = evt.target; 
+  var nod = evt.target;
+  var nod0 = nod;
   while (nod.parentNode.id != '.nodes') { nod = nod.parentNode; } 
   if (nod.hasAttribute('href')) { 
-    document.location.replace(get_url() + '?@' + nod.getAttribute('href'));
-  } 
+    var href = nod.getAttribute('href');
+    if (nod0.parentNode.id == 'attachid') { 
+      window.open(get_base_url() + '/load_pdf?gid=' + href, 'neutral', 'chrome,scrollbars=yes');
+    } else {
+      var fhref = '@' + href + ':' + $('.rev').firstChild.nodeValue.substring(0,15);
+      //alert (fhref);
+      document.location.replace(get_url() + '?' + fhref);
+    } 
+  }
 }
 
 function typeTextBG(evt) {
@@ -145,6 +152,12 @@ function init_graph(noedit) {
   if (noedit == null) {
     var drag = new DragDrop();
     drag.init( $('.nodes') );
+    // attach document drop
+    var dropbox = $('.nodes');
+    //var dropbox = $('.base');
+    dropbox.addEventListener("dragenter", dragenter, false);
+    dropbox.addEventListener("dragover", dragover, false);
+    dropbox.addEventListener("drop", drop, false);
   } else {
     $('.nodes').addEventListener("click", enterNode, false);
   }
@@ -188,6 +201,7 @@ Node.prototype.init = function( id ) {
   if ( !node ) {
     this.el = $(id);
     this.id = id;
+    var brut = this.el.lastChild;
     var b = this.el.lastChild.getBBox();
 
     var centroid = GetCentroid(this.el);
@@ -206,6 +220,7 @@ Node.prototype.init = function( id ) {
     nodeArray[id] = this; 
     node = this;    
     this.role = this.el.getAttribute('role');  
+    this.name = this.el.getAttribute('title');  
 
     var border = 8;
     var g = document.createElementNS(svgns, 'g');
@@ -246,7 +261,26 @@ Node.prototype.init = function( id ) {
 	'l' + (-3*w/5) +',2' + 
 	'l' + (-2*w/5) +',-2' + 
 	'l' + (f+2) + ',' + -4*h/7 + 'z';
-      shape.setAttribute('d', d);
+      shape.setAttribute('d', d); 
+    } else if (this.role == 'CLASS') {
+      var tab = brut.childNodes;
+      var res = [];
+      for (var i = 0; i < tab.length; i++) {
+	if (tab[i].hasAttribute('sep')) {
+	  res.push(20*i);
+	}
+      }
+      shape = document.createElementNS(svgns, "path");
+      shape.setAttribute('fill', 'url(#.grad)');
+      shape.setAttribute('filter', 'url(#.shadow)');
+      shape.setAttribute('stroke', 'gray');
+      var x = b.x - border; var y = b.y - border;
+      var w = b.width + 2*border; var h = b.height + 2*border;
+      var d = 'M'+x+','+y + 'l'+w+',0' + 'l0,'+ h + 'l'+ (-w) +',0' + 'z';
+      for (var i = 0; i < res.length; i++) {
+	d += ' M'+x+','+(y+7+res[i]) + 'l'+w+',0'
+      }
+      shape.setAttribute('d', d); 
     } else if (this.role == 'ASSOCIATION') {
       shape = document.createElementNS(svgns, "path");
       shape.setAttribute('fill', 'url(#.grad)');
@@ -261,7 +295,6 @@ Node.prototype.init = function( id ) {
 	'l' + w/2 + ',' + h/2 + 
 	'l'+ (-w/2) + ',' + h/2 + 
 	'l'+ (-w/2) +',' + (-h/2) + 'z';
-      //d = 'M'+x+','+y + 'l'+w+',0' + 'l0,'+ h + 'l'+ (-w)+',0' + 'z';
       shape.setAttribute('d', d);
     } else if (this.role == 'ENTITY') {
       shape = document.createElementNS(svgns, "path");
@@ -277,6 +310,18 @@ Node.prototype.init = function( id ) {
     } else if (this.role == 'REQUIREMENT') {
       shape = document.createElementNS(svgns, "rect");
       shape.setAttribute('fill', 'url(#.grad)');
+      shape.setAttribute('filter', 'url(#.shadow)');
+      shape.setAttribute('rx', '4' );
+      shape.setAttribute('stroke', 'gray' );
+      shape.setAttribute('width', b.width + 2*border);
+      shape.setAttribute('height', b.height + 2*border);
+      shape.setAttribute('x', b.x - border );
+      shape.setAttribute('y', b.y - border);      
+      shape.setAttribute('stroke-width', '3');
+      shape.setAttribute('transform', 'skewX(-10)'); 
+    } else if (this.role == 'EXPECTATION') {
+      shape = document.createElementNS(svgns, "rect");
+      shape.setAttribute('fill', 'url(#.grady)');
       shape.setAttribute('filter', 'url(#.shadow)');
       shape.setAttribute('rx', '4' );
       shape.setAttribute('stroke', 'gray' );
@@ -322,16 +367,30 @@ Node.prototype.init = function( id ) {
     //g.setAttribute('class', 'node');
     g.appendChild(shape);
     if (this.role != null) {
-      var txt = document.createElementNS(svgns, 'text');
-      var content = document.createTextNode(this.role);
-      if (this.role == 'OBSTACLE') {
-	txt.setAttribute('x', "-6");
-      } 
-      txt.setAttribute('y', "-16");
-      txt.setAttribute('fill', 'gray');
-      txt.setAttribute('style', 'font-family:Arial;font-size:3pt;');
-      txt.appendChild(content);
-      g.appendChild(txt);
+      if (this.role != 'CLASS') {
+	var txt = document.createElementNS(svgns, 'text');
+	var content = document.createTextNode(this.role);
+	if (this.role == 'OBSTACLE') {
+	  txt.setAttribute('x', "-6");
+	} 
+	txt.setAttribute('y', "-14");
+	txt.setAttribute('fill', 'gray');
+	txt.setAttribute('style', 'font-family:Arial;font-size:3pt;');
+	txt.appendChild(content);
+	g.appendChild(txt);
+      }
+      var txt1 = document.createElementNS(svgns, 'text');
+      var content1 = document.createTextNode(this.name);
+      txt1.setAttribute('x', b.width-(this.name.length*5));
+      txt1.setAttribute('y', b.height-8);
+      txt1.setAttribute('fill', 'white');
+      txt1.setAttribute('style', 'font-family:Arial;font-size:5pt;font-weight:bold;');
+      txt1.appendChild(content1);
+      g.appendChild(txt1);
+    }
+    // Attachment
+    if (this.el.hasAttribute('attach')) {
+      g.appendChild(attach_icon(b.width));
     } 
     this.el.insertBefore( g ,this.el.firstChild);
     var g1 = document.createElementNS(svgns, 'g');
@@ -379,6 +438,66 @@ Node.prototype.init = function( id ) {
   }
   return node;
 };
+
+function attach_icon(w) {
+  var tt = document.createElementNS(svgns, 'g');
+  tt.setAttribute('transform', 'translate(' + (w+12) + ',-20) scale(0.32)');
+  tt.setAttribute('class', 'attach');
+  tt.setAttribute('id', 'attachid');
+  tt.setAttribute('title', 'get attached PDF document');
+  var tt2 = document.createElementNS(svgns, 'rect');
+  tt2.setAttribute('width', '42');
+  tt2.setAttribute('fill', 'none');
+  tt2.setAttribute('height','47');
+  tt.appendChild(tt2);
+  var tt1 = document.createElementNS(svgns, 'path');
+  tt1.setAttribute('stroke-linecap', 'round');
+  tt1.setAttribute('fill', 'none');
+  tt1.setAttribute('stroke','#6bc62e');
+  tt1.setAttribute('stroke-width','3');
+  tt1.setAttribute('d',get_attach());
+  tt.appendChild(tt1);
+  return tt;
+} 
+
+function attach() {
+  var gid = '&gid=' + $('.gid').firstChild.nodeValue;
+  window.open(get_base_url() + '/load_pdf?' + user_ip() + gid, 'neutral', 'chrome,scrollbars=yes');
+}
+
+function save_attach() {
+  var el = $('fileElem');
+  if (el) {
+    el.click();
+  }
+}
+
+function new_attach(files,gid,nod) {
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    //alert (file.size + ' ' + file.getAsBinary().length);
+    var bd = 'AaB03x';
+    var content = escape(file.getAsBinary());
+    //alert (file.type);
+    var args = binary_post(bd,content);
+    var param = '';
+    if (gid) {
+      param = '&gid=' + gid + '&typ=' + file.type;
+    } else {
+      param = '&gid=' + $('.gid').firstChild.nodeValue + '&typ=' + file.type;
+    }
+    var ai = new ajax_post(true,get_base_url() + '/new_attach?' + user_ip() + param,args,bd,function(res) {
+			     //alert (res);
+			     var b = nod.firstChild.nextSibling.getBBox();
+			     nod.firstChild.appendChild(attach_icon(b.width));
+			   });
+    ai.doPost();
+  }
+}
+
+function get_attach() {
+  return 'm21.615,8.81l-11.837,19.94l-0.349,2.68l0.582,2.67l1.28,1.746l5.122,3.14l2.79,0.35l2.095,-0.46l1.746,-1.047l1.746,-2.095l11.990,-20.838l0.698,-2.91l-0.465,-2.444l-1.28,-2.095l-1.746,-0.931l-1.979,-0.349l-1.629,0.349l-1.513,0.582l-1.746,1.28l-1.047,1.746l-9.08,16.065l-0.698,2.44l0.465,1.98l0.931,1.047l1.746,0.349l1.629,-0.814l1.164,-1.164l1.28,-1.63l4.656,-7.79l0.46,-0.81';
+}
 
 function GetCentroid(el) {
   var centroid = document.documentElement.createSVGPoint();
@@ -483,6 +602,9 @@ Connector.prototype.draw = function() {
     this.path.setAttribute('stroke-width', '2');
     if (this.type == 'conflict') {
       this.path.setAttribute('marker-mid', 'url(#.conflict)');
+    } else if (this.type) {
+      this.path.setAttribute('marker-start', 'url(#.simple_start)'); 
+      this.path.setAttribute('marker-end', 'url(#.simple_end)');
     } else {
       this.path.setAttribute('marker-end', 'url(#.arrow)');
     }
@@ -582,7 +704,7 @@ DragDrop.prototype.init = function( draggable ) {
 };
 
 function update_connectors(node) {
-  alert (node.id);
+  //alert (node.id);
   var co = nodeArray[node.id].connectors;
   for ( var i = 0; co.length > i; i++ ) {
     co[i].draw();
@@ -591,6 +713,7 @@ function update_connectors(node) {
 
 DragDrop.prototype.grab = function( evt ) {
   var nod = evt.target; 
+  var nod0 = nod;
   while (nod.parentNode.id != '.nodes') { nod = nod.parentNode; } 
   var fo = nod.lastChild;
   if (evt.shiftKey) {
@@ -619,11 +742,15 @@ DragDrop.prototype.grab = function( evt ) {
       update_connectors(nod);
     }
   }
-  if (evt.detail == 2) {
+  if (evt.detail == 2) { // enterNode from edit
     if (fo.getAttribute('display') != 'inline') {
-      if (nod.hasAttribute('href')) { 
-	var content = get_layout() + '\n' + $('.area').value;
-	save_and_reload (get_url(),$('.gid').firstChild.nodeValue,content,nod.getAttribute('href'));
+      if (nod.hasAttribute('href')) {
+	if (nod0.parentNode.id == 'attachid') { 
+	  window.open(get_base_url() + '/load_pdf?gid=' + nod.getAttribute('href'), 'neutral', 'chrome,scrollbars=yes');
+	} else {
+	  var content = get_layout() + '\n' + $('.area').value;
+	  save_and_reload (get_url(),$('.gid').firstChild.nodeValue,content,nod.getAttribute('href'));
+	}
       } else {
 	//save_session(); // a tester !
 	new_graph (nod);
@@ -810,13 +937,19 @@ function save_up (evt) {
 function go_up (evt) {
   var node = $('.parent');
   if (node.hasAttribute('href')) { 
-    document.location.replace(get_url() + '?@' + node.getAttribute('href'));
+    var fhref = '@' + node.getAttribute('href') + ':' + $('.rev').firstChild.nodeValue.substring(0,15);
+    //alert (fhref);
+    document.location.replace(get_url() + '?' + fhref);
   }
 }
 
 function load_item (e) {
   if (e.target.nodeName == 'tspan') {
-    document.location.replace(get_url() + '/edit?@' + e.target.getAttribute('gid'));
+    var node = e.target;
+    if (!node.hasAttribute('gid')) {
+      node = node.parentNode;
+    }
+    document.location.replace(get_url() + '/edit?@' + node.getAttribute('gid'));
   } 
 }
 
@@ -987,9 +1120,6 @@ function binary_post(bd,content) {
   var args = '--' + bd + '\ncontent-disposition: form-data; name="g"; filename="B"\n'
     + 'Content-Type: application/octet-stream\nContent-Transfer-Encoding: binary\r\n\r\n'
     + content + '\r\n--' + bd + '\n';
-  //var args1 = '--' + bd + '\r\nContent-disposition: form-data; name="g"; filename="B"\r\n'
-  //  + 'Content-Type: application/octet-stream\r\n\r\n'
-  //  + $('.area').value + '\r\n--' + bd + '--';
   return (args);
 }
 
@@ -1177,6 +1307,31 @@ function to_connect(e) {
 
 function load_github() { 
   document.location.replace('https://github.com/pelinquin/ConnectedGraph');
+}
+
+function dragenter(e) {
+  e.stopPropagation();
+  e.preventDefault();
+}
+
+function dragover(e) {
+  e.stopPropagation();
+  e.preventDefault();
+} 
+
+function drop(e) {
+  nod = e.target;
+  while (nod.parentNode.id != '.nodes') { nod = nod.parentNode; }
+  if (nod.hasAttribute('href')) { 
+    var href = nod.getAttribute('href'); 
+    new_attach(e.dataTransfer.files,href,nod);
+    //var b = nod.firstChild.nextSibling.getBBox();
+    //nod.firstChild.appendChild(attach_icon(b.width));
+  } else {
+    alert ('drop on an non leaf node!');
+  }
+  e.stopPropagation();
+  e.preventDefault();
 }
 
 // end
