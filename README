@@ -28,8 +28,15 @@ You need :
     git
     yui-compressor
 
+If you need to attach LaTeX documents, you need
+   texlive 
+   texlive-latex-extra
+
+If you need to attach OpenOffice.org documents, you need
+   openoffice > v3
+
 Browsers currently supported:
-    Firefox (v>3.6)
+    Firefox (v>4.0)
 
 *** Run the install script
 sudo ./install.sh
