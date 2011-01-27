@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------------
- ©  Copyright 2010, Rockwell Collins, Inc 
+ ©  Copyright 2011, Rockwell Collins, Inc 
     This file is part of TRAMweb.
 
     TRAMweb is free software: you can redistribute it and/or modify
@@ -33,5 +33,25 @@ textarea { border:1px solid #555;}
 g:hover g#history ,g:hover g#bar { display: inline; cursor:pointer;}
 g.node:hover, g[href]:hover{ fill:#FFF; cursor:crosshair;}
 
+h1 {font-family: sans-serif; font-size: 30pt; color:#555; text-align:center;} 
 
-
+.ribbon {
+  background-color: #4a0;
+  overflow: hidden;
+  position: absolute;
+  left: -3em;
+  top: 2.5em;
+  -moz-transform: rotate(-45deg);
+  -moz-box-shadow: 0 0 1em #888;
+}
+.ribbon a {
+  border: 1px solid #faa;
+  color: #fff;
+  display: block;
+  font: bold 81.25% 'Helvetiva Neue', Helvetica, Arial, sans-serif;
+  margin: 0.05em 0 0.075em 0;
+  padding: 0.5em 3.5em;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: 0 0 0.5em #444;
+}

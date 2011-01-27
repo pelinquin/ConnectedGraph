@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-/* Modified by L. Fournier Copyright (c) 2010, Rockwellcollins
+/* Modified by L. Fournier Copyright (c) 2011, Rockwellcollins
 
 Available under the GNUv3 License:
 
@@ -52,7 +52,8 @@ function is_gecko() {
   var str = navigator.userAgent;
   var gecko = str.replace(/^Mozilla.*rv:|\).*$/g, '' ) || ( /^rv\:|\).*$/g, '' );
   var version = gecko.substring(0,3); 
-  if (version == '1.9' || version == '2.0') {
+  //if (version == '1.9' || version == '2.0') {
+  if (version == '2.0') {
     return true;
   } else {
     return false;
@@ -60,7 +61,7 @@ function is_gecko() {
 }
 
 window.onload = function () {
-  if (!is_gecko()) alert ('This is only tested on Firefox !'); 
+  if (!is_gecko()) alert ('This is tested on Firefox [v4.0]!'); 
   //alert (screen.width + ' ' + screen.height);
   //$('.area').addEventListener("onfocus",enterFocus,false);  
 
@@ -104,12 +105,13 @@ function enterNode(evt) {
   while (nod.parentNode.id != '.nodes') { nod = nod.parentNode; } 
   if (nod.hasAttribute('href')) { 
     var href = nod.getAttribute('href');
+    var rev = $('.rev').firstChild.nodeValue;
     if (nod0.parentNode.id == 'attachid') { 
-      window.open(get_base_url() + '/load_pdf?gid=' + href, 'neutral', 'chrome,scrollbars=yes');
+      var param = 'gid=' + href + '&rev=' + rev;
+      window.open(get_base_url() + '/load_pdf?' + param, 'neutral', 'chrome,scrollbars=yes');
     } else {
-      var fhref = '@' + href + ':' + $('.rev').firstChild.nodeValue.substring(0,15);
-      //alert (fhref);
-      document.location.replace(get_url() + '?' + fhref);
+      var param = '?@' + href + ':' + rev;
+      document.location.replace(get_url() + param);
     } 
   }
 }
@@ -460,8 +462,9 @@ function attach_icon(w) {
   return tt;
 } 
 
-function attach() {
+function attach() { // NOT USED
   var gid = '&gid=' + $('.gid').firstChild.nodeValue;
+  //alert (user_ip() + gid);
   window.open(get_base_url() + '/load_pdf?' + user_ip() + gid, 'neutral', 'chrome,scrollbars=yes');
 }
 
@@ -718,8 +721,7 @@ DragDrop.prototype.grab = function( evt ) {
   var fo = nod.lastChild;
   if (evt.shiftKey) {
     if (window.focusNode) {
-	//update_g(fo.firstChild.firstChild.value);
-	update_g();
+      update_g();
     }
     if (fo.getAttribute('display') == 'none') {
       fo.setAttribute('display','inline');
@@ -746,7 +748,9 @@ DragDrop.prototype.grab = function( evt ) {
     if (fo.getAttribute('display') != 'inline') {
       if (nod.hasAttribute('href')) {
 	if (nod0.parentNode.id == 'attachid') { 
-	  window.open(get_base_url() + '/load_pdf?gid=' + nod.getAttribute('href'), 'neutral', 'chrome,scrollbars=yes');
+	  var rev = $('.rev').firstChild.nodeValue;
+	  var pa = 'gid=' + nod.getAttribute('href') +'&rev='+ $('.rev').firstChild.nodeValue;
+	  window.open(get_base_url() + '/load_pdf?' + pa, 'neutral', 'chrome,scrollbars=yes');
 	} else {
 	  var content = get_layout() + '\n' + $('.area').value;
 	  save_and_reload (get_url(),$('.gid').firstChild.nodeValue,content,nod.getAttribute('href'));
