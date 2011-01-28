@@ -1450,7 +1450,7 @@ def update(req):
     rev.close()    
     if not allow:
         req.content_type = 'text/plain'
-        return 'Bad server or Minimim duration between updates: 2 minutes !'
+        return 'Error: Bad server or duration between updates less than 2 minutes !'
     req.content_type = 'text/html'        
     cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone https://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
