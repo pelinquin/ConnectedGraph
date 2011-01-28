@@ -1445,14 +1445,13 @@ def update(req):
     rev = dbhash.open('%s/cg/rev.db'%__BASE__,'w')
     server,allow = get_server(req),False 
     if rev.has_key('_update_') and not re.search('formose_dev',server):
-        if d - float(rev['_update_']) > 20:
+        if d - float(rev['_update_']) > 120:
             rev['_update_'],allow = '%s'%d,True
     rev.close()    
-    if allow:
-        req.content_type = 'text/html'        
-    else:
+    if not allow:
         req.content_type = 'text/plain'
-        return 'Bad server or Minimim duration between updates: 60 seconds !'
+        return 'Bad server or Minimim duration between updates: 2 minutes !'
+    req.content_type = 'text/html'        
     cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone https://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
     o = '<html>'
