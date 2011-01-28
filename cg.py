@@ -1355,7 +1355,7 @@ def remove_rev(raw):
 
 def save_layout(req,lout,gid,user,ip):
     """ IN GIT DB"""
-    req.content_type = 'plain/text'
+    req.content_type = 'text/plain'
     mygit = _git(user,ip)
     #new_raw = re.sub('\n([^\n]*)\n','\n%s\n'%lout,mygit.cat(gid),1)
     new_raw = re.sub('(\n[^\n]*\n)[^\n]*\n','\\1%s\n'%lout,mygit.cat(gid),1)
@@ -1363,7 +1363,7 @@ def save_layout(req,lout,gid,user,ip):
 
 def save_content(req,g,gid,user,ip,msg=''):
     """ IN GIT DB"""
-    req.content_type = 'plain/text'
+    req.content_type = 'text/plain'
     mygit = _git(user,ip)
     raw = mygit.cat(gid)
     remove_rev(raw)
@@ -1438,19 +1438,26 @@ def reset(req):
 
 def update(req):
     """ update  """
+    import time
     (pwd, name,ip) = get_env(req)
-    req.content_type = 'text/html'
-    server = get_server(req)    
-    if re.search('formose_dev',server):
-        cmd = 'cd %s; ls'%pwd        
+    t = datetime.datetime.now()
+    d = time.mktime(t.timetuple())
+    rev = dbhash.open('%s/cg/rev.db'%__BASE__,'w')
+    server,allow = get_server(req),False 
+    if rev.has_key('_update_') and not re.search('formose_dev',server):
+        if d - float(rev['_update_']) > 20:
+            rev['_update_'],allow = '%s'%d,True
+    rev.close()    
+    if allow:
+        req.content_type = 'text/html'        
     else:
-        cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone https://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
-
+        req.content_type = 'text/plain'
+        return 'Bad server or Minimim duration between updates: 60 seconds !'
+    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone https://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
     o = '<html>'
     o += '<link href="../cg.css" rel="stylesheet" type="text/css"/>'
     o += '<h1>Application Update v%s</h1>'%__version__
-
     o += '<p>Path: %s -> %s</p>'%(pwd,server)    
     if err:
         o += '<p>Error:%s</p>'%err
