@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__  = '0.1.11b'
+__version__  = '0.1.11c'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -186,10 +186,14 @@ def defs():
     o += '<marker id=".simple_end" viewBox="-10 -10 100 100" preserveAspectRatio="xMinYMin meet" refX="20" refY="5" markerWidth="160" markerHeight="30" orient="auto"><text  stroke-width="0" fill="gray">0..*</text></marker>'
 
     o += '<marker id=".not" viewBox="-13 -6 10 12" refX="-20" markerWidth="8" markerHeight="16" orient="auto"><path d="M-10,-5 L-10,5" stroke="gray"/></marker>'
+    
     o += '<filter id=".shadow" filterUnits="userSpaceOnUse"><feGaussianBlur in="SourceAlpha" result="blur" id=".feGaussianBlur" stdDeviation="2" /><feOffset dy="3" dx="3" in="blur" id=".feOffset" result="offsetBlur"/><feMerge><feMergeNode in="offsetBlur"/><feMergeNode in="SourceGraphic" /></feMerge></filter>'
-    o += '<filter id = "i1" width = "150%" height = "150%"><feOffset result = "offOut" in = "SourceGraphic" dx = "30" dy = "30"/><feBlend in = "SourceGraphic" in2 = "offOut" mode = "normal"/></filter>'
 
+    #o += '<filter id=".shadow" filterUnits="userSpaceOnUse"><feGaussianBlur in="SourceAlpha" result="blur" id=".feGaussianBlur" stdDeviation="1" /><feOffset dy="6" dx="6" in="blur" id=".feOffset" result="offsetBlur"/><feMerge><feMergeNode in="offsetBlur"/><feMergeNode in="SourceGraphic" /></feMerge></filter>'
+    
+    o += '<filter id = ".shadow2" width = "150%" height = "150%"><feOffset result = "offOut" in = "SourceGraphic" dx = "3" dy = "3"/><feBlend in = "SourceGraphic" in2 = "offOut" mode = "normal"/></filter>'
 
+    o += '<filter id=".shadow1" x="0" y="0"><feGaussianBlur stdDeviation="5"/><feOffset dx="5" dy="5"/></filter>'
     return o + '</defs>\n'
 
 def parse_typ(t):
@@ -1194,7 +1198,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     o += '<text class="hd" id=".rev" title="revision" y="20">%s</text>'%rev
     o += '</g>' + link_button()
     o += '<g transform="translate(%s,0)">'%xpos
-    o += '<text class="hd1" id=".date" title="commit date" y="10" x="130" >%s</text>'%git_date
+    o += '<text class="hd1" id=".date" title="commit date" y="20" x="130" >%s</text>'%git_date
     #o += '<text class="hd1" id=".state" title="Process based state (not yet supported!)" y="2" x="280">NEW</text>'
     o += '</g>'
 
@@ -1435,6 +1439,14 @@ def reset(req):
     req.content_type = 'text/plain'
     #Popen(('rm -rf %s/cg;'%__BASE__), shell=True).communicate()
     return 'reset no allowed !'
+
+def update(req):
+    """ update  """
+    (pwd, name,ip) = get_env(req)
+    req.content_type = 'text/plain'
+    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone https://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
+    out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
+    return 'Application updated %s %s!\nOut:%s\nError:%s'%(__version__,pwd,out,err)
 
 def js(pfx):
     """ The content is copied and compressed from cg.js. Do not change this function"""

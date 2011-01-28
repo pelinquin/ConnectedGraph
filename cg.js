@@ -50,6 +50,10 @@ if (typeof($)=='undefined') {
 
 function is_gecko() {
   var str = navigator.userAgent;
+  //alert (str);
+  // Chromium string:
+  //Mozilla/5.0 (X11; U; Linux i686; en-US) AppleWebKit/534.17 (KHTML, like Gecko) Ubuntu/10.10 Chromium/10.0.651.0 Chrome/10.0.651.0 Safari/534.17
+
   var gecko = str.replace(/^Mozilla.*rv:|\).*$/g, '' ) || ( /^rv\:|\).*$/g, '' );
   var version = gecko.substring(0,3); 
   //if (version == '1.9' || version == '2.0') {
