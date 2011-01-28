@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__  = '0.1.11c'
+__version__  = '0.1.11d'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -1022,7 +1022,7 @@ def load_pdf(req,gid,rev):
     mygit = _git()
     return mygit.cat_simple('@'+gid,rev)
 
-def list(req):
+def list(req,history=''):
     """ Temporary html listing (to be removed) """
     req.content_type = 'text/html'
     mygit = _git()
@@ -1030,45 +1030,41 @@ def list(req):
     o += '<link href="../cg.css" rel="stylesheet" type="text/css"/>'
     o += '<div class="ribbon"><a href="https://github.com/pelinquin/ConnectedGraph">Fork me on GitHub</a></div>'
     o += '<h1>Connected Graph</h1>'
-    o += '<table border="1" cellspacing="0" style="font-family: sans-serif; font-size: 8pt;}">'
     n,t = 0, []
-    for i in sorted(mygit.getlist()):
-        m = re.search(r'^100644 blob ([0-9a-f]{40})\t(\w+)$',i)
-        if m:
-            rev = m.group(1)
-            gid = m.group(2)
-            h =  mygit.gethead(gid).split(':')
-            if gid != 'start':
-                n += 1
-                cat = mygit.cat_blob(rev)                
-                t.append([h[3],gid,rev,h[1],h[2],short( extract_content(cat))])
-
-
-    o += '<tr><td>&nbsp;</td><td colspan="4">%d diagrams</td></tr>'%n
-    n = 0
-    for i in sorted(t, key = lambda item:item[0],reverse=True):
-        n+=1
-        o += '<tr title="%s">'%i[1]
-        o += '<td>%05d</td>'%n
-        o += '<td><a href="edit?@%s" style="font-family:courier;">%s</a></td>'%(i[1],i[1])
-        o += '<td>%s</td>'%i[3]
-        o += '<td>%s</td>'%i[4]
-        o += '<td>%s</td>'%i[5]
-        o += '</tr>'
-    o += '<table>'
-
-    o += '<table border="1" cellspacing="0" style="font-family: sans-serif; font-size: 8pt;">'
-    n = 0
-    for i in mygit.gethistory()[:-1]:
-        n+=1
-        l = i.split(':')
-        if l[3][0] == '@':
-            resume = 'PDF file'
-        else:
-            resume = short( extract_content(mygit.cat(l[3])))
-        o += '<tr><td>%05d</td><td><a style="font-family:courier;" href="edit?%s">%s</a></td><td>%s</td><td>%s</td><td><a style="font-family:courier;" href="edit?@%s">%s</a></td><td>%s</td></tr>'%(n,l[0],l[0][:15],l[1],l[2],l[3],l[3],resume)
-    o += '<table>'
-    return o + '</html>'
+    o += '<table border="1" cellspacing="0" style="font-family: sans-serif; font-size: 8pt;}">'
+    if not history:
+        for i in sorted(mygit.getlist()):
+            m = re.search(r'^100644 blob ([0-9a-f]{40})\t(\w+)$',i)
+            if m:
+                rev = m.group(1)
+                gid = m.group(2)
+                h =  mygit.gethead(gid).split(':')
+                if gid != 'start':
+                    n += 1
+                    cat = mygit.cat_blob(rev)                
+                    t.append([h[3],gid,rev,h[1],h[2],short( extract_content(cat))])
+        o += '<tr><th>&nbsp;</th><th colspan="3">%d diagrams</th><th>Content</th></tr>'%n
+        n = 0
+        for i in sorted(t, key = lambda item:item[0],reverse=True):
+            n+=1
+            o += '<tr title="%s">'%i[1]
+            o += '<td>%05d</td>'%n
+            o += '<td><a href="edit?@%s" style="font-family:courier;">%s</a></td>'%(i[1],i[1])
+            o += '<td>%s</td>'%i[3]
+            o += '<td>%s</td>'%i[4]
+            o += '<td>%s</td>'%i[5]
+            o += '</tr>'
+    else:
+        n = 0
+        for i in mygit.gethistory()[:-1]:
+            n+=1
+            l = i.split(':')
+            if l[3][0] == '@':
+                resume = 'PDF file'
+            else:
+                resume = short( extract_content(mygit.cat(l[3])))
+            o += '<tr><td>%05d</td><td><a style="font-family:courier;" href="edit?%s">%s</a></td><td>%s</td><td>%s</td><td><a style="font-family:courier;" href="edit?@%s">%s</a></td><td>%s</td></tr>'%(n,l[0],l[0][:15],l[1],l[2],l[3],l[3],resume)
+    return o + '</table><h6>%s</h6></html>'%__version__
 
 def edit(req,login='',pw='',pw2=''):
     """ edit mode """
@@ -1443,10 +1439,25 @@ def reset(req):
 def update(req):
     """ update  """
     (pwd, name,ip) = get_env(req)
-    req.content_type = 'text/plain'
-    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone https://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
+    req.content_type = 'text/html'
+    server = get_server(req)    
+    if re.search('formose_dev',server):
+        cmd = 'cd %s; ls'%pwd        
+    else:
+        cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone https://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
+
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
-    return 'Application updated %s %s!\nOut:%s\nError:%s'%(__version__,pwd,out,err)
+    o = '<html>'
+    o += '<link href="../cg.css" rel="stylesheet" type="text/css"/>'
+    o += '<h1>Application Update v%s</h1>'%__version__
+
+    o += '<p>Path: %s -> %s</p>'%(pwd,server)    
+    if err:
+        o += '<p>Error:%s</p>'%err
+    else:
+        o += '<p>%s</p>'%out
+    o += '<a href="%s"><h2>Go to the application</h2></a>'%server    
+    return o + '</html>'
 
 def js(pfx):
     """ The content is copied and compressed from cg.js. Do not change this function"""
