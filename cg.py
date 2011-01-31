@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__  = '0.1.11d'
+__version__  = '0.1.11e'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -1447,6 +1447,8 @@ def update(req):
     if rev.has_key('_update_') and not re.search('formose_dev',server):
         if d - float(rev['_update_']) > 120:
             rev['_update_'],allow = '%s'%d,True
+    if not rev.has_key('_update_'):
+        rev['_update_'] = '%s'%d
     rev.close()    
     if not allow:
         req.content_type = 'text/plain'
