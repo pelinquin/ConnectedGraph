@@ -1468,7 +1468,7 @@ def update(req):
 
 def js(pfx):
     """ The content is copied and compressed from cg.js. Do not change this function"""
-    return '<script %s type="text/ecmascript" xlink:href="%s/cgmin.js"></script>'%(_XLINKNS,pfx)
+    return '<script %s type="text/ecmascript" xlink:href="%s/cg.js"></script>'%(_XLINKNS,pfx)
 
 def update_js():
     """ to be used to include js in this script"""
