@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__  = '0.1.11f'
+__version__  = '0.1.11g'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -1457,7 +1457,7 @@ def update(req):
     rev.close()    
     if not allow:
         req.content_type = 'text/plain'
-        return 'Error: Bad server or duration between updates [%f] less than 2 minutes !'%delta
+        return 'Error: Bad server or duration between updates [%d secondes] less than 2 minutes !'%int(delta)
     req.content_type = 'text/html'        
     cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
