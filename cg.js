@@ -51,21 +51,21 @@ if (typeof($)=='undefined') {
 function is_gecko() {
   var str = navigator.userAgent;
   //alert (str);
-  // Chromium string:
-  //Mozilla/5.0 (X11; U; Linux i686; en-US) AppleWebKit/534.17 (KHTML, like Gecko) Ubuntu/10.10 Chromium/10.0.651.0 Chrome/10.0.651.0 Safari/534.17
 
+  // Chromium
+  //Mozilla/5.0 (X11; U; Linux i686; en-US) AppleWebKit/534.17 (KHTML, like Gecko) Ubuntu/10.10 Chromium/10.0.651.0 Chrome/10.0.651.0 Safari/534.17
+  if (str.match('AppleWebKit')) { return true; }
+
+  // FF4
+  //Mozilla/5.0 (Windows NT 5.1; rv:2.0b11pre) Gecko/20110201 Firefox/4.0b11pre
   var gecko = str.replace(/^Mozilla.*rv:|\).*$/g, '' ) || ( /^rv\:|\).*$/g, '' );
-  var version = gecko.substring(0,3); 
-  //if (version == '1.9' || version == '2.0') {
-  if (version == '2.0') {
-    return true;
-  } else {
-    return false;
-  }
+  if (gecko.substring(0,3) == '2.0') { return true; } 
+
+  return false;
 }
 
 window.onload = function () {
-  if (!is_gecko()) alert ('This is tested on Firefox [v4.0]!'); 
+  if (!is_gecko()) alert ('This is tested on Firefox4 and Chromium !'); 
   //alert (screen.width + ' ' + screen.height);
   //$('.area').addEventListener("onfocus",enterFocus,false);  
 
@@ -719,12 +719,14 @@ function update_connectors(node) {
 }
 
 DragDrop.prototype.grab = function( evt ) {
+  if (!evt) var evt = window.event;
   var nod = evt.target; 
   var nod0 = nod;
   while (nod.parentNode.id != '.nodes') { nod = nod.parentNode; } 
   var fo = nod.lastChild;
   if (evt.shiftKey) {
     if (window.focusNode) {
+      alert ('update');
       update_g();
     }
     if (fo.getAttribute('display') == 'none') {
@@ -743,6 +745,7 @@ DragDrop.prototype.grab = function( evt ) {
       //range.moveStart('character', 0);
       //range.select();
     } else {
+      alert ('off');
       window.focusNode = null;
       fo.setAttribute('display','none');
       update_connectors(nod);
@@ -961,9 +964,15 @@ function load_item (e) {
   } 
 }
 
+function record_tag () {
+  alert ($('.tag').value);
+  $('.tag').value = '';
+}
+
 function save_all (e) {
   if (e.target.nodeName == 'tspan') {
     document.location.replace(get_url() + '?' + e.target.getAttribute('rev'));
+  } else if (e.target.nodeName == 'input') {
   } else {
     if ($('.canvas').getAttribute('unsaved') == 'all') {
       save_content ();
@@ -1052,7 +1061,7 @@ function ajax_get(txt,url, cb) {
     req.open('GET', url);
     req.send(null);
   }
-}
+};
 
 function ajax_post(txt,url,params,bd,cb) {
   var req = new XMLHttpRequest();
@@ -1079,7 +1088,7 @@ function ajax_post(txt,url,params,bd,cb) {
     req.setRequestHeader('Connection', 'close');
     req.send(params);
   }  
-}
+};
 
 //////
 
@@ -1103,7 +1112,7 @@ function mode (e) {
     aa.setAttribute('display','none'); bb.setAttribute('display','inline');
   }
   save_session();
-}
+};
 
 function change_title(way) {
   var old = $('.title').firstChild.nodeValue;
@@ -1122,14 +1131,14 @@ function change_textarea() {
   change_title(true);
   $('.canvas').setAttribute('updated','no');
   $('.canvas').setAttribute('unsaved','all');
-}
+};
 
 function binary_post(bd,content) {
   var args = '--' + bd + '\ncontent-disposition: form-data; name="g"; filename="B"\n'
     + 'Content-Type: application/octet-stream\nContent-Transfer-Encoding: binary\r\n\r\n'
     + content + '\r\n--' + bd + '\n';
   return (args);
-}
+};
 
 function update_graph() {
   var bd = 'AaB03x';
@@ -1139,11 +1148,15 @@ function update_graph() {
   var ai = new ajax_post(false,get_base_url() + '/update_graph?gid=' + gid + user_ip(),args,bd,function(res) {
 			   var place = $('.canvas');
 			   //alert((new XMLSerializer()).serializeToString(res));
-			   place.replaceChild(res.documentElement,place.firstChild);
+			   place.replaceChild(cl_xml(res),place.firstChild);
 			   nodeArray = [];
 			   init_graph();
 			 });
   ai.doPost();
+}
+
+function cl_xml(d){
+  return document.importNode(d.documentElement.cloneNode(true),true);
 }
 
 function update_url(e,edit) {

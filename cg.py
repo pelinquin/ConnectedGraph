@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__  = '0.1.11e'
+__version__  = '0.1.11f'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -187,11 +187,9 @@ def defs():
 
     o += '<marker id=".not" viewBox="-13 -6 10 12" refX="-20" markerWidth="8" markerHeight="16" orient="auto"><path d="M-10,-5 L-10,5" stroke="gray"/></marker>'
     
-    o += '<filter id=".shadow" filterUnits="userSpaceOnUse"><feGaussianBlur in="SourceAlpha" result="blur" id=".feGaussianBlur" stdDeviation="2" /><feOffset dy="3" dx="3" in="blur" id=".feOffset" result="offsetBlur"/><feMerge><feMergeNode in="offsetBlur"/><feMergeNode in="SourceGraphic" /></feMerge></filter>'
+    o += '<filter id=".shadow" filterUnits="userSpaceOnUse"><feGaussianBlur in="SourceAlpha" result="blur" id=".feGaussianBlur" stdDeviation="2" /><feOffset dy="3" dx="2" in="blur" id=".feOffset" result="offsetBlur"/><feMerge><feMergeNode in="offsetBlur"/><feMergeNode in="SourceGraphic" /></feMerge></filter>'
 
-    #o += '<filter id=".shadow" filterUnits="userSpaceOnUse"><feGaussianBlur in="SourceAlpha" result="blur" id=".feGaussianBlur" stdDeviation="1" /><feOffset dy="6" dx="6" in="blur" id=".feOffset" result="offsetBlur"/><feMerge><feMergeNode in="offsetBlur"/><feMergeNode in="SourceGraphic" /></feMerge></filter>'
-    
-    o += '<filter id = ".shadow2" width = "150%" height = "150%"><feOffset result = "offOut" in = "SourceGraphic" dx = "3" dy = "3"/><feBlend in = "SourceGraphic" in2 = "offOut" mode = "normal"/></filter>'
+    #o += '<filter id = ".shadow2" width = "150%" height = "150%"><feOffset result = "offOut" in = "SourceGraphic" dx = "3" dy = "3"/><feBlend in = "SourceGraphic" in2 = "offOut" mode = "normal"/></filter>'
 
     o += '<filter id=".shadow1" x="0" y="0"><feGaussianBlur stdDeviation="5"/><feOffset dx="5" dy="5"/></filter>'
     return o + '</defs>\n'
@@ -814,7 +812,13 @@ def save_button(mygit,gid):
     o = '<g class="button" title="save current diagram" onclick="save_all(evt);" fill="#CCC" transform="translate(32,1)">'
     o += '<rect width="30" height="30" rx="5"/>'
     o += '<g transform="translate(3,3) scale(0.04)"><path fill="white" d="M 7,404 C 7,404 122,534 145,587 L 244,587 C 286,460 447,158 585,52 C 614,15 542,0 484,24 C 396,61 231,341 201,409 C 157,420 111,335 111,335 L 7,404 z"/></g>'
-    o += '<g id="history" display="none" transform="translate(-25,26)"><text class="history">'
+    # tags
+    o += '<g id="tags" display="none"><foreignObject y="30" x="-25" width="80" height="70">' 
+    o += '<div %s>'%_XHTMLNS
+    o += '<input id=".tag" title="git tag" size="7" value="" onchange="record_tag();"/>'
+    o += '</div></foreignObject></g>'
+    # history
+    o += '<g id="history" display="none" transform="translate(-25,50)"><text class="history">'
     for i in mygit.gethistory(gid)[:-1]:
         l = i.split(':')
         cat = mygit.cat(l[3])
@@ -1100,7 +1104,7 @@ def view(req):
 
 def index(req,edit=False):
     """ if called with no parameter"""
-    valGet = '"Welcome to \'\'\'ConnectedGraph\'\'\' Tool!"'
+    valGet = '"Welcome to \'\'ConnectedGraph\'\'!"'
     return basic(req,False,'graph',valGet,'.')
     
 def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
@@ -1244,7 +1248,8 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     unsaved = 'no' if lout else 'layout'
     if debug:
         o += '<text id="debug" x="10" y="90%%">DEBUG: %s</text>'%debug
-    o += '<text x="96%%" y="10" fill="gray" title="Tool version id:%s" style="font-family:Arial;font-size:8pt;">%s</text>'%(sha1(req),__version__)
+    s1 = sha1(req)
+    o += '<text x="92%%" y="10" fill="gray" title="Tool version id:%s" style="font-family:Arial;font-size:8pt;">%s [%s]</text>'%(s1,__version__,s1)
     o += '<g display="%s" id=".canvas" updated="yes" unsaved="%s" jsdone="%s" title="version %s">'%(mG,unsaved,jsdone,__version__) + run(content,lout,edit,rev) + '</g>'
     
     if edit:
@@ -1268,9 +1273,9 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
         o += '<g id="history" onclick="load_item(evt);" transform="translate(10,25)"><text id=".list" fill="#CCC" style="font-family:courier;font-size:11pt;">%d diagrams'%n
         for i in sorted(t, key = lambda item:item[0],reverse=True):
             o += '<tspan gid="%s" title="%s" dy="0.9em">'%(i[1],i[2])
-            o += '<tspan x="0">%s %s</tspan>'%(i[1],i[3])
-            o += '<tspan x="180">%s</tspan>'%i[4]
-            o += '<tspan x="300">%s</tspan>'%i[5]
+            o += '<tspan x="0">%s %s</tspan>'%(i[1],i[3]) #0
+            o += '<tspan x="190">%s</tspan>'%i[4] #180
+            o += '<tspan x="330">%s</tspan>'%i[5] #300
             o += '</tspan>'
         o += '</text></g>'
 
@@ -1389,7 +1394,7 @@ def get_ip(r):
 def sha1(req):
     """ return a partial sha1 to check version easilly """
     (pwd, name,ip) = get_env(req)
-    dig = hashlib.sha1(open('%s/%s.py'%(pwd,name)).read())    
+    dig = hashlib.sha1(open('%s/%s.py'%(pwd,name)).read() + open('%s/%smin.js'%(pwd,name)).read() + open('%s/%s.css'%(pwd,name)).read())    
     return dig.hexdigest()[:5]
     
 def download(req):
@@ -1443,22 +1448,22 @@ def update(req):
     t = datetime.datetime.now()
     d = time.mktime(t.timetuple())
     rev = dbhash.open('%s/cg/rev.db'%__BASE__,'w')
-    server,allow = get_server(req),False 
+    server,allow,delta = get_server(req),False,d - float(rev['_update_'])
     if rev.has_key('_update_') and not re.search('formose_dev',server):
-        if d - float(rev['_update_']) > 120:
+        if delta > 120:
             rev['_update_'],allow = '%s'%d,True
     if not rev.has_key('_update_'):
         rev['_update_'] = '%s'%d
     rev.close()    
     if not allow:
         req.content_type = 'text/plain'
-        return 'Error: Bad server or duration between updates less than 2 minutes !'
+        return 'Error: Bad server or duration between updates [%f] less than 2 minutes !'%delta
     req.content_type = 'text/html'        
-    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone https://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
+    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
     o = '<html>'
     o += '<link href="../cg.css" rel="stylesheet" type="text/css"/>'
-    o += '<h1>Application Update v%s</h1>'%__version__
+    o += '<h1>Application Update v%s [%s]</h1>'%(__version__,sha1(req))
     o += '<p>Path: %s -> %s</p>'%(pwd,server)    
     if err:
         o += '<p>Error:%s</p>'%err
@@ -1468,8 +1473,8 @@ def update(req):
     return o + '</html>'
 
 def js(pfx):
-    """ The content is copied and compressed from cg.js. Do not change this function"""
-    return '<script %s type="text/ecmascript" xlink:href="%s/cgmin.js"></script>'%(_XLINKNS,pfx)
+    """ The content is copied and compressed from cgmin.js. Do not change this function"""
+    return '<script %s type="text/ecmascript" xlink:href="%s/cg.js"></script>'%(_XLINKNS,pfx)
 
 def update_js():
     """ to be used to include js in this script"""
