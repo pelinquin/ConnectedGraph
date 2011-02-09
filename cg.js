@@ -450,7 +450,6 @@ function attach_icon(w) {
   tt.setAttribute('transform', 'translate(' + (w+12) + ',-20) scale(0.32)');
   tt.setAttribute('class', 'attach');
   tt.setAttribute('id', 'attachid');
-  tt.setAttribute('title', 'get attached PDF document');
   var tt2 = document.createElementNS(svgns, 'rect');
   tt2.setAttribute('width', '42');
   tt2.setAttribute('fill', 'none');
@@ -463,6 +462,9 @@ function attach_icon(w) {
   tt1.setAttribute('stroke-width','3');
   tt1.setAttribute('d',get_attach());
   tt.appendChild(tt1);
+  var tt3 = document.createElementNS(svgns, 'title');
+  tt3.appendChild(document.createTextNode('attached PDF document'));
+  tt.appendChild(tt3);
   return tt;
 } 
 

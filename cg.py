@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__  = '0.1.11h'
+__version__  = '0.1.11i'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -178,19 +178,12 @@ def defs():
     o += '<radialGradient id=".grad" cx="0%" cy="0%" r="90%"><stop offset="0%" stop-color="#FFF"/><stop offset="100%" stop-color="#DDD" class="end"/></radialGradient>'
     o += '<radialGradient id=".gradbackground" cx="5%" cy="5%" r="95%"><stop offset="0%" stop-color="#FFF"/><stop offset="100%" stop-color="#EEE" class="end"/></radialGradient>'
     o += '<pattern id="pattern" patternUnits="userSpaceOnUse" width="60" height="60"><circle fill="black" fill-opacity="0.5" cx="30" cy="30" r="10"/></pattern>'
-  
     o += '<marker id=".arrow" viewBox="-13 -6 15 12" refX="0" refY="0" markerWidth="8" markerHeight="10" orient="auto"><path d="M-8,-6 L0,0 -8,6 Z" stroke="gray" fill="gray" stroke-linejoin="round" stroke-linecap="round"/></marker>'
     o += '<marker id=".conflict" viewBox="0 0 1000 1000" preserveAspectRatio="none" refX="0" refY="100" markerWidth="30" markerHeight="80" orient="auto"><path d="M100,0 l-20,80 l120,-20 l-100,140 l20,-80 l-120,20 Z" stroke="none" fill="red"/></marker>'
-
     o += '<marker id=".simple_start" viewBox="-10 -10 100 100" preserveAspectRatio="xMidYMin meet" refX="-10" refY="-15" markerWidth="160" markerHeight="30" orient="0"><text  stroke-width="0" fill="gray">0..1</text></marker>'
     o += '<marker id=".simple_end" viewBox="-10 -10 100 100" preserveAspectRatio="xMinYMin meet" refX="20" refY="5" markerWidth="160" markerHeight="30" orient="auto"><text  stroke-width="0" fill="gray">0..*</text></marker>'
-
     o += '<marker id=".not" viewBox="-13 -6 10 12" refX="-20" markerWidth="8" markerHeight="16" orient="auto"><path d="M-10,-5 L-10,5" stroke="gray"/></marker>'
-    
     o += '<filter id=".shadow" filterUnits="userSpaceOnUse"><feGaussianBlur in="SourceAlpha" result="blur" id=".feGaussianBlur" stdDeviation="2" /><feOffset dy="3" dx="2" in="blur" id=".feOffset" result="offsetBlur"/><feMerge><feMergeNode in="offsetBlur"/><feMergeNode in="SourceGraphic" /></feMerge></filter>'
-
-    #o += '<filter id = ".shadow2" width = "150%" height = "150%"><feOffset result = "offOut" in = "SourceGraphic" dx = "3" dy = "3"/><feBlend in = "SourceGraphic" in2 = "offOut" mode = "normal"/></filter>'
-
     o += '<filter id=".shadow1" x="0" y="0"><feGaussianBlur stdDeviation="5"/><feOffset dx="5" dy="5"/></filter>'
     return o + '</defs>\n'
 
@@ -271,7 +264,7 @@ def cg_parent(raw,idc):
         if typ.has_key(ch[idc]):
             role = typ[ch[idc]]
     o = '<text x="18" y="50" class="noderole" id=".noderole">%s </text>\n'%role
-    o += '<text class="header" x="60" y="50" id=".nodelabel">%s </text>\n'%emphasis(label)
+    o += '<text class="header" x="72" y="50" id=".nodelabel">%s </text>\n'%emphasis(label)
     return o     
 
 class cg:
@@ -427,7 +420,6 @@ class cg:
                 if d < 1:
                     d=1    
                 t = int(self.w/4/float(it+1))
-                #print t
                 #t = 10000
                 cx = abs(disp[i][0]) if abs(disp[i][0]) < t else t
                 cy = abs(disp[i][1]) if abs(disp[i][1]) < t else t
@@ -505,7 +497,7 @@ class cg:
                 o += '<connector n1="#%s" n2="#%s" type="%s"/>\n'%(c[0],c[1],c[2])
             else:
                 o += '<connector n1="#%s" n2="#%s"/>\n'%(c[0],c[1])
-        o += '<text class="stat" id=".stat" x="10" y="99%%" >%d nodes %d connectors</text>'%(len(self.lab.keys()),len(self.connectors))
+        o += '<text class="stat" id=".stat" x="10" y="99%%" >%d nodes %d connectors<title>Statistics</title></text>'%(len(self.lab.keys()),len(self.connectors))
         #o += '<g transform="translate(200,200)"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#s1"/></g>'
         #o += '<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#s1"/>'
         return o + '</g>\n'
@@ -534,6 +526,13 @@ def get_ip(r):
     env = r.subprocess_env.copy()
     ip = env['REMOTE_ADDR'] if env.has_key('REMOTE_ADDR') else '0.0.0.0'
     return ip
+
+def get_browser(r):
+    """ """
+    r.add_common_vars()
+    env = r.subprocess_env.copy()
+    br = re.sub('^.*(Gecko/[^\s]+|AppleWebKit/[^\s]+).*$',r'\1',env['HTTP_USER_AGENT'])
+    return br
 
 def get_user(r):
     """ """
@@ -764,7 +763,7 @@ class _git:
                 rev = out.strip()
                 p = Popen(('git', 'show','%s:%s'%(rev,key)), env=self.e, stdout=PIPE, stderr=PIPE)
                 cont = p.communicate()[0][:-1]
-        return rev,cont
+        return rev[:15],cont
 
     def cat_simple(self,key,rev):
         """ """
@@ -795,11 +794,11 @@ def graphviz(raw):
 def mode_button(mG,mT):
     """ """
     o = '<g fill="#CCC" class="button" onclick="mode(evt);" stroke="white" transform="translate(1,1) scale(0.1)">'
-    o += '<g stroke="white" id=".rmode" display="%s" title="viewer mode"><rect width="300" height="290" rx="50"/>'%mT
+    o += '<g stroke="white" id=".rmode" display="%s"><title>viewer mode</title><rect width="300" height="290" rx="50"/>'%mT
     o += '<path d="M 280,150 a 160,160 0 0,0 -260,0 a 160,160 0 0,0 260,0 M 130.5,96.4 a 57,57 0 1,1 -34.1,34.1" stroke="white" stroke-width="10" stroke-linecap="square"/>'
     o += '<path d="M 150,150 L 136.4,112 a 40,40 0 1,1 -24.4,24.4 z" stroke-width="0" fill="white"/>'
     o += '</g>'
-    o += '<g id=".wmode" display="%s" title="editor mode">'%mG
+    o += '<g id=".wmode" display="%s"><title>editor mode</title>'%mG
     o += '<path d="M 246,4 L 49,4 C 24,4 4,24 4,49 L 3,136 L 159,292 L 246,292 C 271,292 292,271 292,246 L 292,49 C 292,24 271,4 246,4 z"/>'
     o += '<path d="M 246,4 L 176,4 L 68,111 L 27,268 L 185,228 L 292,120 L 292,49 C 292,24 271,4 246,4 z" style="fill:white"/>'
     o += '<path d="M 99,249 L 46,196 L 33,248 C 30,259 36,266 48,263 L 99,249 z"/>'
@@ -809,7 +808,7 @@ def mode_button(mG,mT):
 
 def save_button(mygit,gid):
     """ """
-    o = '<g class="button" title="save current diagram" onclick="save_all(evt);" fill="#CCC" transform="translate(32,1)">'
+    o = '<g class="button" onclick="save_all(evt);" fill="#CCC" transform="translate(32,1)"><title>save current diagram</title>'
     o += '<rect width="30" height="30" rx="5"/>'
     o += '<g transform="translate(3,3) scale(0.04)"><path fill="white" d="M 7,404 C 7,404 122,534 145,587 L 244,587 C 286,460 447,158 585,52 C 614,15 542,0 484,24 C 396,61 231,341 201,409 C 157,420 111,335 111,335 L 7,404 z"/></g>'
     # tags
@@ -853,22 +852,22 @@ def extract_all(raw):
     """
     lines = raw.split('\n')
     lout = {}
-    for n in lines[2].split():   #ici
+    for n in lines[2].split():   
         [tid,x,y] = n.split(':')
         lout[tid] = (int(x),int(y))
-    content = '\n'.join(lines[3:]) #ici
+    content = '\n'.join(lines[3:]) 
     return lines[0],lout,content
 
 def extract_content(raw):
     """ all lines after line 3"""
     lines = raw.split('\n')
-    content = '\n'.join(lines[3:]) # ici
+    content = '\n'.join(lines[3:])
     return content
 
 def extract_lout(raw):
     """ Third line"""
     lout,lines = {},raw.split('\n')
-    for n in lines[2].split(): # ici
+    for n in lines[2].split():
         [tid,x,y] = n.split(':')
         lout[tid] = (int(x),int(y))
     return lout
@@ -972,12 +971,6 @@ def get_server(r):
 
 ##### HTTP CALL ####
 
-def empty_graph(req,gid='',rev=''):
-    """ """
-    req.content_type = 'image/svg+xml'
-    bullet = 'Empty diagram...use canvas toolbox or add text in text view'
-    return '<text %s x="150" y="150" stroke-width="1px" fill="#EEE" style="font-family:Arial;font-size:64pt;" title="%s" gid="%s" rev="%s">&#8709;</text><g id=".nodes"/>'%(_SVGNS,bullet,gid,rev)
-
 def new_graph(req,g,user,ip,name='',parent=''):
     """ GIT """
     mygit = _git(user,ip)
@@ -986,7 +979,7 @@ def new_graph(req,g,user,ip,name='',parent=''):
     remove_rev(old_content)
     tab = old_content.split('\n')
     new_raw = tab[0] + '\n' + tab[1] + '\n' + update_child(g.value,gid,name) # g->layout+content
-    mygit.save_mult(gid,parent,'%s\n\n\n'%parent,new_raw,'NEW_CHILD') # ici
+    mygit.save_mult(gid,parent,'%s\n\n\n'%parent,new_raw,'NEW_CHILD') 
     return gid
 
 def new_attach(req,g,user,ip,gid,typ):
@@ -1161,8 +1154,8 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
                         attrib,lout,content = extract_all(raw)
                         praw = extract_content(mygit.cat(attrib))
                     else:
-                        raw = '\n\n\n%s'%content # ici
-                        rev = mygit.save(gid,raw,'NEW2') # no parent
+                        raw = '\n\n\n%s'%content 
+                        rev = mygit.save(gid,raw,'NEW2') 
         ###
     git_date = mygit.date(gid) if edit else ''
     req.content_type = 'application/xhtml+xml'
@@ -1170,7 +1163,8 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     # log
     log = open('%s/cg/cg.log'%__BASE__,'a')
     d = '%s'%datetime.datetime.now()
-    log.write('[%s %s] %s %s %s %s\n'%(d[:19],ip,gid,rev[:10],user,shortlog(content)))
+    br = get_browser(req)
+    log.write('[%s %s %s] %s %s %s %s\n'%(d[:19],ip,br,gid,rev[:10],user,shortlog(content)))
     log.close() 
 
     empty = True if re.match('^\s*$',content) else False
@@ -1182,7 +1176,6 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     (cjs,jsdone) = (init_g,'yes') if (mode == 'graph') and not empty else ('','no')
     
     o += '<svg %s %s id=".base" onclick="closelink();" width="1066" height="852">\n'%(_SVGNS,cjs)
-    #o += '<title id=".title">&#10025;%s%s&#8211;</title>'%('' if lout else '*',__TITLE__)
     o += '<title id=".title">%s%s &#8211; %s</title>'%('' if (lout or pfx == '.') else '*',__TITLE__,short(content,True))
 
     # Find a way to have SVG fav icon instead of png !
@@ -1193,13 +1186,13 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     xpos = 85 if edit else 10
     clicable = 'onclick="update_url(evt,true);"' if edit else 'onclick="update_url(evt,false);" '
     o += '<g transform="translate(%s,10)" %s>'%(xpos,clicable)
-    o += '<text class="hd" id=".content" title="content" y="0">%s</text>'%short(content)
-    o += '<text class="hd" id=".gid" title="diagram id" y="10">%s</text>'%gid
-    o += '<text class="hd" id=".rev" title="revision" y="20">%s</text>'%rev
+    o += '<text class="hd" id=".content" y="0">%s<title>diagram content</title></text>'%short(content)
+    o += '<text class="hd" id=".gid" y="10">%s<title>diagram id</title></text>'%gid
+    o += '<text class="hd" id=".rev" y="20">%s<title>diagram revision</title></text>'%rev
     o += '</g>' + link_button()
     o += '<g transform="translate(%s,0)">'%xpos
-    o += '<text class="hd1" id=".date" title="commit date" y="20" x="130" >%s</text>'%git_date
-    #o += '<text class="hd1" id=".state" title="Process based state (not yet supported!)" y="2" x="280">NEW</text>'
+    o += '<text class="hd1" id=".date" y="20" x="130" >%s<title>commit date</title></text>'%git_date
+    #o += '<text class="hd1" id=".state" y="2" x="280">NEW<title>State</title></text>'
     o += '</g>'
 
     if edit:
@@ -1229,8 +1222,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
         up_link,disp = '','none'
 
     action = 'save_up()' if edit else 'go_up()'
-    o += '<a title="parent" onclick="%s;" display="%s" id=".parent" %s fill="#CCC" transform="translate(1,31)"><rect rx="5" width="16" height="16"/><path d="M3,13 8,3 13,13" fill="white"/></a>'%(action,disp,up_link)
-
+    o += '<a onclick="%s;" display="%s" id=".parent" %s fill="#CCC" transform="translate(1,31)"><title>parent diagram</title><rect rx="5" width="16" height="16"/><path d="M3,13 8,3 13,13" fill="white"/></a>'%(action,disp,up_link)
     o += cg_parent(praw,gid)
 
     size = len(content.split('\n')) + 2
@@ -1249,7 +1241,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     if debug:
         o += '<text id="debug" x="10" y="90%%">DEBUG: %s</text>'%debug
     s1 = sha1(req)
-    o += '<text x="92%%" y="10" fill="gray" title="Tool version id:%s" style="font-family:Arial;font-size:8pt;">%s [%s]</text>'%(s1,__version__,s1)
+    o += '<text x="92%%" y="10" fill="gray" style="font-family:Arial;font-size:8pt;">%s [%s]<title>Tool revision</title></text>'%(__version__,s1)
     o += '<g display="%s" id=".canvas" updated="yes" unsaved="%s" jsdone="%s" title="version %s">'%(mG,unsaved,jsdone,__version__) + run(content,lout,edit,rev) + '</g>'
     
     if edit:
@@ -1299,7 +1291,7 @@ def nodes_bar():
     o = '<g onclick="add_node(evt);" id="bar" transform="translate(16,0)" display="none" style="font-family:Arial;font-size:10pt;" stroke-width="0px">'
     i = 0
     for n in nodes.keys():
-        o += '<g id="%s" class="button" cl="%s" fill="#CCC" display="inline" title="%s" transform="translate(%d,0)">'%(n,nodes[n][0],n,32*i)
+        o += '<g id="%s" class="button" cl="%s" fill="#CCC" display="inline" title="%s" transform="translate(%d,0)"><title>%s</title>'%(n,nodes[n][0],n,32*i,n)
         o += '<rect width="32" height="32" rx="5" stroke-width="1px" stroke="white"/>'
         o += '<g fill="white">' + nodes[n][1] + '<text style="font-family:sans-serif;" x="11" y="25" fill="#CCC">%s</text>'%nodes[n][0] +'</g>'
         o += '<text x="3" y="10" stroke-width="1px" fill="white" style="font-family:sans-serif;font-size:6pt;">%s</text></g>'%n.upper()
@@ -1327,8 +1319,8 @@ def run(content='',lout={},edit=False,rev=''):
                 o += re.sub(r'font-size="(\d+)"','style="font-size:\\1pt;"',l)
         return o
     if re.match('^\s*$',content):
-        bullet = 'Empty diagram...use canvas toolbox or add text in text view'
-        return '<text %s x="150" y="150" stroke-width="1px" fill="#EEE" style="font-family:Arial;font-size:64pt;" title="%s" gid="" rev="">&#8709;</text><g id=".nodes"/>'%(_SVGNS,bullet)
+        bullet = 'This is an empty diagram!...use canvas toolbox or add text in the textarea'
+        return '<text %s x="150" y="150" stroke-width="1px" fill="#EEE" style="font-family:Arial;font-size:64pt;" gid="" rev="">&#8709;<title>%s</title></text><g id=".nodes"/>'%(_SVGNS,bullet)
     else:
         mygraph = cg(content,lout,edit,rev)
         if lout == {}:
@@ -1352,7 +1344,7 @@ def update_graph(req,g,gid,user,ip,name='',label=''):
 def remove_rev(raw):
     """ remove rev from rev database """
     lines = raw.split('\n')
-    content =  '\n'.join(lines[3:]) # ici
+    content =  '\n'.join(lines[3:]) 
     rev = dbhash.open('%s/cg/rev.db'%__BASE__,'c')
     if rev.has_key(content):
         del rev[content]
