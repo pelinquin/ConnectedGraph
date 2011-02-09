@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__  = '0.1.11g'
+__version__  = '0.1.11h'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -744,12 +744,12 @@ class _git:
 
     def cat_getrev(self,rev):
         """ """
-        c = Popen(('git', 'log', '--pretty=format:%H:%s','-1',rev), env=self.e, stdout=PIPE, stderr=PIPE)
+        c = Popen(('git', 'log', '--pretty=oneline','-1',rev), env=self.e, stdout=PIPE, stderr=PIPE)
         out,err = c.communicate()
         idd,cont = ['',''],'[Diagram Not Found!]'
         if not err:
             if out != '':
-                idd = out.strip().split(':')
+                idd = out.strip().split()
                 p = Popen(('git', 'show','%s:%s'%(rev,idd[1])), env=self.e, stdout=PIPE, stderr=PIPE)
                 cont = p.communicate()[0][:-1]
         return idd[0][:15],idd[1],cont
@@ -1162,7 +1162,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
                         praw = extract_content(mygit.cat(attrib))
                     else:
                         raw = '\n\n\n%s'%content # ici
-                        rev = mygit.save(gid,raw,'NEW') # no parent
+                        rev = mygit.save(gid,raw,'NEW2') # no parent
         ###
     git_date = mygit.date(gid) if edit else ''
     req.content_type = 'application/xhtml+xml'
@@ -1364,7 +1364,7 @@ def save_layout(req,lout,gid,user,ip):
     mygit = _git(user,ip)
     #new_raw = re.sub('\n([^\n]*)\n','\n%s\n'%lout,mygit.cat(gid),1)
     new_raw = re.sub('(\n[^\n]*\n)[^\n]*\n','\\1%s\n'%lout,mygit.cat(gid),1)
-    return mygit.save(gid,new_raw,'NEW')
+    return mygit.save(gid,new_raw,'NEW1')
 
 def save_content(req,g,gid,user,ip,msg=''):
     """ IN GIT DB"""
