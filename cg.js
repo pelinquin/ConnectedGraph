@@ -469,8 +469,7 @@ function attach_icon(w) {
 } 
 
 function attach() { // NOT USED
-  var gid = '&gid=' + $('.gid').firstChild.nodeValue;
-  //alert (user_ip() + gid);
+  var gid = '&gid=' + gid();
   window.open(get_base_url() + '/load_pdf?' + user_ip() + gid, 'neutral', 'chrome,scrollbars=yes');
 }
 
@@ -762,7 +761,7 @@ DragDrop.prototype.grab = function( evt ) {
 	  window.open(get_base_url() + '/load_pdf?' + pa, 'neutral', 'chrome,scrollbars=yes');
 	} else {
 	  var content = get_layout() + '\n' + $('.area').value;
-	  save_and_reload (get_url(),$('.gid').firstChild.nodeValue,content,nod.getAttribute('href'));
+	  save_and_reload (get_url(),gid(),content,nod.getAttribute('href'));
 	}
       } else {
 	//save_session(); // a tester !
@@ -916,6 +915,9 @@ function user_ip() {
   return '&user='+ $('.user').firstChild.nodeValue + '&ip='+ $('.ip').firstChild.nodeValue;
 }
 
+function gid() {
+  return $('.gid').firstChild.nodeValue;
+}
 
 /*
 * Ajax functions
@@ -923,13 +925,7 @@ function user_ip() {
 
 function new_graph (nod) {
   var bd = 'AaB03x';
-  //$('.content').firstChild.nodeValue = short_content('');
-  //$('.parent').setAttribute('href',$('.gid').firstChild.nodeValue);
-  //$('.parent').setAttribute('display','inline');
-  //$('.user').firstChild.nodeValue = 'toto'; 
-
-  var parent = $('.gid').firstChild.nodeValue;
-  var params = 'name=' + nod.id + '&parent=' + parent + user_ip();
+  var params = 'name=' + nod.id + '&parent=' + gid() + user_ip();
   var args = binary_post(bd,get_layout() + '\n' + $('.area').value);
   //alert (params + '\n' + args);
   var ai = new ajax_post(true,get_base_url() + '/new_graph?' + params,args,bd,function(res) {
@@ -942,8 +938,7 @@ function save_up (evt) {
   var node = $('.parent');
   if (node.hasAttribute('href')) { 
     var content = get_layout() + '\n' + $('.area').value;
-    var gid = $('.gid').firstChild.nodeValue;
-    save_and_reload (get_url(),gid,content,node.getAttribute('href'));
+    save_and_reload (get_url(),gid(),content,node.getAttribute('href'));
   }
 }
 
@@ -988,7 +983,7 @@ function save_all (e) {
 
 function save_layout () {
   //alert ('save_layout');
-  param = 'lout=' + get_layout() + '&gid=' + $('.gid').firstChild.nodeValue + user_ip();
+  param = 'lout=' + get_layout() + '&gid=' + gid() + user_ip();
   var aj = new ajax_get(true,get_base_url() + '/save_layout?' + param, function(res) {
 			      $('.rev').firstChild.nodeValue = res;
 			    });
@@ -1000,9 +995,8 @@ function save_content () {
   var msg = '';
   //msg=prompt('Commit comment:','');
   var bd = 'AaB03x';
-  var gid = $('.gid').firstChild.nodeValue;
   var args = binary_post(bd,get_layout() + '\n' + $('.area').value);
-  var ai = new ajax_post(true,get_base_url() + '/save_content?gid=' + gid + '&msg='+escape(msg) + user_ip(),args,bd,function(res) {
+  var ai = new ajax_post(true,get_base_url() + '/save_content?gid=' + gid() + '&msg='+escape(msg) + user_ip(),args,bd,function(res) {
 			   $('.rev').firstChild.nodeValue = res;
 			 });
   ai.doPost();
@@ -1145,9 +1139,8 @@ function binary_post(bd,content) {
 function update_graph() {
   var bd = 'AaB03x';
   var args = binary_post(bd,$('.area').value);
-  var gid = $('.gid').firstChild.nodeValue;
   $('.content').firstChild.nodeValue = short_content($('.area').value); 
-  var ai = new ajax_post(false,get_base_url() + '/update_graph?gid=' + gid + user_ip(),args,bd,function(res) {
+  var ai = new ajax_post(false,get_base_url() + '/update_graph?gid='+gid(),args,bd,function(res) {
 			   var place = $('.canvas');
 			   //alert((new XMLSerializer()).serializeToString(res));
 			   place.replaceChild(cl_xml(res),place.firstChild);
@@ -1166,12 +1159,10 @@ function update_url(e,edit) {
   if (e.target.id == '.rev') {
     target = $('.rev').firstChild.nodeValue;
   } else if (e.target.id == '.gid'){
-    target = '@' + $('.gid').firstChild.nodeValue;
+    target = '@' + gid();
   } else if (e.target.id == '.content'){
     target = $('.area').value.replace(/#/g,'$');
     target = target.replace(/\n/g,'\\n');
-  } else if (e.target.id == '.date'){
-    target = $('.rev').firstChild.nodeValue;
   } 
   if (edit) {
     document.location.replace(get_url() + '?' + target);
@@ -1259,7 +1250,6 @@ function update_g() {
   window.focusNode.setAttribute('display','none');
   var bd = 'AaB03x';
   var args = binary_post(bd,$('.area').value);
-  var gid = $('.gid').firstChild.nodeValue;
   $('.content').firstChild.nodeValue = short_content($('.area').value); 
   //alert (args);
   var old_area = $('.area').value;
