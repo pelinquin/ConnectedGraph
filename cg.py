@@ -1222,8 +1222,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     unsaved = 'no' if lout else 'layout'
     if debug:
         o += '<text text-anchor="end" id="debug" x="10" y="100%%">DEBUG: %s</text>'%debug
-    s1 = sha1(req)
-    o += '<text class="hd1" text-anchor="end" x="100%%" y="10">%s [%s]<title>Tool revision</title></text>'%(__version__,s1)
+    o += '<text class="hd1" text-anchor="end" x="100%%" y="10">%s [%s]<title>Tool revision</title></text>'%(__version__,sha1_pkg(req))
     o += '<g display="%s" id=".canvas" updated="yes" unsaved="%s" jsdone="%s" title="version %s">'%(mG,unsaved,jsdone,__version__) + run(content,lout,edit,rev) + '</g>'
     
     if edit:
@@ -1363,12 +1362,18 @@ def get_ip(r):
     ip = env['REMOTE_ADDR'] if env.has_key('REMOTE_ADDR') else '0.0.0.0'
     return ip
 
-def sha1(req):
-    """ return a partial sha1 to check version easilly """
-    (pwd, name,ip) = get_env(req)
-    dig = hashlib.sha1(open('%s/%s.py'%(pwd,name)).read() + open('%s/%smin.js'%(pwd,name)).read() + open('%s/%s.css'%(pwd,name)).read())    
-    return dig.hexdigest()[:5]
-    
+def sha1_pkg(r):
+    """ pkg commit sha1 """
+    r.add_common_vars()
+    env = r.subprocess_env.copy()
+    e = os.environ.copy()
+    e['GIT_DIR'] = '%s/.git'%os.path.dirname(env['SCRIPT_FILENAME'])
+    out,err = Popen(('git', 'log','--pretty=oneline','-1'), env=e,stdout=PIPE).communicate()
+    if err:
+        return 'error'
+    else:
+        return out[:7]
+
 def download(req):
     """ dowload all files to rebuild the application"""
     import zipfile
@@ -1437,11 +1442,11 @@ def update(req):
         req.content_type = 'text/plain'
         return 'Error: Bad server or duration between updates [%d secondes] less than 2 minutes !'%int(delta)
     req.content_type = 'text/html'        
-    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git; rm -rf ConnectedGraph/.git'%pwd
+    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git; rm'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
     o = '<html>'
     o += '<link href="../%s" rel="stylesheet" type="text/css"/>'%__CSS__
-    o += '<h1>Application Update v%s [%s]</h1>'%(__version__,sha1(req))
+    o += '<h1>Application Update v%s [%s]</h1>'%(__version__,sha1_pkg(req))
     o += '<p>Path: %s -> %s</p>'%(pwd,server)    
     if err:
         o += '<p>Error:%s</p>'%err
