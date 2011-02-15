@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.1.11j'
+__version__='0.1.11k'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
@@ -772,7 +772,13 @@ class _git:
         """ """
         c = Popen(('git', 'log', '%s:@%s'%(rev,key)), env=self.e, stdout=PIPE, stderr=PIPE)
         o,e = c.communicate()
-        return False if e else True
+        return False if e else True 
+    
+    def tag(self,name,rev):
+        """ """
+        c = Popen(('git', 'tag', name, rev), env=self.e, stdout=PIPE, stderr=PIPE)
+        o,e = c.communicate()
+        return e if e else o
 
 #### GRAPHVIZ (DEPRECATED) ####
 
@@ -804,16 +810,20 @@ def mode_button(mG,mT):
     o += '</g>'
     return o + '</g>'
 
+def tag_input():
+    """ """
+    # tags
+    o = '<g id="tags"><foreignObject y="0" x="258" width="80" height="70">' 
+    o += '<div %s>'%_XHTMLNS
+    o += '<input id=".tag" title="git tag" size="7" value="" onchange="record_tag();"/>'
+    o += '</div></foreignObject>'
+    return o + '</g>'
+
 def save_button(mygit,gid):
     """ """
     o = '<g class="button" onclick="save_all(evt);" fill="#CCC" transform="translate(32,1)"><title>save current diagram</title>'
     o += '<rect width="30" height="30" rx="5"/>'
     o += '<g transform="translate(3,3) scale(0.04)"><path fill="white" d="M 7,404 C 7,404 122,534 145,587 L 244,587 C 286,460 447,158 585,52 C 614,15 542,0 484,24 C 396,61 231,341 201,409 C 157,420 111,335 111,335 L 7,404 z"/></g>'
-    # tags
-    o += '<g id="tags" display="none"><foreignObject y="30" x="-25" width="80" height="70">' 
-    o += '<div %s>'%_XHTMLNS
-    o += '<input id=".tag" title="git tag" size="7" value="" onchange="record_tag();"/>'
-    o += '</div></foreignObject></g>'
     # history
     o += '<g id="history" display="none" transform="translate(-25,50)"><text class="history">'
     for i in mygit.gethistory(gid)[:-1]:
@@ -1112,9 +1122,10 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
             valGet = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(req.args)))
     ##
     gid,rev,content,attrib,lout,praw = '','','','',{},''
-    m0 = re.match('^([\da-f]{5,40})\s*$',valGet)
+    m0 = re.match('^([\da-f]{5,40}|@[\w\-\.]+)\s*$',valGet)
     if m0:
-        rev,gid,raw = mygit.cat_getrev(m0.group(1))
+        key = re.sub('^@','',m0.group(1))
+        rev,gid,raw = mygit.cat_getrev(key)
         if rev != '':
             attrib,lout,content = extract_all(raw)
             praw = extract_content(mygit.cat(attrib))
@@ -1156,8 +1167,8 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     o += '<?xml-stylesheet href="%s/%s" type="text/css" ?>\n'%(pfx,__CSS__)
     init_g = ' onload="init_graph();"' if edit else ' onload="init_graph(true);"'
     (cjs,jsdone) = (init_g,'yes') if (mode == 'graph') and not empty else ('','no')
-    o += '<svg %s %s id=".base" onclick="closelink();" width="1066" height="852">\n'%(_SVGNS,cjs)
-    #o += '<svg %s %s id=".base" onclick="closelink();">\n'%(_SVGNS,cjs)
+    #o += '<svg %s %s id=".base" onclick="closelink();" width="1066" height="852">\n'%(_SVGNS,cjs)
+    o += '<svg %s %s id=".base" onclick="closelink();">\n'%(_SVGNS,cjs)
     o += '<title id=".title">%s%s &#8211; %s</title>'%('' if (lout or pfx == '.') else '*',__TITLE__,short(content,True))
 
     # Find a way to have SVG fav icon instead of png !
@@ -1186,7 +1197,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
             o += '<text class="hd" x="465" y="12" title="log in with existing account" onclick="login();">Login</text>'
         o += '<text class="hd1" text-anchor="end" id=".ip" x="100%%" y="22">%s<title>ip address</title></text>'%ip
         o += '<g id=".form" display="none">'
-        o += '<foreignObject display="inline" y="1" x="328" width="80" height="70">' 
+        o += '<foreignObject display="inline" y="0" x="328" width="80" height="70">' 
         o += '<div %s><form id="myform" method="post">'%_XHTMLNS
         o += '<input id="login" name="login" title="Login" size="7" value=""/>'
         o += '<input id="pw" name="pw" type="password" title="Password" size="7" value=""/>'
@@ -1222,11 +1233,12 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     unsaved = 'no' if lout else 'layout'
     if debug:
         o += '<text text-anchor="end" id="debug" x="10" y="100%%">DEBUG: %s</text>'%debug
-    o += '<text class="hd1" text-anchor="end" x="100%%" y="10">%s [%s]<title>Tool revision</title></text>'%(__version__,sha1_pkg(req))
+
+    o += '<g onclick="load_github_dl();"><text class="hd1" text-anchor="end" x="100%%" y="10">%s [%s]<title>Tool revision</title></text></g>'%(__version__,sha1_pkg(req))
     o += '<g display="%s" id=".canvas" updated="yes" unsaved="%s" jsdone="%s" title="version %s">'%(mG,unsaved,jsdone,__version__) + run(content,lout,edit,rev) + '</g>'
     
     if edit:
-        o += mode_button(mG,mT) + save_button(mygit,gid)
+        o += mode_button(mG,mT) + save_button(mygit,gid) + tag_input()
         #o += connect_button()
         o += '<g class="button" fill="#CCC" transform="translate(62,1)"><rect x="1" width="15" height="30" rx="5"/><path transform="translate(0,6)" d="M4,4 4,14 14,9" fill="white"/>'+ nodes_bar() + '</g>'
     if pfx == '.':
@@ -1329,22 +1341,27 @@ def remove_rev(raw):
         del rev[content]
     rev.close()    
 
+def save_tag(req,tag,rev,user,ip):
+    """ IN GIT DB"""
+    req.content_type = 'text/plain'
+    mygit = _git(user,ip)
+    return mygit.tag(tag,rev)
+
 def save_layout(req,lout,gid,user,ip):
     """ IN GIT DB"""
     req.content_type = 'text/plain'
     mygit = _git(user,ip)
-    #new_raw = re.sub('\n([^\n]*)\n','\n%s\n'%lout,mygit.cat(gid),1)
     new_raw = re.sub('(\n[^\n]*\n)[^\n]*\n','\\1%s\n'%lout,mygit.cat(gid),1)
     return mygit.save(gid,new_raw,'NEW1')
 
-def save_content(req,g,gid,user,ip,msg=''):
+def save_content(req,g,gid,user,ip):
     """ IN GIT DB"""
     req.content_type = 'text/plain'
     mygit = _git(user,ip)
     raw = mygit.cat(gid)
     remove_rev(raw)
     new_raw = raw.split('\n')[0]+'\n' + raw.split('\n')[1]+'\n'+g.value
-    return mygit.save(gid,new_raw,msg)
+    return mygit.save(gid,new_raw,'CONTENT')
 
 def get_env(r):
     """ """
@@ -1442,7 +1459,7 @@ def update(req):
         req.content_type = 'text/plain'
         return 'Error: Bad server or duration between updates [%d secondes] less than 2 minutes !'%int(delta)
     req.content_type = 'text/html'        
-    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git; rm'%pwd
+    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
     o = '<html>'
     o += '<link href="../%s" rel="stylesheet" type="text/css"/>'%__CSS__

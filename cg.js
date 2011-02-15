@@ -962,8 +962,18 @@ function load_item (e) {
 }
 
 function record_tag () {
-  alert ($('.tag').value);
-  $('.tag').value = '';
+    param = '&tag=' + escape($('.tag').value) + '&rev=' + $('.rev').firstChild.nodeValue;
+    var aj = new ajax_get(true,get_base_url() + '/save_tag?gid=' + user_ip() + param, function(res) {
+	    var val = $('.tag').value;
+	    $('.tag').value = '';
+	    if (res) {
+		alert (res);
+	    } else {
+		alert ('\' ' + val + '\' tag created on\n' + $('.rev').firstChild.nodeValue);
+	    }
+	});
+    aj.doGet();
+    
 }
 
 function save_all (e) {
@@ -982,21 +992,18 @@ function save_all (e) {
 }
 
 function save_layout () {
-  //alert ('save_layout');
-  param = 'lout=' + get_layout() + '&gid=' + gid() + user_ip();
-  var aj = new ajax_get(true,get_base_url() + '/save_layout?' + param, function(res) {
+  param = '&lout=' + get_layout();
+  var aj = new ajax_get(true,get_base_url() + '/save_layout?gid=' + gid() + user_ip() + param, function(res) {
 			      $('.rev').firstChild.nodeValue = res;
 			    });
   aj.doGet();
 };
 
 function save_content () {
-  //alert ('save content');
-  var msg = '';
   //msg=prompt('Commit comment:','');
   var bd = 'AaB03x';
   var args = binary_post(bd,get_layout() + '\n' + $('.area').value);
-  var ai = new ajax_post(true,get_base_url() + '/save_content?gid=' + gid() + '&msg='+escape(msg) + user_ip(),args,bd,function(res) {
+  var ai = new ajax_post(true,get_base_url() + '/save_content?gid=' + gid() + user_ip(),args,bd,function(res) {
 			   $('.rev').firstChild.nodeValue = res;
 			 });
   ai.doPost();
