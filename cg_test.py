@@ -242,6 +242,16 @@ set_connectors = {
     'B->A C->A':"[('A', 'B'), ('A', 'C')]",
     # various test cases found
     '[A\'A]->A':"[('A', '.n0')]",
+    # Connextion with quantificators (to review)
+    'A-B':"[('A', 'B', '-')]",
+    # Connextion with quantificators (to review)
+    'A-!-B':"[('A', 'B', 'conflict')]",
+    # error
+    'A--B':"[]",
+    # error
+    'A---B':"[]",
+    # error
+    '{A B}>-C':"[]",
     }
 
 set_child = {

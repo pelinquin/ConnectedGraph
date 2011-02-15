@@ -54,7 +54,8 @@ tli:Island   Traffic Lights
 tlm:Mainland Traffic Lights
 
 """
-__version__  = '0.1'
+__version__  = '0.2'
+MAX_NB_CARS  = 100
 
 def boolrd():
     """ return random choice False or True """
@@ -65,38 +66,59 @@ def environment(tli,tlm,S):
     """
     Env can see the S State vector, but do not write it !
     """
+    # Env can check assersions, but it can be embedded also in the controler 
     assert S[0] >= 0 and S[1] >= 0 and S[2] >= 0 # ROB1
     assert S[0] == 0 or S[2] == 0 # FUN3
-    assert S[0] + S[1] + S[2] <= 10   # FUN2
-    assert tli == red or tlm == red # part of FUN3
+    assert S[0] + S[1] + S[2] <= MAX_NB_CARS    # FUN2
+    assert tli == red or tlm == red # part of FUN3 because if both traffic lights are green,
+    # then it is possible to have cars on the bridge and going opposite direction !
+    
     # we use a simple 50% random choice for presence or not of a vehicule on a sensor;
     # this is a high simplification
     # A more realistic model would estimate some car line;
     # cars are close each other in the line before traffic light, but far each other if traffic light is green for a long time.
     # A traffic simulation may be needed
     # no need to optimize this code; can even use a database with some experimental data
-    mo = boolrd()
+
+    # if car present at last time and trafic light red, then car is still there
+    mo = True if environment.lmo == True and tlm == red else boolrd()
     ii = boolrd() if S[0]>0 else False
-    io = boolrd() if S[1]>0 else False
+    io = True if environment.lio == True and tli == red else boolrd() if S[1]>0 else False
     mi = boolrd() if S[2]>0 else False
+    environment.lmo = mo
+    environment.lio = io
     return mi,mo,ii,io
+environment.lmo = False
+environment.lio = False
 
 def update_state(S,mi,mo,ii,io,tli,tlm):
     """
     This is part of the controler
+    Waiting time is the duration since a traffic light become red and a car is present
+    until the traffic light remains red
     """
+    # save and reset mainland waiting time and inc nb on bridge
     if mo and tlm == green:
         S[0] += 1; S[5] += S[3]; S[3] = 0
-    else:
+    # waiting in front mainland traffic light
+    if tlm == red and mo == True:
         S[3] += 1
-    if ii:
-        S[0] -= 1; S[1] += 1
+    # save and reset island waiting time and inc nb on island, dec nb on bridge
     if io and tli == green:
         S[1] -= 1; S[2] += 1; S[5] += S[4]; S[4] = 0
-    else:
+    # waiting in front island traffic light
+    if tli == red and io == True:
         S[4] += 1
+    # increment cars nb on the island and decrement nb on the bridge
+    if ii:
+        S[0] -= 1; S[1] += 1
+    # decrement cars nb leaving the bridge
     if mi:
         S[2] -= 1
+    if S[3] > S[6]:
+        S[6] = S[3]
+    if S[4] > S[6]:
+        S[6] = S[4]
 
 def controler(policy,mi,mo,ii,io,S):
     """
@@ -109,40 +131,40 @@ def controler(policy,mi,mo,ii,io,S):
     Should the environment model be accurate to achieve a better performance or is it better to build a pessimistic model.
     For adaptive policies, how to mesure performance ?
     """
-    MAX_NB_CARS = 10
-    if policy == basic: # Basic policy (not optimal) ! #FUN6
+    if policy == basic: # Basic policy (maybe not optimal !) #FUN6
         tli,tlm = green,green
     elif policy == rand: # Random policy (not optimal)
         tli,tlm = boolrd(),boolrd()
     else:
-        # Put here an optimal policy that minimise waiting time metrics
+        # Put here an optimal policy that minimise waiting time
         # I do not know if such policy is better than the basic one !
-        if S[3] > 15 and S[2] > 0 and controler.oldtli == green:
+        #print '%s %s %s'%(S[3], S[0], controler.oldtlm)
+        if S[3] > 10 and controler.l_tli == green and mo == True:
             tli,tlm = red,green
-        elif S[4] > 15 and S[0] > 0 and controler.oldtlm == red:
+        elif S[4] > 10 and controler.l_tlm == green and io == True:
             tli,tlm = green,red
         else:
             tli,tlm = green,green
-    # Only Five constraints
-    # 3 // constraints:
+    # Only 4 // constraints:
     if S[0]+S[1]+S[2] >= MAX_NB_CARS-1: # FUN2
         tlm = red
-    if S[0] > 0:
+    if S[0] > 0: 
         tli = red
     if S[2] > 0:
         tlm = red
     # FUN3
-    # 2 linked constraints; sort is important since car are coming from the Mainland
-    # There is no car manufacture on the Island !
-    if tlm == green:
-        tli = red
-    if tli == green:
-        tlm = red
-    controler.oldtli,controler.oldtlm = tli,tlm
+    # Cars are first coming from the Mainland so priority to green on mainland
+    if tlm == green and tli == green:
+        if S[1] > 0:
+            print 'ici'
+            tlm = red
+        else:
+            print 'la'
+            tli = red
     update_state(S,mi,mo,ii,io,tli,tlm)
+    controler.l_tli,controler.l_tlm = tli,tlm
     return tli,tlm
-controler.oldtli = 0
-controler.oldtlm = 0
+controler.l_tli,controler.l_tlm = 0,0
 
 def print_state(S):
     """
@@ -152,11 +174,16 @@ def print_state(S):
     S[3]: Current Waiting time on Mainland traffic lights
     S[4]: Current Waiting time on Island traffic lights
     S[5]: Cumulative Waiting time on traffic lights
+    S[6]: Maximum Waiting time on traffic lights
     """
+    #if print_state.l_tli != tli or print_state.l_tlm != tlm:
+    #    print ''
     w = '<-' if tli else '->' if tlm else '--'
     dtli = 'green' if tli == green else 'red'
     dtlm = 'green' if tlm == green else 'red'
     print '%03d%s(MI:%5s,MO:%5s,II:%5s,IO:%5s) I:%5s,M:%5s %s'%(t,w,mi,mo,ii,io,dtli,dtlm,S)
+    print_state.l_tli,print_state.l_tlm = tli,tlm
+print_state.l_tli, print_state.l_tlm = 0,0
 
 def install(req,upid='',pw=''):
     """ Update On The Web ! """
@@ -219,13 +246,13 @@ if __name__ == '__main__':
     (green, red) = range(2)
     (basic,rand,optimal1,optimal2,odapt1) = range(5)
     if run:
-        duration = 10000
-        S = [0,0,0,0,0,0] # manual setting if cars on bridge or on island at init
+        duration = 400
+        S = [0,0,0,0,0,0,0] # manual setting if cars on bridge or on island at init
         mi,mo,ii,io,tlm,tli = False,False,False,False,False,False
         for t in range(duration):
             tli,tlm = controler(basic,mi,mo,ii,io,S)
             mi,mo,ii,io = environment(tli,tlm,S)
             print_state(S)
-        print 'Average waiting time:%d'%(100*int(S[5])/t)
+        print 'Waiting time: Average:%d Max:%d'%(100*int(S[5])/t,S[6])
 
 

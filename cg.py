@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.1.11k'
+__version__='0.1.11l'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
@@ -318,7 +318,7 @@ class cg:
                 self.pos[i] = [random.randint(self.m,self.w-2*self.m),random.randint(self.m+self.offset,self.h-2*self.m)]
         #####
         for m in __REG_EDGES__.finditer(raw):
-            key1,key2 = 'error1','error2'
+            key1,key2 = 'e1','e2'
             if (m.group(1) or m.group(2)) and (m.group(6) or m.group(7)):
                 n1 = m.group(1)
                 if n1:
@@ -333,19 +333,18 @@ class cg:
                 else:
                     l2 = re.sub(r'\\','',m.group(7)[1:-1])
                     if self.r.has_key(l2):
-                        key2 = self.r[l2]
-                        
-            if key1 != key2:
-                if m.group(5) == '->':
-                    self.connectors.append((key2,key1))
-                elif m.group(5) == '<-':
-                    self.connectors.append((key1,key2))
-                elif m.group(5) == '-!-':
-                    self.connectors.append((key1,key2,'conflict'))
-                elif re.match('^[\d\.]*-[\d\.]*$',m.group(5)):
-                    self.connectors.append((key1,key2,m.group(5)))     
+                        key2 = self.r[l2]        
+                if key1 != key2:
+                    if m.group(5) == '->':
+                        self.connectors.append((key2,key1))
+                    elif m.group(5) == '<-':
+                        self.connectors.append((key1,key2))
+                    elif m.group(5) == '-!-':
+                        self.connectors.append((key1,key2,'conflict'))
+                    elif re.match('^[\d\.]*-[\d\.]*$',m.group(5)):
+                        self.connectors.append((key1,key2,m.group(5)))     
         for m1 in __REG_AND__.finditer(raw):
-            key1,key2 = 'error3','error4'
+            key1,key2 = 'e3','e4'
             if m1.group(2) or m1.group(3):
                 name = m1.group(2)
                 if name:
@@ -354,22 +353,22 @@ class cg:
                     label = m1.group(3)[1:-1]
                     if self.r.has_key(label):
                         key2 = self.r[label]
-            tot = ''
-            for m in __REG_NODES__.finditer(m1.group(1)):
-                if m.group(1) or m.group(2):
-                    name = m.group(1)
-                    if name:
-                        if self.lab.has_key(name):
-                            key1 = name
-                    else:
-                        label = re.sub(r'\\','',m.group(2)[1:-1])
-                        if self.r.has_key(label):
-                            key1 = self.r[label]
-                    if tot:
-                        tot += ':'+key1
-                    else:
-                        tot = key1
-            self.connectors.append((key2,tot))
+                tot = ''
+                for m in __REG_NODES__.finditer(m1.group(1)):
+                    if m.group(1) or m.group(2):
+                        name = m.group(1)
+                        if name:
+                            if self.lab.has_key(name):
+                                key1 = name
+                        else:
+                            label = re.sub(r'\\','',m.group(2)[1:-1])
+                            if self.r.has_key(label):
+                                key1 = self.r[label]
+                        if tot:
+                            tot += ':'+key1
+                        else:
+                            tot = key1
+                self.connectors.append((key2,tot))
     
     def get_k(self):
         """ return k ratio """
@@ -817,6 +816,7 @@ def tag_input():
     o += '<div %s>'%_XHTMLNS
     o += '<input id=".tag" title="git tag" size="7" value="" onchange="record_tag();"/>'
     o += '</div></foreignObject>'
+    o += '<rect width="1" height="1"/>' #bug WEBkit
     return o + '</g>'
 
 def save_button(mygit,gid):
@@ -1068,7 +1068,7 @@ def list(req,history=''):
                 resume = 'PDF file'
             else:
                 resume = short( extract_content(mygit.cat(l[3])))
-            o += '<tr><td>%05d</td><td><a style="font-family:courier;" href="edit?%s">%s</a></td><td>%s</td><td>%s</td><td><a style="font-family:courier;" href="edit?@%s">%s</a></td><td>%s</td></tr>'%(n,l[0],l[0][:15],l[1],l[2],l[3],l[3],resume)
+            o += '<tr><td>%05d</td><td><a style="font-family:courier;" href="edit?%s">%s</a></td><td>%s</td><td>%s</td><td><a style="font-family:courier;" href="edit?@%s">%s</a></td><td>%s</td></tr>'%(n,l[0][:15],l[0][:15],l[1],l[2],l[3],l[3],resume)
     return o + '</table><h6>%s</h6></html>'%__version__
 
 def edit(req,login='',pw='',pw2=''):
@@ -1190,7 +1190,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
 
     if edit:
         if user != 'anonymous':
-            o += '<text class="hd1" id=".user" title="logout" x="470" y="12" onclick="logout();">%s</text>'%user
+            o += '<text class="hd1" id=".user" x="470" y="12" onclick="logout();">%s<title>logout</title></text>'%user
         else:
             o += '<text display="none" id=".user">anonymous</text>' # revoir
             o += '<text class="hd" x="505" y="12" title="create a new account" onclick="create();">Signup</text>'
@@ -1204,6 +1204,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
         o += '<input id="pw2" style="display:none" name="pw2" type="password" title="Password repeat" size="7" value=""/>'
         o += '</form></div>'
         o += '</foreignObject>'
+        o += '<rect width="1" height="1"/>' #bug WEBkit
         o += '<g onclick="check();" title="submit login/password" class="button" fill="#CCC" transform="translate(400,1)"><rect x="1" width="15" height="30" rx="5"/><path transform="translate(0,6)" d="M4,4 4,14 14,9" fill="white"/></g>'
         o += '</g>'
         o += '<text class="hd1" id=".status" title="status" x="640" y="12" fill="#999">%s</text>'%msg
@@ -1390,38 +1391,6 @@ def sha1_pkg(r):
         return 'error'
     else:
         return out[:7]
-
-def download(req):
-    """ dowload all files to rebuild the application"""
-    import zipfile
-    req.content_type = 'application/zip'
-    req.headers_out['Content-Disposition'] = 'attachment; filename=SVG_connectedGraph_%s.zip'%re.sub('\.','_',__version__)
-    (pwd, name,ip) = get_env(req)
-    dig = hashlib.sha1()    
-    dig.update(open('%s/%s.py'%(pwd,name)).read())
-    dig.update(open('%s/%s_test.py'%(pwd,name)).read())
-    dig.update(open('%s/%s.js'%(pwd,name)).read())
-    dig.update(open('%s/%s.css'%(pwd,name)).read())   
-    signature = dig.hexdigest()
-    sig = open('/tmp/sig','w')
-    d = '%s'%datetime.datetime.now()
-    sig.write('%s\n%s\n%s'%(d[:19],__version__,dig.hexdigest()))
-    sig.close()    
-    f = zipfile.ZipFile('/tmp/cg.zip', 'w')
-    f.write('%s/%s.py'%(pwd,name),'%s.py'%name, zipfile.ZIP_DEFLATED)
-    f.write('%s/%s_test.py'%(pwd,name),'%s_test.py'%name, zipfile.ZIP_DEFLATED)
-    f.write('%s/%s.js'%(pwd,name),'%s.js'%name, zipfile.ZIP_DEFLATED)
-    f.write('%s/%s.css'%(pwd,name),'%s.css'%name, zipfile.ZIP_DEFLATED)
-    f.write('%s/logo16.png'%(pwd),'logo16.png', zipfile.ZIP_DEFLATED)
-    f.write('%s/COPYING'%(pwd),'COPYING', zipfile.ZIP_DEFLATED)
-    f.write('%s/README'%(pwd),'README', zipfile.ZIP_DEFLATED)
-    f.write('%s/formose.conf'%(pwd),'formose.conf', zipfile.ZIP_DEFLATED)
-    f.write('/tmp/sig','SHA1_SIGNATURE.txt', zipfile.ZIP_DEFLATED)
-    f.close()
-    log = open('%s/cg/cg.log'%__BASE__,'a')
-    log.write('[%s %s] Download v%s\n'%(d[:19],ip,__version__))
-    log.close()
-    return open('/tmp/cg.zip').read()
 
 def log(req):
     """ show log file """

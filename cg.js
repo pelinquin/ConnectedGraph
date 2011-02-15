@@ -1329,6 +1329,10 @@ function load_github() {
   document.location.replace('https://github.com/pelinquin/ConnectedGraph');
 }
 
+function load_github_dl() { 
+  document.location.replace('https://github.com/pelinquin/ConnectedGraph/tarball/master');
+}
+
 function dragenter(e) {
   e.stopPropagation();
   e.preventDefault();
