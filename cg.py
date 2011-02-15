@@ -1122,7 +1122,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
             valGet = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(req.args)))
     ##
     gid,rev,content,attrib,lout,praw = '','','','',{},''
-    m0 = re.match('^([\da-f]{5,40}|@[\w\-\.]+)\s*$',valGet)
+    m0 = re.match('^([\da-f]{5,40}|@[\w\-\.]{1,9})\s*$',valGet)
     if m0:
         key = re.sub('^@','',m0.group(1))
         rev,gid,raw = mygit.cat_getrev(key)
