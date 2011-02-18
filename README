@@ -11,14 +11,11 @@ This is part of the upcoming FORMOSE open-source Project.
 
 *** Where is the repository ? ***
 
-* Source Code, Issue Tracker and Wiki:
+* Source Code, Issue Tracker, Wiki and Download:
 https://github.com/pelinquin/ConnectedGraph
 
 * Play with the application 
 http://tramweb.net/formose/cg.py
-
-* Download 
-http://tramweb.net/formose/cg.py/download
 
 *** How to install 'Connected Graph' Web Application ?
 
@@ -26,17 +23,21 @@ You need :
     apache2  
     mod_python
     git
-    yui-compressor
+    yui-compressor (if someone knows a Python equivalent without JVM !)
 
 If you need to attach LaTeX documents, you need
    texlive 
    texlive-latex-extra
+   other extra latex packages
 
 If you need to attach OpenOffice.org documents, you need
    openoffice > v3
 
 Browsers currently supported:
     Firefox (v>4.0)
+    Chromium
+    Safari soon
+    Opera soon
 
 *** Run the install script
 sudo ./install.sh

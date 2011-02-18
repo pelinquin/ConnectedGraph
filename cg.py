@@ -1235,7 +1235,9 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     if debug:
         o += '<text text-anchor="end" id="debug" x="10" y="100%%">DEBUG: %s</text>'%debug
 
-    o += '<g onclick="load_github_dl();"><text class="hd1" text-anchor="end" x="100%%" y="10">%s [%s]<title>Tool revision</title></text></g>'%(__version__,sha1_pkg(req))
+    dl = 'onclick="load_github_dl();"' if edit else ''
+    dltxt = 'download tool revision' if edit else 'tool revision'
+    o += '<g %s><text class="hd1" text-anchor="end" x="100%%" y="10">%s [%s]<title>%s</title></text></g>'%(dl,__version__,sha1_pkg(req),dltxt)
     o += '<g display="%s" id=".canvas" updated="yes" unsaved="%s" jsdone="%s" title="version %s">'%(mG,unsaved,jsdone,__version__) + run(content,lout,edit,rev) + '</g>'
     
     if edit:

@@ -7,17 +7,20 @@
 # git
 # yui-compressor
 
-echo "clean temporary files"
+echo "Clean temporary files"
 rm -f "*.~" "*.pyc"
 
-echo "compress js and css files"
+echo "Compress js and css files"
 yui-compressor cg.js > cgmin.js
 yui-compressor cg.css > cgmin.css
 
 echo "turn on constants"
-cp cg.py cg_orig.py
-cat cg_orig.py | sed -e "s|__BASE__='/tmp'|__BASE__='/db'|" | sed -e "s|__JS__='cg.js'|__JS__='cgmin.js'|" | sed -e "s|__CSS__='cg.css'|__CSS__='cgmin.css'|"> cg.py
-diff cg.py cg_orig.py
+cat cg.py | sed -e "s|__BASE__='/tmp'|__BASE__='/db'|" | sed -e "s|__JS__='cg.js'|__JS__='cgmin.js'|" | sed -e "s|__CSS__='cg.css'|__CSS__='cgmin.css'|"> cg1.py
+if diff cg.py cg1.py >/dev/null ; then
+    rm -f cg1.py
+else
+    mv cg1.py cg.py
+fi
 
 
 echo "Run tests. All test cases should pass"

@@ -969,7 +969,7 @@ function record_tag () {
 	    if (res) {
 		alert (res);
 	    } else {
-		alert ('\' ' + val + '\' tag created on\n' + $('.rev').firstChild.nodeValue);
+		alert ('\' ' + val + '\' tag created on revision:\n' + $('.rev').firstChild.nodeValue);
 	    }
 	});
     aj.doGet();
