@@ -8,7 +8,7 @@
 # yui-compressor
 
 echo "Clean temporary files"
-rm -f "*.~" "*.pyc"
+rm -f *.~ *.pyc
 
 echo "Compress js and css files"
 yui-compressor cg.js > cgmin.js
@@ -22,12 +22,12 @@ else
     mv cg1.py cg.py
 fi
 
-
 echo "Run tests. All test cases should pass"
 chmod +x ./cg_test.py
 ./cg_test.py
+rm -f *.pyc
 
-echo "copy the config file (edit directories for your own system)" 
+echo "Copy the config file (edit directories for your own system)" 
 sudo cp formose.conf /etc/apache2/conf.d/
 
 echo "Restart Apache"
