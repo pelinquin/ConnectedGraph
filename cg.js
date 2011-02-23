@@ -52,9 +52,12 @@ function is_gecko() {
   var str = navigator.userAgent;
   //alert (str);
 
-  // Chromium
+  // Webkit
   //Mozilla/5.0 (X11; U; Linux i686; en-US) AppleWebKit/534.17 (KHTML, like Gecko) Ubuntu/10.10 Chromium/10.0.651.0 Chrome/10.0.651.0 Safari/534.17
   if (str.match('AppleWebKit')) { return true; }
+
+  // Opera
+  if (str.match('Presto')) { return true; }
 
   // FF4
   //Mozilla/5.0 (Windows NT 5.1; rv:2.0b11pre) Gecko/20110201 Firefox/4.0b11pre
@@ -468,11 +471,6 @@ function attach_icon(w) {
   return tt;
 } 
 
-function attach() { // NOT USED
-  var gid = '&gid=' + gid();
-  window.open(get_base_url() + '/load_pdf?' + user_ip() + gid, 'neutral', 'chrome,scrollbars=yes');
-}
-
 function save_attach() {
   var el = $('fileElem');
   if (el) {
@@ -483,22 +481,20 @@ function save_attach() {
 function new_attach(files,gid,nod) {
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
-    //alert (file.size + ' ' + file.getAsBinary().length);
-    var bd = 'AaB03x';
-    var content = escape(file.getAsBinary());
-    //alert (file.type);
-    var args = binary_post(bd,content);
-    var param = '';
-    if (gid) {
-      param = '&gid=' + gid + '&typ=' + file.type;
-    } else {
-      param = '&gid=' + $('.gid').firstChild.nodeValue + '&typ=' + file.type;
+    if (typeof gid == 'undefined') {
+      gid = $('.gid').firstChild.nodeValue;
     }
-    var ai = new ajax_post(true,get_base_url() + '/new_attach?' + user_ip() + param,args,bd,function(res) {
-			     //alert (res);
-			     var b = nod.firstChild.nextSibling.getBBox();
-			     nod.firstChild.appendChild(attach_icon(b.width));
-			   });
+    var fD = new FormData();
+    fD.append('gid', gid);
+    fD.append('user', $('.user').firstChild.nodeValue);
+    fD.append('ip', $('.ip').firstChild.nodeValue);
+    fD.append('g', file);
+    fD.append('typ', file.type);    
+    var ai = new post(true,get_base_url() + '/new_attach',fD,function(res) {
+			//alert (res);
+			var b = nod.firstChild.nextSibling.getBBox();
+			nod.firstChild.appendChild(attach_icon(b.width));
+		      });
     ai.doPost();
   }
 }
@@ -760,8 +756,7 @@ DragDrop.prototype.grab = function( evt ) {
 	  var pa = 'gid=' + nod.getAttribute('href') +'&rev='+ $('.rev').firstChild.nodeValue;
 	  window.open(get_base_url() + '/load_pdf?' + pa, 'neutral', 'chrome,scrollbars=yes');
 	} else {
-	  var content = get_layout() + '\n' + $('.area').value;
-	  save_and_reload (get_url(),gid(),content,nod.getAttribute('href'));
+	  save_and_reload (get_url(),gid(),get_layout(),$('.area').value,nod.getAttribute('href'));
 	}
       } else {
 	//save_session(); // a tester !
@@ -922,23 +917,23 @@ function gid() {
 /*
 * Ajax functions
 */
-
 function new_graph (nod) {
-  var bd = 'AaB03x';
-  var params = 'name=' + nod.id + '&parent=' + gid() + user_ip();
-  var args = binary_post(bd,get_layout() + '\n' + $('.area').value);
-  //alert (params + '\n' + args);
-  var ai = new ajax_post(true,get_base_url() + '/new_graph?' + params,args,bd,function(res) {
-			   document.location.replace(get_url() + '?@' + res);
-			 });
+  var fD = new FormData();
+  fD.append('parent', gid());
+  fD.append('name', nod.id);
+  fD.append('user', $('.user').firstChild.nodeValue);
+  fD.append('ip', $('.ip').firstChild.nodeValue);
+  fD.append('g', get_layout() + '\n' + $('.area').value);
+  var ai = new post(true,get_base_url() + '/new_graph', fD, function(res) {
+		      document.location.replace(get_url() + '?@' + res);
+		    });
   ai.doPost();
 }
 
 function save_up (evt) {
   var node = $('.parent');
   if (node.hasAttribute('href')) { 
-    var content = get_layout() + '\n' + $('.area').value;
-    save_and_reload (get_url(),gid(),content,node.getAttribute('href'));
+    save_and_reload (get_url(),gid(),get_layout(),$('.area').value,node.getAttribute('href'));
   }
 }
 
@@ -992,30 +987,40 @@ function save_all (e) {
 }
 
 function save_layout () {
-  param = '&lout=' + get_layout();
-  var aj = new ajax_get(true,get_base_url() + '/save_layout?gid=' + gid() + user_ip() + param, function(res) {
-			      $('.rev').firstChild.nodeValue = res;
-			    });
-  aj.doGet();
-};
-
-function save_content () {
-  //msg=prompt('Commit comment:','');
-  var bd = 'AaB03x';
-  var args = binary_post(bd,get_layout() + '\n' + $('.area').value);
-  var ai = new ajax_post(true,get_base_url() + '/save_content?gid=' + gid() + user_ip(),args,bd,function(res) {
-			   $('.rev').firstChild.nodeValue = res;
-			 });
+  var fD = new FormData();
+  fD.append('gid', gid());
+  fD.append('user', $('.user').firstChild.nodeValue);
+  fD.append('ip', $('.ip').firstChild.nodeValue);
+  fD.append('lout', get_layout());
+  var ai = new post(true,get_base_url() + '/save_layout',fD, function(res) {
+		      $('.rev').firstChild.nodeValue = res;
+		    });
   ai.doPost();
 };
 
-function save_and_reload (url,gid,content,href) {
-  //alert (gid + content);
-  var bd = 'AaB03x';
-  var args = binary_post(bd,content);
-  var ai = new ajax_post(true,get_base_url() + '/save_content?gid=' + gid + user_ip(),args,bd,function(res) {
-			   document.location.replace(url + '?@' + href);
-			 });
+function save_content () {
+  var fD = new FormData();
+  fD.append('gid', gid());
+  fD.append('user', $('.user').firstChild.nodeValue);
+  fD.append('ip', $('.ip').firstChild.nodeValue);
+  fD.append('lout', get_layout());
+  fD.append('content', $('.area').value);
+  var ai = new post(true,get_base_url() + '/save_content',fD,function(res) {
+		      $('.rev').firstChild.nodeValue = res;
+		    });
+  ai.doPost();
+};
+
+function save_and_reload (url,gid,lout,content,href) {
+  var fD = new FormData();
+  fD.append('gid', gid);
+  fD.append('user', $('.user').firstChild.nodeValue);
+  fD.append('ip', $('.ip').firstChild.nodeValue);
+  fD.append('lout', lout); 
+  fD.append('content', content);
+  var ai = new post(true,get_base_url() + '/save_content?',fD,function(res) {
+		      document.location.replace(url + '?@' + href);
+		    });
   ai.doPost();
 };
 
@@ -1066,7 +1071,7 @@ function ajax_get(txt,url, cb) {
   }
 };
 
-function ajax_post(txt,url,params,bd,cb) {
+function post(txt,url,data,cb) {
   var req = new XMLHttpRequest();
   req.onreadystatechange = processRequest;
   function processRequest () {
@@ -1085,11 +1090,8 @@ function ajax_post(txt,url,params,bd,cb) {
     }
   }
   this.doPost = function() {
-    req.open('POST', url, true);
-    req.setRequestHeader('Content-Type', 'multipart/form-data; boundary="'+bd+'"');
-    req.setRequestHeader('Content-length', params.length);
-    req.setRequestHeader('Connection', 'close');
-    req.send(params);
+    req.open('POST', url,true);
+    req.send(data);
   }  
 };
 
@@ -1136,25 +1138,19 @@ function change_textarea() {
   $('.canvas').setAttribute('unsaved','all');
 };
 
-function binary_post(bd,content) {
-  var args = '--' + bd + '\ncontent-disposition: form-data; name="g"; filename="B"\n'
-    + 'Content-Type: application/octet-stream\nContent-Transfer-Encoding: binary\r\n\r\n'
-    + content + '\r\n--' + bd + '\n';
-  return (args);
-};
-
 function update_graph() {
-  var bd = 'AaB03x';
-  var args = binary_post(bd,$('.area').value);
   $('.content').firstChild.nodeValue = short_content($('.area').value); 
-  var ai = new ajax_post(false,get_base_url() + '/update_graph?gid='+gid(),args,bd,function(res) {
-			   var place = $('.canvas');
-			   //alert((new XMLSerializer()).serializeToString(res));
-			   place.replaceChild(cl_xml(res),place.firstChild);
-			   nodeArray = [];
-			   init_graph();
-			 });
-  ai.doPost();
+  var fD = new FormData();
+  fD.append('gid', gid());
+  fD.append('content', $('.area').value);
+  var ai = new post(false,get_base_url() + '/update_graph',fD,function(res) {
+		      var place = $('.canvas');
+		      //alert((new XMLSerializer()).serializeToString(res));
+		      place.replaceChild(cl_xml(res),place.firstChild);
+		      nodeArray = [];
+		      init_graph();
+		    });
+  ai.doPost(); 
 }
 
 function cl_xml(d){
@@ -1253,22 +1249,23 @@ function edit_node_old(e,mode) {
   } 
 }
 
+
 function update_g() {
   window.focusNode.setAttribute('display','none');
-  var bd = 'AaB03x';
-  var args = binary_post(bd,$('.area').value);
-  $('.content').firstChild.nodeValue = short_content($('.area').value); 
-  //alert (args);
   var old_area = $('.area').value;
-  var labname = 'name='+ window.focusNode.parentNode.id+'&label='+escape(window.focusNode.firstChild.firstChild.value);
-  var ai = new ajax_post(true,get_base_url() + '/update_g?'+labname,args,bd,function(res) {
-			   if (res != old_area) {
-			     $('.canvas').setAttribute('unsaved','all');
-			     change_title(true);
-			     $('.area').value = res;
-			     update_graph();
-			   }
-			 });
+  $('.content').firstChild.nodeValue = short_content($('.area').value); 
+  var fD = new FormData();
+  fD.append('name', window.focusNode.parentNode.id);
+  fD.append('label', window.focusNode.firstChild.firstChild.value);
+  fD.append('content', $('.area').value);
+  var ai = new post(true,get_base_url() + '/update_g',fD,function(res) {
+		      if (res != old_area) {
+			$('.canvas').setAttribute('unsaved','all');
+			change_title(true);
+			$('.area').value = res;
+			update_graph();
+		      }
+		    });
   ai.doPost();
   window.focusNode = null;  
 }
@@ -1356,6 +1353,18 @@ function drop(e) {
   }
   e.stopPropagation();
   e.preventDefault();
+}
+
+function select_tag() {
+  var tab = $('tagList').childNodes;
+  if ($('.tag').value) {
+    alert ($('.tag').value);
+  }
+  for ( var i = 0; i < tab.length; i++ ) {
+    if (tab[i].hasAttribute('seleted')) {
+      alert ('yes');
+    }
+  }
 }
 
 // end

@@ -1,24 +1,34 @@
 
-***** Welcome to 'Connected Graph' ! *****
+***** Welcome to FORMOSE project 'Connected Graph' tool ! *****
 
 *** What is that ! ***
-'Connected Graph' is a Web application that provides
+'Connected Graph' is a Web application for Requirements Engineering
+
+Featuring:
 - Full SVG nested diagrams for Requirements Engineering.
-- A transparent git database for persistence and version control
+- A transparent Git database for persistence and version control
 - Editing on the graph, on the text or on the url.
 
-This is part of the upcoming FORMOSE open-source Project.
+FORMOSE is an open-source project submitted in 2011 for ANR funding.
+
+*** Show me a demo ***
+* look at a diagram:
+http://193.84.73.209/formose/cg.py/view?@hello
+* enter edit mode:
+http://193.84.73.209/formose/cg.py/edit?A->B
 
 *** Where is the repository ? ***
 
 * Source Code, Issue Tracker, Wiki and Download:
 https://github.com/pelinquin/ConnectedGraph
 
-* Play with the application 
-http://tramweb.net/formose/cg.py
+*** Which Browser is currently supported? ***
+    Firefox 4
+    Chromium 10 
+    Safari 5
+    Opera 11 (FormData object currently not supported)
 
-*** How to install 'Connected Graph' Web Application ?
-
+*** How to install the tool on yout own server ?
 You need :
     apache2  
     mod_python
@@ -33,18 +43,12 @@ If you need to attach LaTeX documents, you need
 If you need to attach OpenOffice.org documents, you need
    openoffice > v3
 
-Browsers currently supported:
-    Firefox (v>4.0)
-    Chromium
-    Safari soon
-    Opera soon
 
 *** Run the install script
 sudo ./install.sh
 
 *** Run Firefox on your local web app; for instance: 
 firefox http://pelinquin/formose/cg.py
-
 
 *** setup ssl on Apache/Ubuntu
 

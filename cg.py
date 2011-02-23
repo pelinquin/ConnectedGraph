@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.1.11l'
+__version__='0.1.11m'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
@@ -610,14 +610,6 @@ class _git:
             r = Popen(('git', 'commit-tree', q.communicate(li)[0].strip()), env=e, stdout=PIPE, stdin=PIPE)
             Popen(('git', 'update-ref', 'refs/heads/master',r.communicate('start')[0].strip()), env=e, stdout=PIPE).communicate()
 
-    def add_old(self):
-        """ """
-        p1 = Popen(('git', 'add','/tmp/cg/ath/2kuSN7rMzf'), env=self.e,stdout=PIPE,stderr=PIPE)
-        out1, err1 = p1.communicate('')
-        p2 = Popen(('git', 'commit','-a','-m0'), env=self.e,stdout=PIPE,stderr=PIPE)
-        out2, err2 = p2.communicate('')
-        return (err1,err2)
-
     def save_file(self,key):
         """ """
         k1 = '@%s'%key
@@ -779,6 +771,11 @@ class _git:
         o,e = c.communicate()
         return e if e else o
 
+    def tag_list(self):
+        """ """
+        o,e = Popen(('git', 'tag'), env=self.e, stdout=PIPE).communicate()
+        return o
+
 #### GRAPHVIZ (DEPRECATED) ####
 
 def graphviz(raw):
@@ -809,12 +806,14 @@ def mode_button(mG,mT):
     o += '</g>'
     return o + '</g>'
 
-def tag_input():
+def tag_input(mygit):
     """ """
-    # tags
+    li = ''
+    for i in mygit.tag_list().split():
+        li += '<option value="%s"/>'%i.decode('latin-1') # why not utf-8 not supported ?
     o = '<g id="tags"><foreignObject y="0" x="258" width="80" height="70">' 
     o += '<div %s>'%_XHTMLNS
-    o += '<input id=".tag" title="git tag" size="7" value="" onchange="record_tag();"/>'
+    o += '<input id=".tag" list="tagList" title="git tag" size="7" value="" maxlength="9" onchange="record_tag();" onclick="select_tag();"/><datalist id="tagList">%s</datalist>'%li
     o += '</div></foreignObject>'
     o += '<rect width="1" height="1"/>' #bug WEBkit
     return o + '</g>'
@@ -900,10 +899,10 @@ def update_child(raw,gid,name):
                 return l[0] + '\n' + content[:m.end(4)] + '@'+gid + content[m.end(4):]
     return 'pb!'
 
-def update_g(req,g,label,name):
+def update_g(req,content,label,name):
     """ """
     req.content_type = 'text/plain'
-    return update_child_label(g.value,label,name)
+    return update_child_label(content,label,name)
     
 def update_child_label(content,new_lab,n1):
     """ change label of the node(name)"""
@@ -986,7 +985,7 @@ def new_graph(req,g,user,ip,name='',parent=''):
     old_content = mygit.cat(parent)
     remove_rev(old_content)
     tab = old_content.split('\n')
-    new_raw = tab[0] + '\n' + tab[1] + '\n' + update_child(g.value,gid,name) # g->layout+content
+    new_raw = tab[0] + '\n' + tab[1] + '\n' + update_child(g,gid,name) # g->layout+content
     mygit.save_mult(gid,parent,'%s\n\n\n'%parent,new_raw,'NEW_CHILD') 
     return gid
 
@@ -1019,6 +1018,9 @@ def new_attach(req,g,user,ip,gid,typ):
     if os.path.isfile(dfile):
         os.remove(dfile)
     rev = mygit.save_file(gid)
+
+    if os.path.isfile(target):
+        os.remove(target)
     return "Document saved with Git\n%s"%(rev)
 
 def load_pdf(req,gid,rev):
@@ -1241,7 +1243,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     o += '<g display="%s" id=".canvas" updated="yes" unsaved="%s" jsdone="%s" title="version %s">'%(mG,unsaved,jsdone,__version__) + run(content,lout,edit,rev) + '</g>'
     
     if edit:
-        o += mode_button(mG,mT) + save_button(mygit,gid) + tag_input()
+        o += mode_button(mG,mT) + save_button(mygit,gid) + tag_input(mygit)
         #o += connect_button()
         o += '<g class="button" fill="#CCC" transform="translate(62,1)"><rect x="1" width="15" height="30" rx="5"/><path transform="translate(0,6)" d="M4,4 4,14 14,9" fill="white"/>'+ nodes_bar() + '</g>'
     if pfx == '.':
@@ -1321,18 +1323,13 @@ def run(content='',lout={},edit=False,rev=''):
             mygraph.layout(10,50)
         return mygraph.graph()
 
-def update_graph(req,g,gid,name='',label=''):
+def update_graph(req,content,gid):
     """ load GIT"""
     req.content_type = 'image/svg+xml'
-    if name and label:
-        content = update_child_label(g.value,label,name)
-    else:
-        content = g.value
     mygit = _git()
     raw = mygit.cat(gid)
     lout = extract_lout(raw)
     mygraph = cg(content,lout,True)
-    #mygraph.layout(10,50)
     return mygraph.graph()
     
 def remove_rev(raw):
@@ -1354,17 +1351,19 @@ def save_layout(req,lout,gid,user,ip):
     """ IN GIT DB"""
     req.content_type = 'text/plain'
     mygit = _git(user,ip)
-    new_raw = re.sub('(\n[^\n]*\n)[^\n]*\n','\\1%s\n'%lout,mygit.cat(gid),1)
+    raw = mygit.cat(gid)
+    new_raw = re.sub('(\n[^\n]*\n)[^\n]*\n','\\1%s\n'%lout,raw,1)
     return mygit.save(gid,new_raw,'NEW1')
 
-def save_content(req,g,gid,user,ip):
+def save_content(req,gid,user,ip,lout,content=''):
     """ IN GIT DB"""
     req.content_type = 'text/plain'
     mygit = _git(user,ip)
     raw = mygit.cat(gid)
+    msg = 'content' if content else 'layout'
     remove_rev(raw)
-    new_raw = raw.split('\n')[0]+'\n' + raw.split('\n')[1]+'\n'+g.value
-    return mygit.save(gid,new_raw,'CONTENT')
+    new_raw = raw.split('\n')[0]+'\n' + raw.split('\n')[1]+'\n'+lout+'\n'+content
+    return mygit.save(gid,new_raw,msg)
 
 def get_env(r):
     """ """
