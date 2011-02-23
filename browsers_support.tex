@@ -1,0 +1,28 @@
+\documentclass{article}
+\usepackage{xspace}
+\newcommand{\ff}{\textsc{Firefox}\xspace}
+\newcommand{\ch}{\textsc{Chromium}\xspace}
+\newcommand{\sa}{\textsc{Safari}\xspace}
+\newcommand{\op}{\textsc{Opera}\xspace}
+
+\begin{document}
+
+\section{Supported Web Browsers}
+\date{\today}
+\begin{description}
+\item[Minefield] Firefox [Gecko] 4.012pre
+\item[Chromium] Chrome [Webkit] 10.0.629.0 build 70502
+\item[Safari] Apple [Webkit] 5.0.3 (7533.19.4)
+\item[Opera] Opera v11.02 build 1190
+\end{description}
+
+\section{Identified differences}
+\begin{enumerate}
+\item \ff does not provide SVG text selection, copy, search...
+\item \op does not support FormData objects
+\item \sa does not allow PDF drop on diagram nodes
+\item \sa does not render shape shadow
+\item \ch render bad graphic artefact on shadow 
+\end{enumerate}
+
+\end{document}

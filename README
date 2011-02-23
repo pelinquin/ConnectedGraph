@@ -31,14 +31,19 @@ https://github.com/pelinquin/ConnectedGraph
 *** How to install the tool on yout own server ?
 You need :
     apache2  
-    mod_python
-    git
+    libapache2-mod-python
+    git-core
     yui-compressor (if someone knows a Python equivalent without JVM !)
+    texlive 
+    texlive-latex-extra 
+    texlive-math-extra 
+    texlive-fonts-extra 
+    tex-gyre texlive-metapost
 
-If you need to attach LaTeX documents, you need
-   texlive 
-   texlive-latex-extra
-   other extra latex packages
+Optinnally
+   graphviz 
+   doxigen
+   trac
 
 If you need to attach OpenOffice.org documents, you need
    openoffice > v3

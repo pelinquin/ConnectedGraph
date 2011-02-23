@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.1.11m'
+__version__='0.1.11n'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
@@ -496,8 +496,8 @@ class cg:
             else:
                 o += '<connector n1="#%s" n2="#%s"/>\n'%(c[0],c[1])
         o += '<text class="stat" id=".stat" x="8" dy="-8" y="100%%">%d nodes %d connectors<title>Statistics</title></text>'%(len(self.lab.keys()),len(self.connectors))
-        #o += '<g transform="translate(200,200)"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#s1"/></g>'
-        #o += '<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#s1"/>'
+        o += '<g display="none" transform="translate(550,1)"><rect text-anchor="end" width="100" height="14" rx="6" ry="6" stroke-width="1px" stroke="#CCC" fill="none"/><rect id="bar" width="0" height="14" rx="6" ry="6" stroke-width="0px" fill="#CCC"/><text class="stat" id="prg" x="44" y="11">0%</text></g>'
+
         return o + '</g>\n'
 
 def lrac(x):

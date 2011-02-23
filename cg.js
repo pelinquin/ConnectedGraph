@@ -490,13 +490,46 @@ function new_attach(files,gid,nod) {
     fD.append('ip', $('.ip').firstChild.nodeValue);
     fD.append('g', file);
     fD.append('typ', file.type);    
-    var ai = new post(true,get_base_url() + '/new_attach',fD,function(res) {
-			//alert (res);
-			var b = nod.firstChild.nextSibling.getBBox();
-			nod.firstChild.appendChild(attach_icon(b.width));
-		      });
-    ai.doPost();
+    var xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener("progress", uploadProgress, false);
+    xhr.addEventListener("load", uploadComplete, false);
+    xhr.addEventListener("error", uploadFailed, false);
+    xhr.addEventListener("abort", uploadCanceled, false);
+    xhr.open('POST', get_base_url() + '/new_attach');
+    xhr.send(fD);
+    var b = nod.firstChild.nextSibling.getBBox();
+    nod.firstChild.appendChild(attach_icon(b.width));
   }
+}
+
+function uploadProgress(evt) {
+  if (evt.lengthComputable) {
+    var percentComplete = Math.round(evt.loaded * 100 / evt.total);
+    $('bar').parentNode.setAttribute('display','inline');
+    $('prg').firstChild.nodeValue = percentComplete.toString() + '%';
+    $('bar').setAttribute('width',percentComplete);
+  } else {
+    $('prg').firstChild.nodeValue = 'unable to compute';
+  }
+}
+
+function uploadComplete(evt) {
+  $('prg').firstChild.nodeValue = '100%';
+  $('bar').setAttribute('width',100);
+  setTimeout("clearbar()",1000); 
+  //alert(evt.target.responseText);
+}
+
+function clearbar() {
+  $('bar').parentNode.setAttribute('display','none');
+}
+
+function uploadFailed(evt) {
+  alert("There was an error attempting to upload the file.");
+}
+
+function uploadCanceled(evt) {
+  alert("The upload has been canceled by the user or the browser dropped the connection.");
 }
 
 function get_attach() {
