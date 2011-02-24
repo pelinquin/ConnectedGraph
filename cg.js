@@ -143,6 +143,7 @@ function init_graph(noedit) {
   for ( var i = 0; i < tab.length; i++ ) {
     if (tab[i].id) {
       new Node( tab[i].id );
+      //alert (tab[i].id);
     }
   }
   //for ( var id in nodeArray ) { alert (nodeArray[id].id); }
@@ -212,6 +213,11 @@ Node.prototype.init = function( id ) {
     this.id = id;
     var brut = this.el.lastChild;
     var b = this.el.lastChild.getBBox();
+    
+    if (this.el.lastChild.nodeName != 'text') {
+	alert (this.el.lastChild.nodeName);
+    }
+    //alert (id + ' ' + b.x + ' ' + b.y);
 
     var centroid = GetCentroid(this.el);
     this.x = centroid.x;
@@ -373,7 +379,6 @@ Node.prototype.init = function( id ) {
 	'l' + '2,' + -4*h/7 + 'z';
       shape.setAttribute('d', d);
     }
-    //g.setAttribute('class', 'node');
     g.appendChild(shape);
     if (this.role != null) {
       if (this.role != 'CLASS') {
@@ -1398,6 +1403,16 @@ function select_tag() {
       alert ('yes');
     }
   }
+}
+
+function export_code() {
+    code = (new XMLSerializer()).serializeToString($('.canvas'));
+    var fD = new FormData();
+    fD.append('code',code);
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST',get_base_url() + '/save_code');
+    xhr.send(fD);
+    alert ('code saved');
 }
 
 // end

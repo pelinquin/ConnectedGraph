@@ -8,7 +8,7 @@
 # yui-compressor
 
 echo "Clean temporary files"
-rm -f *.~ *.pyc
+rm -f *~ *.pyc
 
 echo "LaTeX doc building"
 pdflatex browsers_support 2>/dev/null
