@@ -40,16 +40,16 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.1.11n'
+__version__='0.1.11o'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
 __JS__='cgmin.js'
 __CSS__='cgmin.css'
 
-_XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml" '
-_SVGNS    = 'xmlns="http://www.w3.org/2000/svg" '
-_XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink" '
+_XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml"'
+_SVGNS    = 'xmlns="http://www.w3.org/2000/svg"'
+_XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
 
 ##### COMMON REGULAR EXPRESSIONS #####
 __REG_NODES__ = re.compile(r""" # capture nodes
@@ -181,8 +181,8 @@ def defs():
     o += '<pattern id="pattern" patternUnits="userSpaceOnUse" width="60" height="60"><circle fill="black" fill-opacity="0.5" cx="30" cy="30" r="10"/></pattern>'
     o += '<marker id=".arrow" viewBox="-13 -6 15 12" refX="0" refY="0" markerWidth="8" markerHeight="10" orient="auto"><path d="M-8,-6 L0,0 -8,6 Z" stroke="gray" fill="gray" stroke-linejoin="round" stroke-linecap="round"/></marker>'
     o += '<marker id=".conflict" viewBox="0 0 1000 1000" preserveAspectRatio="none" refX="0" refY="100" markerWidth="30" markerHeight="80" orient="auto"><path d="M100,0 l-20,80 l120,-20 l-100,140 l20,-80 l-120,20 Z" stroke="none" fill="red"/></marker>'
-    o += '<marker id=".simple_start" viewBox="-10 -10 100 100" preserveAspectRatio="xMidYMin meet" refX="-10" refY="-15" markerWidth="160" markerHeight="30" orient="0"><text  stroke-width="0" fill="gray">0..1</text></marker>'
-    o += '<marker id=".simple_end" viewBox="-10 -10 100 100" preserveAspectRatio="xMinYMin meet" refX="20" refY="5" markerWidth="160" markerHeight="30" orient="auto"><text  stroke-width="0" fill="gray">0..*</text></marker>'
+    o += '<marker id=".simple_start" viewBox="-10 -10 100 100" preserveAspectRatio="xMidYMin meet" refX="-10" refY="-15" markerWidth="160" markerHeight="30" orient="0"><text stroke-width="0" fill="gray">0..1</text></marker>'
+    o += '<marker id=".simple_end" viewBox="-10 -10 100 100" preserveAspectRatio="xMinYMin meet" refX="20" refY="5" markerWidth="160" markerHeight="30" orient="auto"><text stroke-width="0" fill="gray">0..*</text></marker>'
     o += '<marker id=".not" viewBox="-13 -6 10 12" refX="-20" markerWidth="8" markerHeight="16" orient="auto"><path d="M-10,-5 L-10,5" stroke="gray"/></marker>'
     o += '<filter id=".shadow" filterUnits="userSpaceOnUse"><feGaussianBlur in="SourceAlpha" result="blur" id=".feGaussianBlur" stdDeviation="2" /><feOffset dy="3" dx="2" in="blur" id=".feOffset" result="offsetBlur"/><feMerge><feMergeNode in="offsetBlur"/><feMergeNode in="SourceGraphic" /></feMerge></filter>'
     o += '<filter id=".shadow1" x="0" y="0"><feGaussianBlur stdDeviation="5"/><feOffset dx="5" dy="5"/></filter>'
@@ -382,6 +382,8 @@ class cg:
         Repulsion [fr(d)=-k²/d]
         Attraction [fa(d)=d²/k] 
         """
+        if not self.lab:
+            return 0
         self.k = self.get_k()
         disp = {}
         for i in self.lab.keys():
@@ -467,11 +469,13 @@ class cg:
         """ for unitary test """
         return '%s'%self.connectors
     
-    def graph(self):
+    def graph(self,head=False):
         """  """
-        mygit = _git()
-        o = '<g %s>'%_SVGNS
+        o = '<g %s>'%_SVGNS if head else '<g>'
         o += '<g id=".nodes">\n'
+        if not self.lab:
+            return o + '</g><text x="150" y="150" stroke-width="1px" fill="#EEE" style="font-family:Arial;font-size:64pt;" gid="" rev="">&#8709;<title>This is an empty diagram!...use toolbox or add text in the textarea</title></text></g>'
+        mygit = _git()
         for i in self.lab.keys():
             (x,y) = self.pos[i]
             style = (1,'gray','GOAL')
@@ -497,7 +501,6 @@ class cg:
                 o += '<connector n1="#%s" n2="#%s"/>\n'%(c[0],c[1])
         o += '<text class="stat" id=".stat" x="8" dy="-8" y="100%%">%d nodes %d connectors<title>Statistics</title></text>'%(len(self.lab.keys()),len(self.connectors))
         o += '<g display="none" transform="translate(550,1)"><rect text-anchor="end" width="100" height="14" rx="6" ry="6" stroke-width="1px" stroke="#CCC" fill="none"/><rect id="bar" width="0" height="14" rx="6" ry="6" stroke-width="0px" fill="#CCC"/><text class="stat" id="prg" x="44" y="11">0%</text></g>'
-
         return o + '</g>\n'
 
 def lrac(x):
@@ -1169,8 +1172,8 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     o += '<?xml-stylesheet href="%s/%s" type="text/css" ?>\n'%(pfx,__CSS__)
     init_g = ' onload="init_graph();"' if edit else ' onload="init_graph(true);"'
     (cjs,jsdone) = (init_g,'yes') if (mode == 'graph') and not empty else ('','no')
-    #o += '<svg %s %s id=".base" onclick="closelink();" width="1066" height="852">\n'%(_SVGNS,cjs)
-    o += '<svg %s %s id=".base" onclick="closelink();">\n'%(_SVGNS,cjs)
+    #o += '<svg %s%s id=".base" onclick="closelink();" width="1066" height="852">\n'%(_SVGNS,cjs)
+    o += '<svg %s%s id=".base" onclick="closelink();">\n'%(_SVGNS,cjs)
     o += '<title id=".title">%s%s &#8211; %s</title>'%('' if (lout or pfx == '.') else '*',__TITLE__,short(content,True))
 
     # Find a way to have SVG fav icon instead of png !
@@ -1213,12 +1216,12 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     
     if attrib:
         server = get_server(req)
-        up_link,disp = 'href="%s"'%attrib,'inline'
+        up_link,disp = ' href="%s"'%attrib,'inline'
     else:
         up_link,disp = '','none'
 
     action = 'save_up()' if edit else 'go_up()'
-    o += '<a onclick="%s;" display="%s" id=".parent" %s fill="#CCC" transform="translate(1,31)"><title>parent diagram</title><rect rx="5" width="16" height="16"/><path d="M3,13 8,3 13,13" fill="white"/></a>'%(action,disp,up_link)
+    o += '<a onclick="%s;" display="%s" id=".parent"%s fill="#CCC" transform="translate(1,31)"><title>parent diagram</title><rect rx="5" width="16" height="16"/><path d="M3,13 8,3 13,13" fill="white"/></a>'%(action,disp,up_link)
     o += cg_parent(praw,gid)
 
     size = len(content.split('\n')) + 2
@@ -1314,14 +1317,10 @@ def run(content='',lout={},edit=False,rev=''):
             if not re.search(r'^<(\?|\/?svg)',l):
                 o += re.sub(r'font-size="(\d+)"','style="font-size:\\1pt;"',l)
         return o
-    if re.match('^\s*$',content):
-        bullet = 'This is an empty diagram!...use canvas toolbox or add text in the textarea'
-        return '<text %s x="150" y="150" stroke-width="1px" fill="#EEE" style="font-family:Arial;font-size:64pt;" gid="" rev="">&#8709;<title>%s</title></text><g id=".nodes"/>'%(_SVGNS,bullet)
-    else:
-        mygraph = cg(content,lout,edit,rev)
-        if lout == {}:
-            mygraph.layout(10,50)
-        return mygraph.graph()
+    mygraph = cg(content,lout,edit,rev)
+    if lout == {}:
+        mygraph.layout()
+    return mygraph.graph()
 
 def update_graph(req,content,gid):
     """ load GIT"""
@@ -1330,7 +1329,7 @@ def update_graph(req,content,gid):
     raw = mygit.cat(gid)
     lout = extract_lout(raw)
     mygraph = cg(content,lout,True)
-    return mygraph.graph()
+    return mygraph.graph(True)
     
 def remove_rev(raw):
     """ remove rev from rev database """
