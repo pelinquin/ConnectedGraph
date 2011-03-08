@@ -1,7 +1,7 @@
 #!/usr/bin/python
-# -*- coding: latin-1 -*-
+# -*- coding: utf-8 -*-
 #-----------------------------------------------------------------------------
-# �  Copyright 2010 Rockwell Collins, Inc 
+# ©  Copyright 2010 Rockwell Collins, Inc 
 #    This file is part of TRAMweb.
 #
 #    TRAMweb is free software: you can redistribute it and/or modify
@@ -166,6 +166,9 @@ set_node = {
     'A<A\<A>':"{'A': 'A<A'}",
     # various test cases found
     '[A\'A]->A':"{'A': 'A', '.n0': \"A'A\"}",
+    # non ascii characters
+    #'A[˘]':"{'A': '˘'}",
+    #'A[éçè]':"{'A': 'éçè'}",
     }
 
 set_connectors = {
@@ -283,7 +286,8 @@ set_type = {
     '<A A>:G':"{'.n0': 'GOAL'}",
     # all types
     'A:G':"{'A': 'GOAL'}",
-    'A:O':"{'A': 'OBSTACLE'}",
+    'A:O':"{'A': 'OPERATION'}",
+    'A:B':"{'A': 'OBSTACLE'}",
     'A:R':"{'A': 'REQUIREMENT'}",
     'A:A':"{'A': 'AGENT'}",
     }

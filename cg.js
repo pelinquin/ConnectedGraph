@@ -390,6 +390,7 @@ Node.prototype.init = function( id ) {
 	txt.setAttribute('y', "-14");
 	txt.setAttribute('fill', 'gray');
 	txt.setAttribute('style', 'font-family:Arial;font-size:3pt;');
+	//txt.setAttribute('font-size','60pt'); does not work on FF
 	txt.appendChild(content);
 	g.appendChild(txt);
       }
@@ -1405,14 +1406,23 @@ function select_tag() {
   }
 }
 
-function export_code() {
+function export_code(pdf) {
     code = (new XMLSerializer()).serializeToString($('.canvas'));
+    //alert (code);
     var fD = new FormData();
     fD.append('code',code);
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST',get_base_url() + '/save_code');
-    xhr.send(fD);
-    alert ('code saved');
+    //var xhr = new XMLHttpRequest();
+    //xhr.open('POST',get_base_url() + '/save_code');
+    //xhr.send(fD);
+    param = '';
+    if (pdf) {
+	param = '?pdf=1';
+    }
+    var ai = new post(true,get_base_url() + '/save_code', fD, function(res) {
+	    //alert (res);
+	    window.open(get_base_url() + '/load_code'+param, 'neutral', 'chrome,scrollbars=yes');
+	});
+    ai.doPost();
 }
 
 // end

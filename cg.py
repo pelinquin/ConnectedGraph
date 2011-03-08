@@ -1,7 +1,7 @@
 #!/usr/bin/python
-# -*- coding: latin-1 -*-
+# -*- coding: utf-8 -*-
 #-----------------------------------------------------------------------------
-# ©  Copyright 2011 Rockwell Collins, Inc 
+# Â©  Copyright 2011 Rockwell Collins, Inc 
 #    This file is part of TRAMweb.
 #
 #    TRAMweb is free software: you can redistribute it and/or modify
@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.1.11p'
+__version__='0.1.12'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
@@ -53,7 +53,7 @@ _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
 
 ##### COMMON REGULAR EXPRESSIONS #####
 __REG_NODES__ = re.compile(r""" # capture nodes
-    (\w*) #g1: name
+    (\w*) #g1: name 
     ( #g2:label
       (?<!\\)\( (?:\\\)|[^\)])+ (?<!\\)\) | #() delimiter
       (?<!\\)\[ (?:\\\]|[^\]])+ (?<!\\)\] | #[] delimiter
@@ -202,7 +202,7 @@ def parse_typ(t):
             return 'GOAL'
         elif re.match('^(a|agent|people)$',t,re.IGNORECASE):
             return 'AGENT'
-        elif re.match('^(o|obs|obstacle)$',t,re.IGNORECASE):
+        elif re.match('^(b|obs|obstacle)$',t,re.IGNORECASE):
             return 'OBSTACLE'
         elif re.match('^(s|asso|association)$',t,re.IGNORECASE):
             return 'ASSOCIATION'
@@ -378,8 +378,8 @@ class cg:
         
     def layout(self,coef=10,nb=50):
         """ Force directed graph layout (adapted from Fruchterman & Reingold)
-        Repulsion [fr(d)=-k²/d]
-        Attraction [fa(d)=d²/k] 
+        Repulsion [fr(d)=-kÂ²/d]
+        Attraction [fa(d)=dÂ²/k] 
         """
         if not self.lab:
             return 0
@@ -454,7 +454,8 @@ class cg:
 
     def get_node(self):
         """ for unitary test """
-        return '%s'%self.lab
+        AA = '%s'%self.lab
+        return AA
 
     def get_child(self):
         """ for unitary test """
@@ -810,8 +811,10 @@ def mode_button(mG,mT):
 def tag_input(mygit):
     """ """
     li = ''
-    for i in mygit.tag_list().split():
-        li += '<option value="%s"/>'%i.decode('latin-1') # why not utf-8 not supported ?
+    # removed temporary because utf-8 tag crash the application !
+    #for i in mygit.tag_list().split():
+    #    li += '<option value="%s"/>'%i.decode('utf-8') 
+    #    li += '<option value="%s"/>'%i.decode('latin-1') # why not utf-8 not supported ?
     o = '<g id="tags"><foreignObject y="0" x="258" width="80" height="70">' 
     o += '<div %s>'%_XHTMLNS
     o += '<input id=".tag" list="tagList" title="git tag" size="7" value="" maxlength="9" onchange="record_tag();" onclick="select_tag();"/><datalist id="tagList">%s</datalist>'%li
@@ -841,7 +844,7 @@ def connect_button():
     return o + '</g>'
 
 def export_button():
-    return '<rect x="0" y="70" width="30" height="30" rx="5" fill="red" onclick="export_code();"/>'
+    return '<g fill="#CCC" transform="translate(0,60)"><g class="button" onclick="export_code(false);"><rect width="30" height="15" rx="5"/><text x="3" y="12" fill="white" style="font-family:sans-serif;font-size:8pt;">Tikz</text></g><g class="button" onclick="export_code(true);"><rect y="15" width="30" height="15" rx="5"/><text x="3" y="27" fill="white" style="font-family:sans-serif;font-size:8pt;">PDF</text></g></g>'
 
 def load_session(req):
     """ """
@@ -1248,7 +1251,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     
     if edit:
         o += mode_button(mG,mT) + save_button(mygit,gid) + tag_input(mygit)
-        #o += export_button()
+        o += export_button()
         #o += connect_button()
         o += '<g class="button" fill="#CCC" transform="translate(62,1)"><rect x="1" width="15" height="30" rx="5"/><path transform="translate(0,6)" d="M4,4 4,14 14,9" fill="white"/>'+ nodes_bar() + '</g>'
     if pfx == '.':
@@ -1401,15 +1404,39 @@ def log(req):
     return open('%s/cg/cg.log'%__BASE__).read()
 
 def save_code(req,code):
+    """ How to manage pdflatex errors !"""
+    import svg2tikz
+    import shutil
     req.content_type = 'text/plain'
+    base = '%s/cg/'%__BASE__
+    (pwd, name,ip) = get_env(req)
+    css = '%s/%s'%(base,__CSS__)
+    if not os.path.isfile(css):
+        shutil.copy('%s/%s'%(pwd,__CSS__),css)
     o = '<?xml version="1.0" encoding="UTF-8" ?>\n'
     o += '<?xml-stylesheet href="./%s" type="text/css" ?>\n'%(__CSS__)
     o += '<svg %s width="1066" height="852">\n'%_SVGNS
-    o += code + '</svg>' 
-    log = open('%s/cg/code.svg'%__BASE__,'w')
-    log.write(o)
-    log.close() 
-    return 'none'
+    code = re.sub(r'<title>.*<\/title>','',code)
+    code = re.sub(r'<text id=".stat".*<\/text>','',code)
+    code = re.sub(r'url\(\#\.grad\)','none',code)
+    o += re.sub(r'100%','100',code) + '</svg>' 
+    res = svg2tikz.convert_code(o)
+    tex = open('%s/code.tex'%base,'wb')
+    tex.write(res.encode('utf-8'))
+    tex.close()    
+    Popen(('cd %s; pdflatex code.tex'%base),shell=True).communicate()
+    #Popen(('pdflatex', '%s/code.tex'%base)).communicate()
+    # why pdflatex needs an env ?
+    return 'ok'
+
+def load_code(req,pdf=''):
+    """ Read on GIT """
+    if pdf:
+        req.content_type = 'application/pdf'
+        return open('%s/cg/code.pdf'%__BASE__).read()        
+    else:
+        req.content_type = 'text/plain'
+        return open('%s/cg/code.tex'%__BASE__).read()
 
 def log_add(line):
     log = open('%s/cg/cg.log'%__BASE__,'a')
@@ -1419,7 +1446,6 @@ def log_add(line):
 
 def reset(req):
     """ clear GIT database....this is for debug ! """
-    (pwd, name,ip) = get_env(req)
     req.content_type = 'text/plain'
     #Popen(('rm -rf %s/cg;'%__BASE__), shell=True).communicate()
     return 'reset no allowed !'
@@ -1486,4 +1512,3 @@ if __name__ == '__main__':
     import sys
     print 'look at cg_test.py for non regression testing'
 
-#end
