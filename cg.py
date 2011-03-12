@@ -44,8 +44,8 @@ __version__='0.1.12'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
-__JS__='cgmin.js'
-__CSS__='cgmin.css'
+__JS__='cg.js'
+__CSS__='cg.css'
 
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg"'
@@ -1178,11 +1178,15 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     (cjs,jsdone) = (init_g,'yes') if (mode == 'graph') and not empty else ('','no')
     #o += '<svg %s id=".base"%s onclick="closelink();" width="1066" height="852">\n'%(_SVGNS,cjs)
     o += '<svg %s id=".base"%s onclick="closelink();">\n'%(_SVGNS,cjs)
-    o += '<title id=".title">%s%s &#8211; %s</title>'%('' if (lout or pfx == '.') else '*',__TITLE__,short(content,True))
+    o += '<head></head><title id=".title">%s%s &#8211; %s</title>'%('' if (lout or pfx == '.') else '*',__TITLE__,short(content,True))
 
     # Find a way to have SVG fav icon instead of png !
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
-    o += js(pfx) + defs()
+    o += '<script %s type="text/ecmascript" xlink:href="%s/ace/ace.js"></script>'%(_XLINKNS,pfx)
+    o += '<script %s type="text/ecmascript" xlink:href="%s/ace/theme-twilight.js"></script>'%(_XLINKNS,pfx)
+    o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>'%(_XLINKNS,pfx,__JS__)
+    #o += js(pfx) 
+    o += defs()
 
     (mG,mT) = ('inline','none') if mode == 'graph' else ('none','inline')
     xpos = 85 if edit else 10
@@ -1228,16 +1232,10 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     o += '<a id=".parent" onclick="%s;" display="%s"%s fill="#CCC" transform="translate(1,31)"><title>parent diagram</title><rect rx="5" width="16" height="16"/><path d="M3,13 8,3 13,13" fill="white"/></a>'%(action,disp,up_link)
     o += cg_parent(praw,gid)
 
-    size = len(content.split('\n')) + 2
-    if size < 10:
-        size = 10
-    
-    o += '<g id=".textarea" display="%s"><g transform="translate(4,0)"><text style="font-family:Arial;font-size:7pt;" fill="green" y="50">'%mT
-    for l in range(size):
-        o += '<tspan dy="12pt" x="0">%02d</tspan>'%(l+1)
-    o += '</text></g>'
+    o += '<g id=".textarea" display="%s">'%mT
     o += '<foreignObject transform="translate(18,52)" width="99%" height="90%">'
-    o += '<textarea %s id=".area" onchange="change_textarea();" spellcheck="false" rows="%d" style="border:1px solid #ccc;width:98.5%%;font-size: 10pt;">%s</textarea>'%(_XHTMLNS,size,xml.sax.saxutils.escape(content))
+    #o += '<textarea %s id=".area" onchange="change_textarea();" spellcheck="false" rows="%d" style="border:1px solid #ccc;width:98.5%%;font-size: 10pt;">%s</textarea>'%(_XHTMLNS,size,xml.sax.saxutils.escape(content))
+    o += '<div %s id="editor">%s</div>'%(_XHTMLNS,xml.sax.saxutils.escape(content))
     o += '</foreignObject></g>'
 
     unsaved = 'no' if lout else 'layout'

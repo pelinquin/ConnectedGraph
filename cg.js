@@ -39,6 +39,7 @@ const xhtmlns = 'http://www.w3.org/1999/xhtml';
 
 /* Globals !*/
 var nodeArray = [];
+var editor = null;
 
 if (typeof($)=='undefined') { 
   function $(id) { return document.getElementById(id.replace(/^#/,'')); } 
@@ -68,6 +69,10 @@ function is_gecko() {
 }
 
 window.onload = function () {
+    editor = ace.edit('editor');
+    editor.setTheme("ace/theme/twilight");
+    editor.getSession().on('change', change_textarea);
+    
   if (!is_gecko()) alert ('This is tested on Firefox4 and Chromium !'); 
   //alert (screen.width + ' ' + screen.height);
   //$('.area').addEventListener("onfocus",enterFocus,false);  
@@ -85,9 +90,22 @@ window.onload = function () {
       alert('Geolocation services are not supported by your browser.');  
     }  
   }
-
 };
  
+function get_area() {
+    var val = '';
+    if (editor) {
+	val = editor.getSession().getValue();
+    }
+    return val;
+}
+
+function set_area(value) {
+    if (editor) {
+	editor.getSession().setValue(value);
+    }
+}
+
 function showPositionOnMap(position) {
   //var geoCoords = new GLatLng(position.coords.latitude, position.coords.longitude);
   //map.addOverlay(new GMarker(geoCoords));
@@ -795,7 +813,7 @@ DragDrop.prototype.grab = function( evt ) {
 	  var pa = 'gid=' + nod.getAttribute('href') +'&rev='+ $('.rev').firstChild.nodeValue;
 	  window.open(get_base_url() + '/load_pdf?' + pa, 'neutral', 'chrome,scrollbars=yes');
 	} else {
-	  save_and_reload (get_url(),gid(),get_layout(),$('.area').value,nod.getAttribute('href'));
+	    save_and_reload (get_url(),gid(),get_layout(),get_area(),nod.getAttribute('href'));
 	}
       } else {
 	//save_session(); // a tester !
@@ -962,7 +980,7 @@ function new_graph (nod) {
   fD.append('name', nod.id);
   fD.append('user', $('.user').firstChild.nodeValue);
   fD.append('ip', $('.ip').firstChild.nodeValue);
-  fD.append('g', get_layout() + '\n' + $('.area').value);
+  fD.append('g', get_layout() + '\n' + get_area());
   var ai = new post(true,get_base_url() + '/new_graph', fD, function(res) {
 		      document.location.replace(get_url() + '?@' + res);
 		    });
@@ -972,7 +990,7 @@ function new_graph (nod) {
 function save_up (evt) {
   var node = $('.parent');
   if (node.hasAttribute('href')) { 
-    save_and_reload (get_url(),gid(),get_layout(),$('.area').value,node.getAttribute('href'));
+    save_and_reload (get_url(),gid(),get_layout(),get_area(),node.getAttribute('href'));
   }
 }
 
@@ -1043,7 +1061,7 @@ function save_content () {
   fD.append('user', $('.user').firstChild.nodeValue);
   fD.append('ip', $('.ip').firstChild.nodeValue);
   fD.append('lout', get_layout());
-  fD.append('content', $('.area').value);
+  fD.append('content', get_area());
   var ai = new post(true,get_base_url() + '/save_content',fD,function(res) {
 		      $('.rev').firstChild.nodeValue = res;
 		    });
@@ -1178,42 +1196,44 @@ function change_textarea() {
 };
 
 function update_graph() {
-  $('.content').firstChild.nodeValue = short_content($('.area').value); 
-  var fD = new FormData();
-  fD.append('gid', gid());
-  fD.append('content', $('.area').value);
-  var ai = new post(false,get_base_url() + '/update_graph',fD,function(res) {
-		      var place = $('.canvas');
-		      //alert((new XMLSerializer()).serializeToString(res));
-		      place.replaceChild(cl_xml(res),place.firstChild);
-		      nodeArray = [];
-		      init_graph();
-		    });
-  ai.doPost(); 
+    var area = get_area();
+    $('.content').firstChild.nodeValue = short_content(area); 
+    var fD = new FormData();
+    fD.append('gid', gid());
+    fD.append('content', area);
+    var ai = new post(false,get_base_url() + '/update_graph',fD,function(res) {
+	    var place = $('.canvas');
+	    //alert((new XMLSerializer()).serializeToString(res));
+	    place.replaceChild(cl_xml(res),place.firstChild);
+	    nodeArray = [];
+	    init_graph();
+	});
+    ai.doPost(); 
 }
 
 function cl_xml(d){
-  return document.importNode(d.documentElement.cloneNode(true),true);
+    return document.importNode(d.documentElement.cloneNode(true),true);
 }
 
 function update_url(e,edit) {
-  var target = '';
-  if (e.target.id == '.rev') {
-    target = $('.rev').firstChild.nodeValue;
-  } else if (e.target.id == '.gid'){
-    target = '@' + gid();
-  } else if (e.target.id == '.content'){
-    target = $('.area').value.replace(/#/g,'$');
-    target = target.replace(/\n/g,'\\n');
-  } 
-  if (edit) {
-    document.location.replace(get_url() + '?' + target);
-  } else {
-    $('linkstring').parentNode.setAttribute('display','inline');
-    $('linkstring').value = get_url() + '?' + target;
-    $('linkstring').select();$('linkstring').focus();
-    e.stopPropagation();
-  }
+    var target = '';
+    if (e.target.id == '.rev') {
+	target = $('.rev').firstChild.nodeValue;
+    } else if (e.target.id == '.gid'){
+	target = '@' + gid();
+    } else if (e.target.id == '.content'){
+	var area = get_area();
+	target = area.replace(/#/g,'$');
+	target = target.replace(/\n/g,'\\n');
+    } 
+    if (edit) {
+	document.location.replace(get_url() + '?' + target);
+    } else {
+	$('linkstring').parentNode.setAttribute('display','inline');
+	$('linkstring').value = get_url() + '?' + target;
+	$('linkstring').select();$('linkstring').focus();
+	e.stopPropagation();
+    }
 }
 
 function closelink() {
@@ -1291,17 +1311,17 @@ function edit_node_old(e,mode) {
 
 function update_g() {
   window.focusNode.setAttribute('display','none');
-  var old_area = $('.area').value;
-  $('.content').firstChild.nodeValue = short_content($('.area').value); 
+  var old_area = get_area();
+  $('.content').firstChild.nodeValue = short_content(old_area); 
   var fD = new FormData();
   fD.append('name', window.focusNode.parentNode.id);
   fD.append('label', window.focusNode.firstChild.firstChild.value);
-  fD.append('content', $('.area').value);
+  fD.append('content', old_area);
   var ai = new post(true,get_base_url() + '/update_g',fD,function(res) {
 		      if (res != old_area) {
 			$('.canvas').setAttribute('unsaved','all');
 			change_title(true);
-			$('.area').value = res;
+			set_area(res);
 			update_graph();
 		      }
 		    });
@@ -1310,22 +1330,23 @@ function update_g() {
 }
 
 function add_node(e) {
-  var node = e.target.parentNode;
-  while(!node.hasAttribute('id')) {
-    node = node.parentNode;
-  }
-  var typ = node.id;
-  var cl = node.getAttribute('cl');
-  var nn = typ;
-  var i = 0;
-  while($('.area').value.match(nn)) {
-    i += 1;
-    nn = typ+i;
-  }
-  $('.area').value += '\n' + nn + ':' + cl;
-  update_graph();
-  $('.canvas').setAttribute('unsaved','all');
-  change_title(true);
+    var node = e.target.parentNode;
+    while(!node.hasAttribute('id')) {
+	node = node.parentNode;
+    }
+    var typ = node.id;
+    var cl = node.getAttribute('cl');
+    var nn = typ;
+    var i = 0;
+    var area = get_area();
+    while(area.match(nn)) {
+	i += 1;
+	nn = typ+i;
+    }
+    set_area(area + '\n' + nn + ':' + cl);
+    update_graph();
+    $('.canvas').setAttribute('unsaved','all');
+    change_title(true);
 }
 
 

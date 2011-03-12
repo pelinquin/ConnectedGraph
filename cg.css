@@ -65,3 +65,11 @@ h6 {font-family: sans-serif; font-size: 6pt; color:#555; text-align:right;}
 @font-face { font-family: Graublau Sans Web; src: url('fonts/GraublauWeb.otf') format("opentype"); }
 
 text { font-family: Graublau Sans Web; }
+
+#editor { 
+  top:   10px;
+  left:  15px;
+  width: 600px;
+  height:300px;
+}
+
