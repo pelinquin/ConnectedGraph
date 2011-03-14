@@ -44,8 +44,8 @@ __version__='0.1.12'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
-__JS__='cg.js'
-__CSS__='cg.css'
+__JS__='cgmin.js'
+__CSS__='cgmin.css'
 
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg"'

@@ -1,5 +1,7 @@
 \documentclass{article}
 \usepackage{xspace}
+\usepackage{hyperref}
+
 \newcommand{\ff}{\textsc{Firefox}\xspace}
 \newcommand{\ch}{\textsc{Chromium}\xspace}
 \newcommand{\sa}{\textsc{Safari}\xspace}
@@ -23,8 +25,12 @@
 \item \sa does not allow PDF drop (HTML5) on diagram nodes (to investigate !)
 \item \sa does not render shape shadow (strange !)
 \item \ch render bad graphic artefact on shadow (bug posted...ref)
-\item only \op accept SVG favicon...we use a temporary png. 
+\item Only \op accept SVG favicon...we use a temporary png. 
 \item \ff does not support SVG fonts, we use otf
+\item \ff has some rendering bug for Ace editor 
+
+\url{https://bugzilla.mozilla.org/show\_bug.cgi?id=640917}
+
 \end{enumerate}
 
 \end{document}
