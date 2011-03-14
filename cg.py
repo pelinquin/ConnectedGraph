@@ -40,14 +40,15 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.1.12'
+__version__='0.1.12a'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
 __JS__='cgmin.js'
 __CSS__='cgmin.css'
 
-_ACE_PATH ='support/ace/build/src'
+#_ACE_PATH ='support/ace/build/src'
+_ACE_PATH ='ace'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg"'
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
