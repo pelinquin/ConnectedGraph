@@ -845,8 +845,8 @@ def connect_button():
     o += '<g transform="translate(3,3) scale(0.04)"><path fill="white" d="M 7,404 C 7,404 122,534 145,587 L 244,587 C 286,460 447,158 585,52 C 614,15 542,0 484,24 C 396,61 231,341 201,409 C 157,420 111,335 111,335 L 7,404 z"/></g>'
     return o + '</g>'
 
-def export_button():
-    return '<g fill="#CCC" transform="translate(0,60)"><g class="button" onclick="export_code(false);"><rect width="30" height="15" rx="5"/><text x="3" y="12" fill="white" style="font-family:sans-serif;font-size:8pt;">Tikz</text></g><g class="button" onclick="export_code(true);"><rect y="15" width="30" height="15" rx="5"/><text x="3" y="27" fill="white" style="font-family:sans-serif;font-size:8pt;">PDF</text></g></g>'
+def export_button(mG):
+    return '<g fill="#CCC" display="%s" id=".export" transform="translate(0,60)"><g class="button" onclick="export_code(false);"><rect width="30" height="15" rx="5"/><text x="3" y="12" fill="white" style="font-family:sans-serif;font-size:8pt;">Tikz</text></g><g class="button" onclick="export_code(true);"><rect y="15" width="30" height="15" rx="5"/><text x="3" y="27" fill="white" style="font-family:sans-serif;font-size:8pt;">PDF</text></g></g>'%mG
 
 def load_session(req):
     """ """
@@ -1251,7 +1251,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     
     if edit:
         o += mode_button(mG,mT) + save_button(mygit,gid) + tag_input(mygit)
-        o += export_button()
+        o += export_button(mG)
         #o += connect_button()
         o += '<g class="button" fill="#CCC" transform="translate(62,1)"><rect x="1" width="15" height="30" rx="5"/><path transform="translate(0,6)" d="M4,4 4,14 14,9" fill="white"/>'+ nodes_bar() + '</g>'
     if pfx == '.':
@@ -1438,6 +1438,14 @@ def load_code(req,pdf=''):
         req.content_type = 'text/plain'
         return open('%s/cg/code.tex'%__BASE__).read()
 
+def latex(req):
+    """ """ 
+    return basic(req,False,'graph')
+
+def pdf(req):
+    """ """ 
+    return basic(req,False,'graph')
+
 def log_add(line):
     log = open('%s/cg/cg.log'%__BASE__,'a')
     d = '%s'%datetime.datetime.now()
@@ -1472,13 +1480,12 @@ def update(req):
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
     o = '<html>'
     o += '<link href="../%s" rel="stylesheet" type="text/css"/>'%__CSS__
-    o += '<h1>Application Update v%s [%s]</h1>'%(__version__,sha1_pkg(req))
-    o += '<p>Path: %s -> %s</p>'%(pwd,server)    
+    o += '<h1>Application Updated to [%s]</h1>'%(sha1_pkg(req))
     if err:
         o += '<p>Error:%s</p>'%err
     else:
         o += '<p>%s</p>'%out
-    o += '<a href="%s"><h2>Go to the application</h2></a>'%server    
+    o += '<a href="%s"><h2>Use the application</h2></a>'%server    
     return o + '</html>'
 
 def formose():

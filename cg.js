@@ -1158,26 +1158,28 @@ function post(txt,url,data,cb) {
 //////
 
 function mode (e) {
-  var a = $('.wmode'); var b = $('.rmode'); var aa = $('.canvas'); var bb = $('.textarea');
-  if (aa.getAttribute('display') == 'none') {
-    a.setAttribute('display','inline'); b.setAttribute('display','none');
-    aa.setAttribute('display','inline'); bb.setAttribute('display','none');
-    if ($('.canvas').getAttribute('updated') == 'no') {
-      update_graph();
-      $('.canvas').setAttribute('updated','yes');
+    var a = $('.wmode'); var b = $('.rmode'); var aa = $('.canvas'); var bb = $('.textarea'); var e = $('.export');
+    if (aa.getAttribute('display') == 'none') {
+	a.setAttribute('display','inline'); b.setAttribute('display','none');
+	aa.setAttribute('display','inline'); bb.setAttribute('display','none');
+	e.setAttribute('display','inline');
+	if ($('.canvas').getAttribute('updated') == 'no') {
+	    update_graph();
+	    $('.canvas').setAttribute('updated','yes');
+	} else {
+	    if ($('.canvas').getAttribute('jsdone') == 'no') {
+		//nodeArray = [];
+		init_graph();
+		$('.canvas').setAttribute('jsdone','yes');
+	    }
+	}
     } else {
-      if ($('.canvas').getAttribute('jsdone') == 'no') {
-	//nodeArray = [];
-	init_graph();
-	$('.canvas').setAttribute('jsdone','yes');
-      }
+	a.setAttribute('display','none'); b.setAttribute('display','inline');
+	aa.setAttribute('display','none'); bb.setAttribute('display','inline');
+	e.setAttribute('display','none');
     }
-  } else {
-    a.setAttribute('display','none'); b.setAttribute('display','inline');
-    aa.setAttribute('display','none'); bb.setAttribute('display','inline');
-  }
-  save_session();
-};
+    save_session();
+}
 
 function change_title(way) {
   var old = $('.title').firstChild.nodeValue;

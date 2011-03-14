@@ -69,7 +69,7 @@ text { font-family: Graublau Sans Web; }
 #editor { 
     /*position: fixed;*/
     top:   10px;
-    left:  15px;
+    left:  0px;
     width: 600px;
     height:300px;
 }
