@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.1.12a'
+__version__='0.1.12b'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
@@ -1186,6 +1186,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s/ace.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s/theme-twilight.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
+    o += '<script %s type="text/ecmascript" xlink:href="%s/%s/mode-python.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>'%(_XLINKNS,pfx,__JS__)
     o += defs()
 

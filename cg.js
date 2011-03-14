@@ -72,6 +72,8 @@ window.onload = function () {
     if (typeof ace != 'undefined') {
 	editor = ace.edit('editor');
 	editor.setTheme("ace/theme/twilight");
+	var pmode = require("ace/mode/python").Mode;
+	editor.getSession().setMode(new pmode());
 	editor.getSession().on('change', change_textarea);
     }
     if (!is_gecko()) alert ('This is tested on Firefox4 and Chromium !'); 
