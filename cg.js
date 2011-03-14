@@ -50,46 +50,47 @@ if (typeof($)=='undefined') {
 */
 
 function is_gecko() {
-  var str = navigator.userAgent;
-  //alert (str);
-
-  // Webkit
-  //Mozilla/5.0 (X11; U; Linux i686; en-US) AppleWebKit/534.17 (KHTML, like Gecko) Ubuntu/10.10 Chromium/10.0.651.0 Chrome/10.0.651.0 Safari/534.17
-  if (str.match('AppleWebKit')) { return true; }
-
-  // Opera
-  if (str.match('Presto')) { return true; }
-
-  // FF4
-  //Mozilla/5.0 (Windows NT 5.1; rv:2.0b11pre) Gecko/20110201 Firefox/4.0b11pre
-  var gecko = str.replace(/^Mozilla.*rv:|\).*$/g, '' ) || ( /^rv\:|\).*$/g, '' );
-  if (gecko.substring(0,3) == '2.0') { return true; } 
-
-  return false;
+    var str = navigator.userAgent;
+    //alert (str);
+    
+    // Webkit
+    //Mozilla/5.0 (X11; U; Linux i686; en-US) AppleWebKit/534.17 (KHTML, like Gecko) Ubuntu/10.10 Chromium/10.0.651.0 Chrome/10.0.651.0 Safari/534.17
+    if (str.match('AppleWebKit')) { return true; }
+    
+    // Opera
+    if (str.match('Presto')) { return true; }
+    
+    // FF4
+    //Mozilla/5.0 (Windows NT 5.1; rv:2.0b11pre) Gecko/20110201 Firefox/4.0b11pre
+    var gecko = str.replace(/^Mozilla.*rv:|\).*$/g, '' ) || ( /^rv\:|\).*$/g, '' );
+    if (gecko.substring(0,3) == '2.0') { return true; } 
+    
+    return false;
 }
 
 window.onload = function () {
-    editor = ace.edit('editor');
-    editor.setTheme("ace/theme/twilight");
-    editor.getSession().on('change', change_textarea);
-    
-  if (!is_gecko()) alert ('This is tested on Firefox4 and Chromium !'); 
-  //alert (screen.width + ' ' + screen.height);
-  //$('.area').addEventListener("onfocus",enterFocus,false);  
+    if (typeof ace != 'undefined') {
+	editor = ace.edit('editor');
+	editor.setTheme("ace/theme/twilight");
+	editor.getSession().on('change', change_textarea);
+    }
+    if (!is_gecko()) alert ('This is tested on Firefox4 and Chromium !'); 
+    //alert (screen.width + ' ' + screen.height);
+    //$('.area').addEventListener("onfocus",enterFocus,false);  
 
-  if (false) { // LAB!
-    if (navigator.geolocation) {  
-      //var geolocation = Components.classes["@mozilla.org/geolocation;1"].getService(Components.interfaces.nsIDOMGeoGeolocation);  
-      //navigator.geolocation.getCurrentPosition(function(position) {  
-      //do_something(position.coords.latitude, position.coords.longitude);  
-      //}); 
-      var timeoutVal = 10 * 1000 * 1000;
-      navigator.geolocation.watchPosition(showPositionOnMap, errorMessage,
-					  { enableHighAccuracy: true, timeout: timeoutVal, maximumAge: 0 });
-    } else {  
-      alert('Geolocation services are not supported by your browser.');  
-    }  
-  }
+    if (false) { // LAB!
+	if (navigator.geolocation) {  
+	    //var geolocation = Components.classes["@mozilla.org/geolocation;1"].getService(Components.interfaces.nsIDOMGeoGeolocation);  
+	    //navigator.geolocation.getCurrentPosition(function(position) {  
+	    //do_something(position.coords.latitude, position.coords.longitude);  
+	    //}); 
+	    var timeoutVal = 10 * 1000 * 1000;
+	    navigator.geolocation.watchPosition(showPositionOnMap, errorMessage,
+						{ enableHighAccuracy: true, timeout: timeoutVal, maximumAge: 0 });
+	} else {  
+	    alert('Geolocation services are not supported by your browser.');  
+	}  
+    }
 };
  
 function get_area() {

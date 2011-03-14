@@ -47,6 +47,7 @@ __BASE__='/db'
 __JS__='cgmin.js'
 __CSS__='cgmin.css'
 
+_ACE_PATH ='support/ace/build/src'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg"'
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
@@ -1182,10 +1183,9 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
 
     # Find a way to have SVG fav icon instead of png !
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
-    o += '<script %s type="text/ecmascript" xlink:href="%s/ace/ace.js"></script>'%(_XLINKNS,pfx)
-    o += '<script %s type="text/ecmascript" xlink:href="%s/ace/theme-twilight.js"></script>'%(_XLINKNS,pfx)
+    o += '<script %s type="text/ecmascript" xlink:href="%s/%s/ace.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
+    o += '<script %s type="text/ecmascript" xlink:href="%s/%s/theme-twilight.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>'%(_XLINKNS,pfx,__JS__)
-    #o += js(pfx) 
     o += defs()
 
     (mG,mT) = ('inline','none') if mode == 'graph' else ('none','inline')
@@ -1466,7 +1466,7 @@ def update(req):
         req.content_type = 'text/plain'
         return 'Error: Bad server or duration between updates [%d secondes] less than 2 minutes !'%int(delta)
     req.content_type = 'text/html'        
-    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git'%pwd
+    cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git; cd ConnectedGraph; git submodule update'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
     o = '<html>'
     o += '<link href="../%s" rel="stylesheet" type="text/css"/>'%__CSS__
@@ -1478,29 +1478,6 @@ def update(req):
         o += '<p>%s</p>'%out
     o += '<a href="%s"><h2>Go to the application</h2></a>'%server    
     return o + '</html>'
-
-def js(pfx):
-    """ The content is copied and compressed from cgmin.js. Do not change this function"""
-    return '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>'%(_XLINKNS,pfx,__JS__)
-
-def update_js():
-    """ to be used to include js in this script"""
-    import sys
-    js = Popen('./yui-compressor cg.js', stdout=PIPE, shell=True).communicate()
-    out = ''
-    if js[1] == None:
-        found = False
-        for l in open(sys.argv[0]).readlines():
-            if re.search(r'<script.*<\/script>',l) and not found:
-                out += '<script type="text/ecmascript"><![CDATA[ ' + js[0][:-1] + ' ]]></script>\n'
-                found = True
-            else:
-                out += l
-    if out:
-        py = open(sys.argv[0],'w')
-        d = '%s'%datetime.datetime.now()
-        py.write(out)
-        py.close() 
 
 def formose():
     """ FORMOSE logo """
