@@ -1412,7 +1412,11 @@ def formatColor3f(r,g,b):
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg"'
 
 if __name__ == '__main__':
-    """ simple test """
+    """ simple test 
+    If we decide to use this converter, 
+    We need to define a full test set on many examples
+    Think How to compare the pdf results ?
+    """
     o = '<?xml version="1.0" encoding="UTF-8" ?>\n'
     o += '<svg %s width="1066" height="852">\n'%_SVGNS
     o += '<text x="20" y="300">Hello</text>'
