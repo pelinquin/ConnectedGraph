@@ -8,8 +8,9 @@ Features
 
 * Full SVG nested diagrams for Requirements Engineering.
 * A transparent Git database for persistence and version control
-* Editing on the graph, on the text or on the url.
-* Export to LaTeX (tikz)
+* Include Ace (http://ace.ajax.org) for editing
+* Editing on the graph, on text or within the url.
+* Export to LaTeX (tikz) and PDF
 
 Show me a demo
 --------------

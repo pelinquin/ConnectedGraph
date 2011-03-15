@@ -40,7 +40,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.1.12c'
+__version__='0.1.12d'
 __TITLE__='Connected Graph'
 
 __BASE__='/db'
@@ -1113,7 +1113,7 @@ def view(req):
     """ view mode """
     return basic(req,False,'graph')
 
-def header(req,pfx,title='Documents',edit=False,ace=False,saved=True):
+def svg_header(req,pfx,title='Documents',edit=False,ace=False,saved=True):
     """ svg header """
     req.content_type = 'image/svg+xml'
     o = '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -1121,19 +1121,21 @@ def header(req,pfx,title='Documents',edit=False,ace=False,saved=True):
     param = '' if edit else 'true'
     o += '<svg %s onload="init_graph(%s);" onclick="svg_onclick();">\n'%(_SVGNS,param)
     mark = '' if saved else '*'
-    o += '<title>%s%s &#8211; %s</title>\n'%(mark,__TITLE__,title)
+    o += '<title id=".title">%s%s &#8211; %s</title>\n'%(mark,__TITLE__,title)
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
     if ace:
         o += '<script %s type="text/ecmascript" xlink:href="%s/%s/ace.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
         o += '<script %s type="text/ecmascript" xlink:href="%s/%s/theme-twilight.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
         o += '<script %s type="text/ecmascript" xlink:href="%s/%s/mode-python.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
+        o += '<script %s type="text/ecmascript" xlink:href="%s/%s/keybinding-emacs.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>'%(_XLINKNS,pfx,__JS__)
     return o
 
 def index(req):
     """ document list """
     req.content_type = 'image/svg+xml'
-    o = header(req,'.')
+    o = svg_header(req,'.')
+    o += '<foreignObject width="200px" height="200px"><div %s class="ribbon"><a href="https://github.com/pelinquin/ConnectedGraph">Fork me on GitHub</a></div></foreignObject>'%_XHTMLNS
     n,t = 0,[]
     mygit = _git()
     for i in mygit.getlist():
@@ -1212,19 +1214,7 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     log_add('%s %s %s %s %s %s'%(ip,br,gid,rev[:10],user,shortlog(content)))
     empty = True if re.match('^\s*$',content) else False
     saved = True if lout else False
-    # start header
-    o = '<?xml version="1.0" encoding="UTF-8" ?>\n'
-    o += '<?xml-stylesheet href="%s/%s" type="text/css" ?>\n'%(pfx,__CSS__)
-    init_g = ' onload="init_graph();"' if edit else ' onload="init_graph(true);"'
-    o += '<svg %s %s onclick="svg_onclick();">\n'%(_SVGNS,init_g) # width="1066" height="852"
-    o += '<title id=".title">%s%s &#8211; %s</title>'%('' if lout else '*',__TITLE__,short(content,True))
-    o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
-    o += '<script %s type="text/ecmascript" xlink:href="%s/%s/ace.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
-    o += '<script %s type="text/ecmascript" xlink:href="%s/%s/theme-twilight.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
-    o += '<script %s type="text/ecmascript" xlink:href="%s/%s/mode-python.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
-    o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>'%(_XLINKNS,pfx,__JS__)
-    #o = header(req,'..',short(content,True),edit,true,saved)
-
+    o = svg_header(req,'..',short(content,True),edit,True,saved)
     o += defs()
 
     (mG,mT) = ('inline','none') if mode == 'graph' else ('none','inline')
@@ -1423,15 +1413,11 @@ def save_code(req,code):
     req.content_type = 'text/plain'
     base = '%s/cg/'%__BASE__
     (pwd, name,ip) = get_env(req)
-    css = '%s/%s'%(base,__CSS__)
-    if not os.path.isfile(css):
-        shutil.copy('%s/%s'%(pwd,__CSS__),css)
     o = '<?xml version="1.0" encoding="UTF-8" ?>\n'
-    o += '<?xml-stylesheet href="./%s" type="text/css" ?>\n'%(__CSS__)
     o += '<svg %s width="1066" height="852">\n'%_SVGNS
     code = re.sub(r'<title>.*<\/title>','',code)
     code = re.sub(r'<text id=".stat".*<\/text>','',code)
-    code = re.sub(r'url\(\#\.grad\)','none',code)
+    code = re.sub(r'url\(\#\.grad[^\)]*\)','#ddd',code)
     o += re.sub(r'100%','100',code) + '</svg>' 
     res = svg2tikz.convert_code(o)
     tex = open('%s/code.tex'%base,'wb')
@@ -1443,7 +1429,7 @@ def save_code(req,code):
     return 'ok'
 
 def load_code(req,pdf=''):
-    """ Read on GIT """
+    """ Read PDF or LaTeX """
     if pdf:
         req.content_type = 'application/pdf'
         return open('%s/cg/code.pdf'%__BASE__).read()        
@@ -1452,8 +1438,10 @@ def load_code(req,pdf=''):
         return open('%s/cg/code.tex'%__BASE__).read()
 
 def latex(req):
-    """ """ 
-    return basic(req,False,'graph')
+    """ lab """ 
+    o = svg_header(req,'..','jjj',False,False,False)
+    o += '<rect width="100" height="100" fill="gray"/>'
+    return o + '</svg>'
 
 def pdf(req):
     """ """ 

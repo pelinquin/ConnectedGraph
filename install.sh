@@ -13,7 +13,7 @@ rm -f *~ *.pyc
 echo "LaTeX doc building"
 pdflatex browsers_support 2>/dev/null
 pdflatex browsers_support 2>/dev/null
-rm -f *.log *.aux
+rm -f *.log *.aux *.out
 
 echo "Compress js and css files"
 yui-compressor cg.js > cgmin.js

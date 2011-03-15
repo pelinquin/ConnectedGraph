@@ -79,6 +79,9 @@ window.onload = function () {
 	editor.setTheme("ace/theme/twilight");
 	var pmode = require("ace/mode/python").Mode;
 	editor.getSession().setMode(new pmode());
+	var kb = require("ace/keyboard/keybinding/emacs").bindings;
+	//editor.setKeyboardHandler(new HashHandler(kb));
+	editor.setKeyboardHandler(kb);
 	editor.getSession().on('change', change_textarea);
 	if (visible) {
 	    $('.textarea').setAttribute('display','inline');
@@ -686,8 +689,8 @@ Connector.prototype.draw = function() {
     this.el.parentNode.appendChild(this.path);
     if (n>1) {
       this.circle = document.createElementNS(svgns, 'circle');
-      this.circle.setAttribute('fill', 'url(#.gradyellow)');
-      //this.circle.setAttribute( 'fill', 'black');
+      //this.circle.setAttribute('fill', 'url(#.gradyellow)');
+      this.circle.setAttribute( 'fill', 'black');
       this.circle.setAttribute('r', '6' );
       this.circle.setAttribute('stroke', 'gray');
       this.circle.setAttribute('stroke-width', '1');
@@ -1447,7 +1450,6 @@ function select_tag() {
 
 function export_code(pdf) {
     code = (new XMLSerializer()).serializeToString($('.canvas'));
-    //alert (code);
     var fD = new FormData();
     fD.append('code',code);
     //var xhr = new XMLHttpRequest();
@@ -1458,7 +1460,6 @@ function export_code(pdf) {
 	param = '?pdf=1';
     }
     var ai = new post(true,get_base_url() + '/save_code', fD, function(res) {
-	    //alert (res);
 	    window.open(get_base_url() + '/load_code'+param, 'neutral', 'chrome,scrollbars=yes');
 	});
     ai.doPost();
