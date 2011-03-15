@@ -79,7 +79,7 @@ window.onload = function () {
 	editor.setTheme("ace/theme/twilight");
 	var pmode = require("ace/mode/python").Mode;
 	editor.getSession().setMode(new pmode());
-	var kb = require("ace/keyboard/keybinding/emacs").bindings;
+	//var kb = require("ace/keyboard/keybinding/emacs").bindings;
 	//editor.setKeyboardHandler(new HashHandler(kb));
 	editor.setKeyboardHandler(kb);
 	editor.getSession().on('change', change_textarea);

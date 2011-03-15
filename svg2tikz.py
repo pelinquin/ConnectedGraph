@@ -1419,5 +1419,4 @@ if __name__ == '__main__':
     o += '<text x="20" y="500" font-size="12">Hello petit</text>'
     o += '<g display="none"><text>invisible</text></g>'
     o += '</svg>' 
-    o = open('code.svg').read()
     print convert_code(o)
