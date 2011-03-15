@@ -1113,10 +1113,48 @@ def view(req):
     """ view mode """
     return basic(req,False,'graph')
 
-def index(req,edit=False):
-    """ if called with no parameter"""
-    valGet = '"Welcome to \'\'ConnectedGraph\'\'!"'
-    return basic(req,False,'graph',valGet,'.')
+def header(req,pfx,title='Documents',edit=False,ace=False,saved=True):
+    """ svg header """
+    req.content_type = 'image/svg+xml'
+    o = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    o += '<?xml-stylesheet href="%s/%s" type="text/css" ?>\n'%(pfx,__CSS__)
+    param = '' if edit else 'true'
+    o += '<svg %s onload="init_graph(%s);" onclick="svg_onclick();">\n'%(_SVGNS,param)
+    mark = '' if saved else '*'
+    o += '<title>%s%s &#8211; %s</title>\n'%(mark,__TITLE__,title)
+    o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
+    if ace:
+        o += '<script %s type="text/ecmascript" xlink:href="%s/%s/ace.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
+        o += '<script %s type="text/ecmascript" xlink:href="%s/%s/theme-twilight.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
+        o += '<script %s type="text/ecmascript" xlink:href="%s/%s/mode-python.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
+    o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>'%(_XLINKNS,pfx,__JS__)
+    return o
+
+def index(req):
+    """ document list """
+    req.content_type = 'image/svg+xml'
+    o = header(req,'.')
+    n,t = 0,[]
+    mygit = _git()
+    for i in mygit.getlist():
+        m = re.search(r'^100644 blob ([0-9a-f]{40})\t(\w+)$',i)
+        if m:
+            rev = m.group(1)
+            gid = m.group(2)
+            h =  mygit.gethead(gid).split(':')
+            if gid != 'start':
+                n+=1
+                cat = mygit.cat_blob(rev)
+                t.append([h[3],gid,rev,h[1],h[2],short( extract_content(cat))])
+    o += '<g id="history" onclick="load_item(evt);" transform="translate(10,25)"><text id=".list" fill="#CCC" style="font-family:courier;font-size:11pt;">%d diagrams'%n
+    for i in sorted(t, key = lambda item:item[0],reverse=True):
+        o += '<tspan gid="%s" title="%s" dy="0.9em">'%(i[1],i[2])
+        o += '<tspan x="0">%s %s</tspan>'%(i[1],i[3]) 
+        o += '<tspan x="190">%s</tspan>'%i[4] 
+        o += '<tspan x="330">%s</tspan>'%i[5]
+        o += '</tspan>'
+    o += '</text></g>'
+    return o + '</svg>'
     
 def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     """ common call """
@@ -1173,20 +1211,20 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     br = get_browser(req)
     log_add('%s %s %s %s %s %s'%(ip,br,gid,rev[:10],user,shortlog(content)))
     empty = True if re.match('^\s*$',content) else False
+    saved = True if lout else False
+    # start header
     o = '<?xml version="1.0" encoding="UTF-8" ?>\n'
     o += '<?xml-stylesheet href="%s/%s" type="text/css" ?>\n'%(pfx,__CSS__)
     init_g = ' onload="init_graph();"' if edit else ' onload="init_graph(true);"'
-    (cjs,jsdone) = (init_g,'yes') if (mode == 'graph') and not empty else ('','no')
-    #o += '<svg %s id=".base"%s onclick="closelink();" width="1066" height="852">\n'%(_SVGNS,cjs)
-    o += '<svg %s id=".base"%s onclick="closelink();">\n'%(_SVGNS,cjs)
-    o += '<head></head><title id=".title">%s%s &#8211; %s</title>'%('' if (lout or pfx == '.') else '*',__TITLE__,short(content,True))
-
-    # Find a way to have SVG fav icon instead of png !
+    o += '<svg %s %s onclick="svg_onclick();">\n'%(_SVGNS,init_g) # width="1066" height="852"
+    o += '<title id=".title">%s%s &#8211; %s</title>'%('' if lout else '*',__TITLE__,short(content,True))
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s/ace.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s/theme-twilight.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s/mode-python.js"></script>'%(_XLINKNS,pfx,_ACE_PATH)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>'%(_XLINKNS,pfx,__JS__)
+    #o = header(req,'..',short(content,True),edit,true,saved)
+
     o += defs()
 
     (mG,mT) = ('inline','none') if mode == 'graph' else ('none','inline')
@@ -1199,7 +1237,6 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     o += '<text id=".rev" class="hd" y="20">%s<title>commit: %s</title></text>'%(rev,git_date)
     o += '</g>' + link_button()
     o += '<g transform="translate(%s,0)">'%xpos
-    #o += '<text id=".state" class="hd1" y="2" x="280">NEW<title>State</title></text>'
     o += '</g>'
 
     if edit:
@@ -1235,7 +1272,6 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
 
     o += '<g id=".textarea" display="%s">'%mT
     o += '<foreignObject transform="translate(18,52)" width="99%" height="90%">'
-    #o += '<textarea %s id=".area" onchange="change_textarea();" spellcheck="false" rows="%d" style="border:1px solid #ccc;width:98.5%%;font-size: 10pt;">%s</textarea>'%(_XHTMLNS,size,xml.sax.saxutils.escape(content))
     o += '<div %s id="editor">%s</div>'%(_XHTMLNS,xml.sax.saxutils.escape(content))
     o += '</foreignObject></g>'
 
@@ -1246,38 +1282,16 @@ def basic(req=None,edit=False,mode='graph',valGet='',pfx='..',user='',msg=''):
     dl = 'onclick="load_github_dl();"' if edit else ''
     dltxt = 'download tool revision' if edit else '%s tool revision'%__TITLE__
     o += '<g %s><text class="hd1" text-anchor="end" x="100%%" y="10">%s [%s]<title>%s</title></text></g>'%(dl,__version__,sha1_pkg(req),dltxt)
+    jsdone = 'yes' if (mode == 'graph') and not empty else 'no'
     o += '<g display="%s" id=".canvas" updated="yes" unsaved="%s" jsdone="%s" title="version %s">'%(mG,unsaved,jsdone,__version__) + run(content,lout,edit,rev) + '</g>'
     
     if edit:
         o += mode_button(mG,mT) + save_button(mygit,gid) + tag_input(mygit)
         o += export_button(mG)
-        #o += connect_button()
         o += '<g class="button" fill="#CCC" transform="translate(62,1)"><rect x="1" width="15" height="30" rx="5"/><path transform="translate(0,6)" d="M4,4 4,14 14,9" fill="white"/>'+ nodes_bar() + '</g>'
-    if pfx == '.':
-        n,t = 0,[]
-        for i in mygit.getlist():
-            m = re.search(r'^100644 blob ([0-9a-f]{40})\t(\w+)$',i)
-            if m:
-                rev = m.group(1)
-                gid = m.group(2)
-                h =  mygit.gethead(gid).split(':')
-                if gid != 'start':
-                    n+=1
-                    cat = mygit.cat_blob(rev)
-                    t.append([h[3],gid,rev,h[1],h[2],short( extract_content(cat))])
-        o += '<g id="history" onclick="load_item(evt);" transform="translate(10,25)"><text id=".list" fill="#CCC" style="font-family:courier;font-size:11pt;">%d diagrams'%n
-        for i in sorted(t, key = lambda item:item[0],reverse=True):
-            o += '<tspan gid="%s" title="%s" dy="0.9em">'%(i[1],i[2])
-            o += '<tspan x="0">%s %s</tspan>'%(i[1],i[3]) #0
-            o += '<tspan x="190">%s</tspan>'%i[4] #180
-            o += '<tspan x="330">%s</tspan>'%i[5] #300
-            o += '</tspan>'
-        o += '</text></g>'
-
-    if edit or pfx == '.':
+    if edit:
         o += '<g onclick="load_github();">' + formose() + '<title>go to GITHUB repository</title></g>'
     o += '<g display="none" transform="translate(550,1)"><rect text-anchor="end" width="100" height="14" rx="6" ry="6" stroke-width="1px" stroke="#CCC" fill="none"/><rect id="bar" width="0" height="14" rx="6" ry="6" stroke-width="0px" fill="#CCC"/><text class="stat" id="prg" x="44" y="11">0%</text></g>'
-    #return graphviz(content)
     return o + '</svg>'
 
 def nodes_bar():

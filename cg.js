@@ -70,11 +70,19 @@ function is_gecko() {
 
 window.onload = function () {
     if (typeof ace != 'undefined') {
+	var visible = false;
+	if ($('.textarea').getAttribute('display') == 'inline') {
+	    visible = true;
+	}
+	$('.textarea').setAttribute('display','none');
 	editor = ace.edit('editor');
 	editor.setTheme("ace/theme/twilight");
 	var pmode = require("ace/mode/python").Mode;
 	editor.getSession().setMode(new pmode());
 	editor.getSession().on('change', change_textarea);
+	if (visible) {
+	    $('.textarea').setAttribute('display','inline');
+	}
     }
     if (!is_gecko()) alert ('This is tested on Firefox4 and Chromium !'); 
     //alert (screen.width + ' ' + screen.height);
@@ -128,20 +136,21 @@ function enterFocus(evt) {
 }
 
 function enterNode(evt) {
-  var nod = evt.target;
-  var nod0 = nod;
-  while (nod.parentNode.id != '.nodes') { nod = nod.parentNode; } 
-  if (nod.hasAttribute('href')) { 
-    var href = nod.getAttribute('href');
-    var rev = $('.rev').firstChild.nodeValue;
-    if (nod0.parentNode.id == 'attachid') { 
-      var param = 'gid=' + href + '&rev=' + rev;
-      window.open(get_base_url() + '/load_pdf?' + param, 'neutral', 'chrome,scrollbars=yes');
-    } else {
-      var param = '?@' + href + ':' + rev;
-      document.location.replace(get_url() + param);
-    } 
-  }
+    //alert ('enter');
+    var nod = evt.target;
+    var nod0 = nod;
+    while (nod.parentNode.id != '.nodes') { nod = nod.parentNode; } 
+    if (nod.hasAttribute('href')) { 
+	var href = nod.getAttribute('href');
+	var rev = $('.rev').firstChild.nodeValue;
+	if (nod0.parentNode.id == 'attachid') { 
+	    var param = 'gid=' + href + '&rev=' + rev;
+	    window.open(get_base_url() + '/load_pdf?' + param, 'neutral', 'chrome,scrollbars=yes');
+	} else {
+	    var param = '?@' + href + ':' + rev;
+	    document.location.replace(get_url() + param);
+	} 
+    }
 }
 
 function typeTextBG(evt) {
@@ -159,39 +168,41 @@ function typeTextBG(evt) {
 }
 
 function init_graph(noedit) { 
-  //alert (screen.width + ' ' + screen.height); 1067x853
-  var tab = $('.nodes').childNodes;
-  for ( var i = 0; i < tab.length; i++ ) {
-    if (tab[i].id) {
-      new Node( tab[i].id );
-      //alert (tab[i].id);
+    if (!$('.nodes') || $('.textarea').getAttribute('display') == 'inline') {
+	return;
     }
-  }
-  //for ( var id in nodeArray ) { alert (nodeArray[id].id); }
-  var xc = document.documentElement.getElementsByTagName('connector');
-  for ( var i = 0, iLen = xc.length; iLen > i; i++ ) {
-    var c = new Connector(xc[i]);
-    c.init();
-    c.draw();
-  }
-
-  //if ($('_connect').getAttribute('state') == 'off') {
-  //  noedit = null;
-  //  alert ('ici');
-  //}
-
-  if (noedit == null) {
-    var drag = new DragDrop();
-    drag.init( $('.nodes') );
-    // attach document drop
-    var dropbox = $('.nodes');
-    //var dropbox = $('.base');
-    dropbox.addEventListener("dragenter", dragenter, false);
-    dropbox.addEventListener("dragover", dragover, false);
-    dropbox.addEventListener("drop", drop, false);
-  } else {
-    $('.nodes').addEventListener("click", enterNode, false);
-  }
+    //alert (screen.width + ' ' + screen.height); 1067x853
+    var tab = $('.nodes').childNodes;
+    for ( var i = 0; i < tab.length; i++ ) {
+	if (tab[i].id) {
+	    new Node( tab[i].id );
+	    //alert (tab[i].id);
+	}
+    }
+    //for ( var id in nodeArray ) { alert (nodeArray[id].id); }
+    var xc = document.documentElement.getElementsByTagName('connector');
+    for ( var i = 0, iLen = xc.length; iLen > i; i++ ) {
+	var c = new Connector(xc[i]);
+	c.init();
+	c.draw();
+    }
+    
+    //if ($('_connect').getAttribute('state') == 'off') {
+    //  noedit = null;
+    //  alert ('ici');
+    //}
+    
+    if (noedit == null) {
+	var drag = new DragDrop();
+	drag.init( $('.nodes') );
+	// attach document drop
+	var dropbox = $('.nodes');
+	dropbox.addEventListener("dragenter", dragenter, false);
+	dropbox.addEventListener("dragover", dragover, false);
+	dropbox.addEventListener("drop", drop, false);
+    } else {
+	$('.nodes').addEventListener("click", enterNode, false);
+    }
 };
 
 /*
@@ -1241,8 +1252,10 @@ function update_url(e,edit) {
     }
 }
 
-function closelink() {
-  $('linkstring').parentNode.setAttribute('display','none');
+function svg_onclick() {
+    if ($('linkstring')) {
+	$('linkstring').parentNode.setAttribute('display','none');
+    } 
 }
 
 function typeText(e) {
