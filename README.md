@@ -23,8 +23,14 @@ Where is the repository?
 ------------------------
 
 * Source Code, Issue Tracker, Wiki and Download:
-https://github.com/pelinquin/ConnectedGraph
 
+    https://github.com/pelinquin/ConnectedGraph
+
+How to contribute?
+------------------
+
+* Clone the project
+    git clone git://github.com/pelinquin/ConnectedGraph.git
 
 Which Browser is currently supported?
 -------------------------------------
