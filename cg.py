@@ -1479,11 +1479,11 @@ def update(req):
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
     o = '<html>'
     o += '<link href="../%s" rel="stylesheet" type="text/css"/>'%__CSS__
-    o += '<h1>Application Updated to [%s]</h1>'%(sha1_pkg(req))
+    o += '<h1>Application Updated to %s commit</h1>'%(sha1_pkg(req))
     if err:
         o += '<p>Error:%s</p>'%err
     else:
-        o += '<p>%s</p>'%out
+        o += '<p>Message:%s</p>'%out
     o += '<a href="%s"><h2>Use the application</h2></a>'%server    
     return o + '</html>'
 
