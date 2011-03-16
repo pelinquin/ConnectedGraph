@@ -1417,10 +1417,12 @@ if __name__ == '__main__':
     We need to define a full test set on many examples
     Think How to compare the pdf results ?
     """
-    o = '<?xml version="1.0" encoding="UTF-8" ?>\n'
-    o += '<svg %s width="1066" height="852">\n'%_SVGNS
-    o += '<text x="20" y="300">Hello</text>'
-    o += '<text x="20" y="500" font-size="12">Hello petit</text>'
-    o += '<g display="none"><text>invisible</text></g>'
-    o += '</svg>' 
-    print convert_code(o)
+    if len(sys.argv) == 2:
+        if os.path.isfile(sys.argv[1]):
+            print convert_code(open(sys.argv[1]).read())
+        else:
+            print 'input file not found!'
+    else:
+        print 'usage: svg2tikz <svgfile>'
+
+    
