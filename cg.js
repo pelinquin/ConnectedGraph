@@ -81,7 +81,7 @@ window.onload = function () {
 	editor.getSession().setMode(new pmode());
 	//var kb = require("ace/keyboard/keybinding/emacs").bindings;
 	//editor.setKeyboardHandler(new HashHandler(kb));
-	editor.setKeyboardHandler(kb);
+	//editor.setKeyboardHandler(kb);
 	editor.getSession().on('change', change_textarea);
 	if (visible) {
 	    $('.textarea').setAttribute('display','inline');
