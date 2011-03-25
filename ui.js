@@ -106,15 +106,8 @@ window.onload = function () {
   }
   // Check browser
   if (!is_browser_compatible()) alert ('Browser not supported !');
-
-  // Need an object for getBBox
-  var po = document.createElementNS(svgns, 'rect');
-  po.id = '.pointer';
-  document.documentElement.appendChild(po);
-
-
-  init_editor();
   init_menu();
+  init_editor();
   init_draw();
   $('.title').firstChild.nodeValue = stat();
   //alert (print_nodes()); // debug
@@ -144,6 +137,10 @@ function init_menu() {
   rect.setAttribute('width',b.width+2*m);
   rect.setAttribute('height',b.height+2*m); 
   $('.menu').addEventListener('mousedown', function(evt) {onmenu(evt);}, false);
+  // Need an object for getBBox
+  var po = document.createElementNS(svgns, 'rect');
+  po.id = '.pointer';
+  document.documentElement.appendChild(po);
 }
 
 function init_draw() {
