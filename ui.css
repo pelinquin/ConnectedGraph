@@ -1,0 +1,57 @@
+/*----------------------------------------------------------------------------
+ ©  Copyright 2011, Rockwell Collins, Inc 
+    This file is part of Formose.
+
+    Formose is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Formose is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Formose.  If not, see <http://www.gnu.org/licenses/>.
+---------------------------------------------------------------------------*/
+
+
+@font-face { 
+  font-family: Graublau Sans Web; 
+  src: url('fonts/GraublauWeb.otf') format("opentype"); 
+}
+
+text { 
+  font-family: Graublau Sans Web; 
+  font-size:10pt;
+}
+
+text.tiny, text.small { 
+  font-family:helvetica neue,helvetica,arial,sans-serif;
+}
+
+text.small { font-size:7pt; }
+text.tiny { font-size:3pt; }
+text.small tspan:hover { font-weight:bold; stroke-width:0; fill:white;}
+
+#editor { 
+  top: 20px;
+  left: 0px;
+  width:500px;
+  height:300px;
+}
+.current { opacity:0.6;}
+
+#debug { font-size:30pt; opacity:1;}
+
+g.connectors path:hover{ opacity:0.3; cursor:crosshair;}
+/*g.nodes g rect:hover{ stroke:red; stroke-width:2; cursor:crosshair; }*/
+/*.nodes g:hover { stroke:red; stroke-width:2; cursor:crosshair; }*/
+.border:hover { opacity:0.3;}
+
+.nodes g:hover      { cursor:move;}
+.nodes g path:hover { cursor:crosshair;}
+.nodes g rect:hover { cursor:crosshair;}
+
+/*-webkit-user-select: none;*/
