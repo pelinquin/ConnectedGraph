@@ -54,4 +54,5 @@ g.connectors path:hover{ opacity:0.3; cursor:crosshair;}
 .nodes g path:hover { cursor:crosshair;}
 .nodes g rect:hover { cursor:crosshair;}
 
-/*-webkit-user-select: none;*/
+::selection { background: rgba(255,0,0,0);} /* for webkit */
+/*-webkit-user-select: none; does not work*/
