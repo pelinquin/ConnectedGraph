@@ -617,7 +617,7 @@ function dragDrop () {
   document.documentElement.addEventListener('mousedown', function(evt) {DD.down(evt);}, false);
   document.documentElement.addEventListener('mouseup',   function(evt) {DD.up(evt);},   false);
   document.documentElement.addEventListener('mousemove', function(evt) {DD.move(evt);}, false);
-  document.documentElement.addEventListener('keypress',  function(evt) {DD.text(evt);}, false);
+  document.documentElement.addEventListener('keydown',  function(evt) {DD.key(evt);}, false);
 }
 
 dragDrop.prototype.down = function(e) {
@@ -740,8 +740,8 @@ dragDrop.prototype.up = function(e) {
   } 
 };
 
-dragDrop.prototype.text = function(e) {
-  if (e.type == 'keypress') {
+dragDrop.prototype.key = function(e) {
+  if (e.type == 'keydown') {
     if (e.charCode) { var charCode = e.charCode; }
     else { var charCode = e.keyCode; }
     if (charCode == 46){ //del key
