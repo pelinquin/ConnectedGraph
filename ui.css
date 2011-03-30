@@ -22,18 +22,19 @@
   src: url('fonts/GraublauWeb.otf') format("opentype"); 
 }
 
-text { 
+text,textarea { 
   font-family: Graublau Sans Web; 
   font-size:10pt;
 }
 
-text.tiny, text.small { 
+text.tiny, text.small, text.button { 
   font-family:helvetica neue,helvetica,arial,sans-serif;
 }
 
 text.small { font-size:7pt; }
 text.tiny { font-size:3pt; }
-text.small tspan:hover { font-weight:bold; stroke-width:0; fill:white;}
+text.small tspan:hover{ font-weight:bold; stroke-width:0; fill:white;}
+text.button:hover { font-weight:bold; fill:black;}
 
 #editor { 
   top: 20px;

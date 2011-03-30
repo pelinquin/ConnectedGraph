@@ -18,6 +18,9 @@
 
 // Use the compressed version: cgmin.js
 
+// TODO
+// FIX: BUG DELETE ALL INOUT CONNECTORS WHEN DELETE A NODE
+
 const svgns   = 'http://www.w3.org/2000/svg';
 
 // Utilities
@@ -88,29 +91,44 @@ function ajax_post(txt,url,data,cb) {
   }  
 }
 
+function cl_xml(d){
+  return document.importNode(d.documentElement.cloneNode(true),true);
+}
+
+function get_url () { 
+  var s = new String(document.location);
+  return (s.replace(/\?.*$/,''));
+}
+
+function get_base_url () { 
+  var url = get_url().replace(/\/[^\/]*$/,'');
+  return (url);
+};
+
 // Globals
 var DD       = null; // DragAndDrop object
 var nodeLink = [];   // Hash key:nodes id, value:array of connectors
 var nodeBox  = [];   // hash key:nodes, value: node bouding box
+var editor   = null; // Pointer to ACE editor
 
 window.onload = function () {   
   // Test how to modify CSS properties
-  $('debug').style.setProperty('display','none','');
+  //$('.msg').style.setProperty('display','none','');
   //alert (document.documentElement.style);
+  
+  if (!is_browser_compatible()) alert ('Browser not supported !');
   // Select mode (edit or readonly)
   if (document.documentElement.getAttribute('editable') == 'yes') {
     DD = new dragDrop();
+    init_menu();
+    init_editor();
   } else {
-      $('.current').setAttribute('opacity','0');
-      // TODO; unset this property: g.connectors path:hover, .border:hover { opacity:0.3;}
+    // TODO; unset this property: g.connectors path:hover, .border:hover { opacity:0.3;}
   }
-  // Check browser
-  if (!is_browser_compatible()) alert ('Browser not supported !');
-  init_menu();
-  init_editor();
   init_draw();
-  $('.title').firstChild.nodeValue = stat();
+  //$('.title').firstChild.nodeValue = stat();
   //alert (print_nodes()); // debug
+  //refresh(0);
 }
 
 function stat() {
@@ -119,11 +137,12 @@ function stat() {
 
 function init_editor() {
   // TODO, Patch Ace Code to avoid CSS warnings on box-sizing and appearance
-  var editor = ace.edit('editor'); 
+  editor = ace.edit('editor'); 
   editor.setTheme('ace/theme/twilight');
   var pMode = require('ace/mode/python').Mode;
   editor.getSession().setMode(new pMode());
   editor.getSession().on('change', change_editor);
+  //editor.setReadOnly(false); 
 }
 
 function init_menu() {
@@ -137,6 +156,7 @@ function init_menu() {
   rect.setAttribute('width',b.width+2*m);
   rect.setAttribute('height',b.height+2*m); 
   $('.menu').addEventListener('mousedown', function(evt) {onmenu(evt);}, false);
+  $('.area').firstChild.addEventListener('change', function(evt) {DD.change(evt);}, false);
   // Need an object for getBBox
   var po = document.createElementNS(svgns, 'rect');
   po.id = '.pointer';
@@ -162,16 +182,16 @@ function init_draw() {
 }
 
 function init_draw_node(nod) {
-  // TODO; manage node types
-  var t = nod.getAttribute('typ').toUpperCase();
+  var t = nod.getAttribute('type').toUpperCase();
   nodeLink[nod.id] = [];
   var b = nod.getBBox();
   nodeBox[nod.id] = b;
-  var m = 5; // margin
-  if (t == 'GOAL') {
+  if (t=='GOAL' || t=='AGENT') {
     form = 'path';
-  } else {
+  } else if (t=='REQUIREMENT'){
     form = 'rect';
+  } else {
+    form = 'ellipse';
   }
   var txt = document.createElementNS(svgns,'text');
   txt.setAttribute('x','0');
@@ -179,14 +199,13 @@ function init_draw_node(nod) {
   txt.setAttribute('class', 'tiny');
   txt.appendChild(document.createTextNode(t));
   var tid = document.createElementNS(svgns,'text');
-  tid.setAttribute('x',b.width+2);
   tid.setAttribute('y','-13');
   tid.setAttribute('fill', 'white');
   tid.setAttribute('text-anchor','end');
   tid.setAttribute('class', 'tiny');
   tid.appendChild(document.createTextNode(nod.id.toUpperCase()));
   var title = document.createElementNS(svgns,'title');
-  title.appendChild(document.createTextNode('The title!'));
+  title.appendChild(document.createTextNode(nod.id.toUpperCase()+':'+t));
   var bord = document.createElementNS(svgns,form);
   bord.setAttribute('stroke','red');
   bord.setAttribute('opacity','0');
@@ -195,49 +214,163 @@ function init_draw_node(nod) {
   var shape = document.createElementNS(svgns,form);
   shape.setAttribute('stroke-width','1');
   shape.setAttribute('fill','url(#.grad)');
-  shape.setAttribute('filter','url(#.shadow)');
+  //shape.setAttribute('filter','url(#.shadow)'); // pb with Safari
   shape.setAttribute('stroke','gray');
-  if (t == 'GOAL') {
-    var d = 'M'+(b.x-m)+','+(b.y-m)+'l'+(b.width+2*m)+',0l0,'+(b.height+2*m)+'l-'+(b.width+2*m)+',0z';
-    bord.setAttribute('d',d);
-    shape.setAttribute('d',d);
-  } else {
-    var x = b.x-m; var y = b.y-m; var w = b.width + 2*m; var h = b.height + 2*m;
-    bord.setAttribute('rx', '4');	
-    bord.setAttribute('width',w);
-    bord.setAttribute('height',h);
-    bord.setAttribute('x',x);
-    bord.setAttribute('y',y);  
+  if (t=='REQUIREMENT') {
+    bord.setAttribute('rx', '4');
     bord.setAttribute('transform', 'skewX(-10)'); 
     shape.setAttribute('rx', '4');
-    shape.setAttribute('width',w);
-    shape.setAttribute('height',h);
-    shape.setAttribute('x',x);
-    shape.setAttribute('y',y);      
     shape.setAttribute('transform', 'skewX(-10)'); 
-  }
+  } 
   nod.insertBefore(bord,nod.firstChild);
   nod.insertBefore(shape,nod.lastChild);
   nod.appendChild(txt);
   nod.appendChild(tid);
   nod.appendChild(title);
+  resize_shape(t,b,bord,shape,tid);
+}
+
+function resize_shape(t,b,bord,shape,tid) { 
+  var m = 5; // margin
+  tid.setAttribute('x',b.width);
+  if (t=='GOAL') {
+    var d = 'M'+(b.x-m)+','+(b.y-m)+'l'+(b.width+2*m)+',0l0,'+(b.height+2*m)+'l-'+(b.width+2*m)+',0z';
+    bord.setAttribute('d',d);
+    shape.setAttribute('d',d);
+  } else if (t=='AGENT') {
+    m = 12;
+    var d = 'M'+(b.x-m)+','+(b.y+b.height/2)+'l'+(b.width/2+m)+','+(b.height/2+m)+'l'+(b.width/2+m)+','+(-b.height/2-m)+ 'l'+(-b.width/2-m)+','+(-b.height/2-m)+'z';
+    bord.setAttribute('d',d);
+    shape.setAttribute('d',d);
+  } else if (t=='REQUIREMENT') {
+    var x = b.x-m; var y = b.y-m; var w = b.width + 2*m; var h = b.height + 2*m;
+    bord.setAttribute('width',w);
+    bord.setAttribute('height',h);
+    bord.setAttribute('x',x);
+    bord.setAttribute('y',y);  
+    shape.setAttribute('width',w);
+    shape.setAttribute('height',h);
+    shape.setAttribute('x',x);
+    shape.setAttribute('y',y);      
+  } else {
+    m = 10;
+    var x = b.x-m; var y = b.y-m; var w = b.width + 2*m; var h = b.height + 2*m;
+    bord.setAttribute('rx',w/2);
+    bord.setAttribute('ry',h/2);
+    bord.setAttribute('cx',x+w/2);
+    bord.setAttribute('cy',y+h/2);  
+    shape.setAttribute('rx',w/2);
+    shape.setAttribute('ry',h/2);
+    shape.setAttribute('cx',x+w/2);
+    shape.setAttribute('cy',y+h/2);      
+  }
+}
+
+function change_node_content(n,label) {
+  $('.current').setAttribute('display','none');
+  var t = $(n).getAttribute('type').toUpperCase();
+  var nod = $(n).firstChild.nextSibling.nextSibling;
+  nod.firstChild.nodeValue = label;
+  var b = nod.getBBox();
+  nodeBox[n] = b;
+  var bord = $(n).firstChild;
+  var shape = $(n).firstChild.nextSibling;
+  var tid = $(n).childNodes[4];
+  resize_shape(t,b,bord,shape,tid);
+  draw_connectors_from(n);
+}
+
+function signin() {
+  var tg = $('.login_page');
+  var ai = new ajax_get(false,get_base_url() + '/login_page', function(res) {
+			  tg.replaceChild(cl_xml(res),tg.lastChild);
+			});
+  ai.doGet();
+}
+
+function editor_add(txt) {
+  var v = editor.getSession().getValue();
+   editor.getSession().setValue(v + '\n' + txt); 
+}
+
+function refresh(n) {
+  if (n == 100) {
+    alert ('fin');
+  } else {
+    var ai = new ajax_get(true,get_base_url() + '/read', function(res) {
+			    //$('.msg').firstChild.nodeValue = res;
+			    if (res != editor.getSession().getValue()) {
+			      editor.getSession().setValue(res); 
+			    }
+			  });
+    ai.doGet();
+    n += 1;
+    setTimeout('refresh('+n+')', 1000);
+  }
+}
+
+function update() {
+  //editor.getSession().setValue(editor.getSession().getValue()+ ' encore'); //tmp
+  $('.title').firstChild.nodeValue = '* '+stat();
+  var fD = new FormData();
+  fD.append('user', 'toto');
+  fD.append('value', editor.getSession().getValue());
+  var xhr = new XMLHttpRequest();
+  xhr.upload.addEventListener("progress", uploadProgress, false);
+  xhr.addEventListener("load", uploadComplete, false);
+  xhr.addEventListener("error", uploadFailed, false);
+  xhr.addEventListener("abort", uploadCanceled, false);
+  xhr.open('POST', get_base_url() + '/update');
+  xhr.send(fD);
+}
+
+function uploadProgress(evt) {
+  if (evt.lengthComputable) {
+    var percentComplete = Math.round(evt.loaded * 100 / evt.total);
+    $('bar').parentNode.setAttribute('display','inline');
+    $('prg').firstChild.nodeValue = percentComplete.toString() + '%';
+    $('bar').setAttribute('width',percentComplete);
+  } else {
+    alert ('pb');
+    $('prg').firstChild.nodeValue = 'unable to compute';
+  }
+}
+
+function uploadComplete(evt) {
+  $('prg').firstChild.nodeValue = '100%';
+  $('bar').setAttribute('width',100);
+  //setTimeout("clearbar()",800); 
+}
+
+function clearbar() {
+  $('bar').parentNode.setAttribute('display','none');
+}
+
+function uploadFailed(evt) {
+  alert('There was an error attempting to upload the file.');
+}
+
+function uploadCanceled(evt) {
+  alert('The upload has been canceled by the user or the browser dropped the connection.');
 }
 
 function change_editor() {
   //TODO; link editor content with current diagram!
   //Parsing on client side
+  update();
 }
 
-function add_node(n,label,x,y) {
+function add_node(n,typ,label,x,y) {
   var txt = document.createElementNS(svgns, 'text');
   txt.appendChild(document.createTextNode(label));
   var g = document.createElementNS(svgns, 'g');
   g.setAttribute('id', n);
-  g.setAttribute('typ', 'goal'); //tmp
+  g.setAttribute('type', typ);
   g.setAttribute('transform','translate(' + x + ',' + y + ')');
   g.appendChild(txt);
   $('.nodes').appendChild(g);
   init_draw_node(g);
+  editor_add(n+'['+label+']:'+typ);
 }
 
 function add_connector(n1,n2) {
@@ -246,6 +379,7 @@ function add_connector(n1,n2) {
   co.setAttribute('n2', '#'+n2);
   $('.connectors').appendChild(co);
   Connector(co,n1,n2); 
+  editor_add(n1+'->'+n2);
 }
 
 function print_nodes() {
@@ -299,7 +433,6 @@ function create_selection_path() {
   p.setAttribute('fill','none');
   p.setAttribute('stroke-width','8');
   p.setAttribute('stroke-linecap','round');
-  p.setAttribute('marker-end','none');
   p.setAttribute('stroke','red');
   p.setAttribute('opacity','0');
   return (p);
@@ -309,6 +442,7 @@ function create_visible_path() {
   var p = document.createElementNS(svgns, 'path');
   p.setAttribute('fill','none');
   p.setAttribute('marker-end','url(#.arrow)');
+  //p.setAttribute('marker-mid','url(#.conflict)'); REVOIR
   p.setAttribute('stroke-width','1.8');
   p.setAttribute('stroke-linecap','round');
   p.setAttribute('stroke','gray');
@@ -576,19 +710,19 @@ function onmenu(e) {
       }
     } else {
       var newid = find_id();
-      add_node(newid,'my '+val,e.clientX,e.clientY);
+      add_node(newid,val,'my '+val,e.clientX,e.clientY);
       if (DD.border) {
-	finalise_connector(DD.border,newid);
+	finalise_connector(DD.border,newid,false);
 	DD.border = false;
       }
       DD.delay = false;
-      $('.title').firstChild.nodeValue = '* '+stat();
+      update();
     }
     $('.menu').setAttribute('display','none');
   }
 }
 
-function finalise_connector(nod,n1) {
+function finalise_connector(nod,n1,upd) {
   var n2 = nod.getAttribute('n2').replace('#','');
   nod.firstChild.setAttribute('stroke','gray');
   var p = create_selection_path();
@@ -598,12 +732,16 @@ function finalise_connector(nod,n1) {
   nodeLink[n2].push(nod);
   nodeLink[n1].push(nod);
   draw_path(nod,n1,n2);
-  $('.title').firstChild.nodeValue = '* '+stat();
+  editor_add(n2+'->'+n1);
+  if (upd) {
+    update();
+  }
 }
 
 function dragDrop () {
   this.el = null;
   this.node = null;
+  this.edit = null;
   this.connector = null;
   this.border = false;
   this.delay = false;
@@ -614,7 +752,7 @@ function dragDrop () {
   document.documentElement.addEventListener('mousedown', function(evt) {DD.down(evt);}, false);
   document.documentElement.addEventListener('mouseup',   function(evt) {DD.up(evt);},   false);
   document.documentElement.addEventListener('mousemove', function(evt) {DD.move(evt);}, false);
-  document.documentElement.addEventListener('keydown',  function(evt) {DD.key(evt);}, false);
+  document.documentElement.addEventListener('keydown',   function(evt) {DD.key(evt);}, false);
 }
 
 dragDrop.prototype.down = function(e) {
@@ -625,15 +763,27 @@ dragDrop.prototype.down = function(e) {
     this.connector.firstChild.nextSibling.setAttribute('opacity','1');
     this.connector.firstChild.nextSibling.setAttribute('stroke','gray');
   }
+  if ($('.msg')) {
+    if ($('.msg').hasChildNodes()) {
+      $('.msg').removeChild($('.msg').firstChild);
+    }
+  }
+  if (nod.nodeName != 'textarea') {
+    if (this.edit) {
+      $('.area').parentNode.setAttribute('visibility','hidden');
+    }
+  }
+  if (this.node) {
+    this.node = null;
+    $('.current').setAttribute('display','none');
+  }
   if (nod.nodeName == 'svg') {
     $('.menu').setAttribute('display','none');
     if (this.border) {
       this.border.parentNode.removeChild(this.border);
       this.border = null;
     } else {
-      this.node = null; 
-      $('.current').setAttribute('display','none');
-      if (e.button == 0) {
+      if ((e.button == 0)&&(!this.edit)) {
  	$('.menu').setAttribute('display','inline');
 	var offset = e.clientY - nodeBox['.menu'].y;
 	$('.menu').setAttribute('transform','translate(' + e.clientX + ',' + offset + ')');
@@ -656,8 +806,6 @@ dragDrop.prototype.down = function(e) {
       $('.menu').setAttribute('display','none');
       nod.firstChild.nextSibling.setAttribute('opacity','.6');
       nod.firstChild.nextSibling.setAttribute('stroke','red');
-      $('.current').setAttribute('display','none');
-      this.node = null;
       this.connector = nod;
     }
     if (nod.parentNode.id == '.nodes') { 
@@ -670,20 +818,44 @@ dragDrop.prototype.down = function(e) {
 	this.border.setAttribute('n2','#'+nod.id);
 	$('.connectors').appendChild(this.border);
       } else {
+	var b = nodeBox[nod.id];
 	this.p.x = tr.e; 
 	this.p.y = tr.f;
-	this.o.x = e.clientX; this.o.y = e.clientY;
-	this.c = $('.current').firstChild;
-	var b = nodeBox[nod.id];
-	this.c.setAttribute('width',b.width+2*this.margin);
-	this.c.setAttribute('height',b.height+2*this.margin);
-	this.c.setAttribute('x',b.x + this.p.x - this.margin);
-	this.c.setAttribute('y',b.y + this.p.y - this.margin);
-	this.c.parentNode.setAttribute('display','inline');
+	var x = b.x + this.p.x - this.margin;
+	var y = b.y + this.p.y - this.margin;
 	this.node = this.el;
+	if (e.detail == 2) { 
+	  this.el = null;
+	  this.edit = nod;
+	  var area = $('.area');
+	  area.setAttribute('width',b.width+50);
+	  area.setAttribute('height',b.height+50);
+	  area.parentNode.setAttribute('transform','translate('+x+','+y+')');
+	  area.firstChild.setAttribute('style','resize:none; border:1px solid #ccc;width:' + (b.width+20)+ 'pt;height:' + (b.height+20)+ 'pt'); 
+	  //area.firstChild.setAttribute('tabindex', '1');
+	  var txt = nod.firstChild.nextSibling.nextSibling.firstChild.nodeValue;
+	  area.firstChild.value = txt;
+	  $('.area').parentNode.setAttribute('display','inline');
+	  $('.area').parentNode.setAttribute('visibility','visible');
+	} else {
+	  this.o.x = e.clientX; this.o.y = e.clientY;
+	  this.c = $('.current').firstChild;
+	  this.c.setAttribute('width',b.width+2*this.margin);
+	  this.c.setAttribute('height',b.height+2*this.margin);
+	  this.c.setAttribute('x',x);
+	  this.c.setAttribute('y',y);
+	  this.c.parentNode.setAttribute('display','inline');
+	}
       }
-      //$('debug').firstChild.nodeValue = 'msg'; 
+      //$('.msg').firstChild.nodeValue = 'msg'; 
     }
+  }
+};
+
+dragDrop.prototype.change = function(e) {
+  if (this.edit) {
+    change_node_content(this.edit.id,$('.area').firstChild.value);
+    this.edit = null;
   }
 };
 
@@ -722,7 +894,7 @@ dragDrop.prototype.up = function(e) {
 	var n2 = this.border.getAttribute('n2').replace('#','');
 	if (test_if_connector_exist(n2,nod.id)) {
 	  found = true;
-	  finalise_connector(this.border,nod.id);
+	  finalise_connector(this.border,nod.id,true);
 	} else {
 	  //alert ('Connector already exists!');
 	}
@@ -744,15 +916,34 @@ dragDrop.prototype.key = function(e) {
     if (charCode == 46){ //del key
       if (this.connector) {
 	del_connector(this.connector);
-      } else {
+      } else if (this.node) {
 	del_node(this.node.id);
 	this.c.parentNode.setAttribute('display','none');
       }
-      $('.title').firstChild.nodeValue = '* '+stat();
+      update();
     } else if (charCode == 10 || charCode == 13) { //return key
     } else if (charCode > 31 && charCode != 127 && charCode < 65535) {} //TODO
   }
   //e.preventDefault(); if requested!
+};
+
+// Authentication
+
+function create_account() {
+  $('pw2').setAttribute('style','display:inline');
+  $('msg').setAttribute('display','inline');
+  $('cr_acnt').setAttribute('display','none');
+}
+
+function check() {
+  $('myform').submit();
+}
+
+function logout() {
+  var aj = new ajax_get(true,get_base_url() + '/save_session', function(res){
+			  document.location.replace(content.document.location);
+			});
+  aj.doGet(); 
 }
 
 // end
