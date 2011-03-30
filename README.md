@@ -31,7 +31,9 @@ How to contribute?
 ------------------
 
 * Clone the project
+
     git clone git://github.com/pelinquin/ConnectedGraph.git
+    git submodule update --init
 
 Which Browser is currently supported?
 -------------------------------------

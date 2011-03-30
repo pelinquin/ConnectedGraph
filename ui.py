@@ -32,7 +32,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.2'
+__version__='0.2a'
 __TITLE__='Connected Graph'
 
 __BASE__='/tmp'
@@ -90,6 +90,9 @@ def get_ip(r):
 
 def edit(req,login='',pw='',pw2=''):
     """ edit mode """
+    base='%s/cg'%__BASE__
+    if not os.path.isdir(base):
+        os.mkdir(base)
     msg,user,ip = '','',get_ip(req)
     if login:
         if pw2:
