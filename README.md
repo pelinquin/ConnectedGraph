@@ -30,7 +30,7 @@ Where is the repository?
 How to contribute?
 ------------------
 
-* Clone the project
+* Clone the project:
 
     git clone git://github.com/pelinquin/ConnectedGraph.git
     git submodule update --init

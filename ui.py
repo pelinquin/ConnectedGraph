@@ -121,7 +121,7 @@ def common(req=None,pfx='.',edit=False,user='',msg=''):
     req.content_type = 'application/xhtml+xml'
     o = '<?xml version="1.0" encoding="UTF-8"?>\n'
     o += '<?xml-stylesheet href="%s/%s" type="text/css"?>\n'%(pfx,__CSS__)
-    o += '<svg %s editable="%s">\n'%(_SVGNS,'yes' if edit else 'no')
+    o += '<svg %s editable="%s" user="%s">\n'%(_SVGNS,'yes' if edit else 'no',user)
     o += '<title id=".title">%s</title>'%__TITLE__
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
     if edit:
@@ -323,13 +323,12 @@ def nodes():
 
 ##### AJAX CALL ####
 
-def update(req,value,user):
+def update(req,user,value=''):
     from mod_python import Session
     session = Session.DbmSession(req)
     #session.save()
     session.load()
     sid = session.id()
-    
     req.content_type = 'application/xhtml+xml'
     tex = open('%s/test.tex'%__BASE__,'wb')
     tex.write(value.encode('utf-8'))
@@ -338,7 +337,8 @@ def update(req,value,user):
         Popen(('echo "%s">%s/toto.lock'%(sid,__BASE__)),shell=True).communicate()
     return '<ok/>'
 
-def read(req):
+def read(req,user):
+    """ utiliser user """
     req.content_type = 'text/plain'
     tex = open('%s/test.tex'%__BASE__).read()
     return tex

@@ -889,25 +889,40 @@ function logout() {
 
 //---------- Server Synchronization ----------
 
+function get_user() {
+  return ('user='+document.documentElement.getAttribute('user'));
+}
+
+
 function refresh(n) {
-  // This function call the server periodically
-  if (n == 100) {
-      alert ('fin'); // just for testing
-  } else {
-    var ai = new ajax_get(true,get_base_url() + '/read', function(res) {
-			    //$('.msg').firstChild.nodeValue = res; // debug
-			    if (res != editor.getSession().getValue()) {
-			      editor.getSession().setValue(res); 
-			    }
-			  });
-    ai.doGet();
-    n += 1;
-    // 1 seconde period
-    setTimeout('refresh('+n+')', 1000);
-  }
+    // This function call the server periodically
+    if (n == 100) {
+	alert ('fin'); // just for testing
+    } else {
+	var ai = new ajax_get(true,get_base_url() + '/read?'+get_user(), function(res) {
+		//$('.msg').firstChild.nodeValue = res; // debug
+		if (res != editor.getSession().getValue()) {
+		    editor.getSession().setValue(res); 
+		}
+	    });
+	ai.doGet();
+	n += 1;
+	// 1 seconde period
+	setTimeout('refresh('+n+')', 1000);
+    }
 }
 
 function update() {
+    // update page title to "unsaved" 
+    $('.title').firstChild.nodeValue = '* '+stat();
+    // This function call the server on change event of editor content 
+    var ai = new ajax_get(true,get_base_url() + '/update?'+get_user(), function(res) {
+	    // resultat dans 'res' 
+	});
+    ai.doGet();   
+}
+
+function update_old() {
   // update page title to "unsaved" 
   $('.title').firstChild.nodeValue = '* '+stat();
   // This function call the server on change event of editor content 
