@@ -23,7 +23,7 @@
 
 const svgns   = 'http://www.w3.org/2000/svg';
 
-// Utilities
+//---------- Utilities ----------
 if (typeof($)=='undefined') { 
   function $(id) { return document.getElementById(id.replace(/^#/,'')); } 
 }
@@ -105,12 +105,13 @@ function get_base_url () {
   return (url);
 };
 
-// Globals
+//---------- Globals ----------
 var DD       = null; // DragAndDrop object
 var nodeLink = [];   // Hash key:nodes id, value:array of connectors
 var nodeBox  = [];   // hash key:nodes, value: node bouding box
 var editor   = null; // Pointer to ACE editor
 
+//---------- Init ----------
 window.onload = function () {   
   // Test how to modify CSS properties
   //$('.msg').style.setProperty('display','none','');
@@ -290,69 +291,9 @@ function signin() {
 
 function editor_add(txt) {
   var v = editor.getSession().getValue();
-   editor.getSession().setValue(v + '\n' + txt); 
+  editor.getSession().setValue(v + '\n' + txt); 
 }
 
-function refresh(n) {
-  if (n == 100) {
-    alert ('fin');
-  } else {
-    var ai = new ajax_get(true,get_base_url() + '/read', function(res) {
-			    //$('.msg').firstChild.nodeValue = res;
-			    if (res != editor.getSession().getValue()) {
-			      editor.getSession().setValue(res); 
-			    }
-			  });
-    ai.doGet();
-    n += 1;
-    setTimeout('refresh('+n+')', 1000);
-  }
-}
-
-function update() {
-  //editor.getSession().setValue(editor.getSession().getValue()+ ' encore'); //tmp
-  $('.title').firstChild.nodeValue = '* '+stat();
-  var fD = new FormData();
-  fD.append('user', 'toto');
-  fD.append('value', editor.getSession().getValue());
-  var xhr = new XMLHttpRequest();
-  xhr.upload.addEventListener("progress", uploadProgress, false);
-  xhr.addEventListener("load", uploadComplete, false);
-  xhr.addEventListener("error", uploadFailed, false);
-  xhr.addEventListener("abort", uploadCanceled, false);
-  xhr.open('POST', get_base_url() + '/update');
-  xhr.send(fD);
-}
-
-function uploadProgress(evt) {
-  if (evt.lengthComputable) {
-    var percentComplete = Math.round(evt.loaded * 100 / evt.total);
-    $('bar').parentNode.setAttribute('display','inline');
-    $('prg').firstChild.nodeValue = percentComplete.toString() + '%';
-    $('bar').setAttribute('width',percentComplete);
-  } else {
-    alert ('pb');
-    $('prg').firstChild.nodeValue = 'unable to compute';
-  }
-}
-
-function uploadComplete(evt) {
-  $('prg').firstChild.nodeValue = '100%';
-  $('bar').setAttribute('width',100);
-  //setTimeout("clearbar()",800); 
-}
-
-function clearbar() {
-  $('bar').parentNode.setAttribute('display','none');
-}
-
-function uploadFailed(evt) {
-  alert('There was an error attempting to upload the file.');
-}
-
-function uploadCanceled(evt) {
-  alert('The upload has been canceled by the user or the browser dropped the connection.');
-}
 
 function change_editor() {
   //TODO; link editor content with current diagram!
@@ -535,7 +476,7 @@ function trunk_path_line(b1,b2,t1,t2) {
 function trunk_path_curve_simple(b,t,e) {
   var m = document.documentElement.createSVGMatrix()
   m.e = e.clientX; m.f = e.clientY;
-  return (trunk_path_curve($('.pointer').getBBox(),b,m,t));
+  return (trunk_path_curve(b,$('.pointer').getBBox(),t,m));
 }
 
 function trunk_path_curve(b1,b2,t1,t2) {
@@ -655,7 +596,7 @@ function trunk_path_curve(b1,b2,t1,t2) {
       cx2 = mx; cy2 = my2;
     }
   }
-  return ('M'+x2+','+y2+'C'+cx2+','+cy2+' '+cx1+','+cy1+' '+x1+','+y1);
+  return ('M'+x1+','+y1+'C'+cx1+','+cy1+' '+cx2+','+cy2+' '+x2+','+y2);
 }
 
 function draw_connectors_from(el) {
@@ -722,17 +663,17 @@ function onmenu(e) {
   }
 }
 
-function finalise_connector(nod,n1,upd) {
-  var n2 = nod.getAttribute('n2').replace('#','');
+function finalise_connector(nod,n2,upd) {
+  var n1 = nod.getAttribute('n1').replace('#','');
   nod.firstChild.setAttribute('stroke','gray');
   var p = create_selection_path();
   p.setAttribute('d',nod.firstChild.getAttribute('d'));
   nod.insertBefore(p,nod.firstChild);
-  nod.setAttribute('n1','#'+n1);
+  nod.setAttribute('n2','#'+n2);
   nodeLink[n2].push(nod);
   nodeLink[n1].push(nod);
   draw_path(nod,n1,n2);
-  editor_add(n2+'->'+n1);
+  editor_add(n1+'->'+n2);
   if (upd) {
     update();
   }
@@ -814,8 +755,8 @@ dragDrop.prototype.down = function(e) {
       var tr = nod.getCTM();
       if (this.border) {
 	this.fromNode = nod;
-	this.border.setAttribute('n1','');
-	this.border.setAttribute('n2','#'+nod.id);
+	this.border.setAttribute('n1','#'+nod.id);
+	this.border.setAttribute('n2','');
 	$('.connectors').appendChild(this.border);
       } else {
 	var b = nodeBox[nod.id];
@@ -891,8 +832,8 @@ dragDrop.prototype.up = function(e) {
         nod = nod.parentNode;
       }
       if (nod.parentNode.id == '.nodes') { 
-	var n2 = this.border.getAttribute('n2').replace('#','');
-	if (test_if_connector_exist(n2,nod.id)) {
+	var n1 = this.border.getAttribute('n1').replace('#','');
+	if (test_if_connector_exist(n1,nod.id)) {
 	  found = true;
 	  finalise_connector(this.border,nod.id,true);
 	} else {
@@ -927,7 +868,7 @@ dragDrop.prototype.key = function(e) {
   //e.preventDefault(); if requested!
 };
 
-// Authentication
+//---------- Authentication ----------
 
 function create_account() {
   $('pw2').setAttribute('style','display:inline');
@@ -944,6 +885,75 @@ function logout() {
 			  document.location.replace(content.document.location);
 			});
   aj.doGet(); 
+}
+
+//---------- Server Synchronization ----------
+
+function refresh(n) {
+  // This function call the server periodically
+  if (n == 100) {
+      alert ('fin'); // just for testing
+  } else {
+    var ai = new ajax_get(true,get_base_url() + '/read', function(res) {
+			    //$('.msg').firstChild.nodeValue = res; // debug
+			    if (res != editor.getSession().getValue()) {
+			      editor.getSession().setValue(res); 
+			    }
+			  });
+    ai.doGet();
+    n += 1;
+    // 1 seconde period
+    setTimeout('refresh('+n+')', 1000);
+  }
+}
+
+function update() {
+  // update page title to "unsaved" 
+  $('.title').firstChild.nodeValue = '* '+stat();
+  // This function call the server on change event of editor content 
+  var fD = new FormData();
+  fD.append('user', 'toto');
+  fD.append('value', editor.getSession().getValue());
+  var xhr = new XMLHttpRequest();
+  // these functions manage a progress bar
+  // for small amount of data, the progress bar is not needed
+  // Use ajax_post or ajax_get instead if server response needed
+  xhr.upload.addEventListener("progress", uploadProgress, false);
+  xhr.addEventListener("load",  uploadComplete, false);
+  xhr.addEventListener("error", uploadFailed, false);
+  xhr.addEventListener("abort", uploadCanceled, false);
+  xhr.open('POST', get_base_url() + '/update');
+  xhr.send(fD);
+}
+
+function uploadProgress(evt) {
+  if (evt.lengthComputable) {
+    var percentComplete = Math.round(evt.loaded * 100 / evt.total);
+    $('bar').parentNode.setAttribute('display','inline');
+    $('prg').firstChild.nodeValue = percentComplete.toString() + '%';
+    $('bar').setAttribute('width',percentComplete);
+  } else {
+    alert ('pb');
+    $('prg').firstChild.nodeValue = 'unable to compute';
+  }
+}
+
+function uploadComplete(evt) {
+  $('prg').firstChild.nodeValue = '100%';
+  $('bar').setAttribute('width',100);
+  //setTimeout("clearbar()",800); 
+}
+
+function clearbar() {
+  $('bar').parentNode.setAttribute('display','none');
+}
+
+function uploadFailed(evt) {
+  alert('There was an error attempting to upload the file.');
+}
+
+function uploadCanceled(evt) {
+  alert('The upload has been canceled by the user or the browser dropped the connection.');
 }
 
 // end

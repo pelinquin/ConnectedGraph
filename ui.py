@@ -253,7 +253,7 @@ class cg:
         o += '</g>\n'
         o += '<g id=".connectors" class="connectors" stroke-width="1">'
         for c in self.connectors:
-            o += '<g n1="#%s" n2="#%s"/>'%(c[0],c[1])
+            o += '<g n1="#%s" n2="#%s"/>'%(c[1],c[0])
         return o + '</g>\n'
 
     def get(self,cpt):
@@ -289,6 +289,12 @@ def menu():
     o += '<tspan dy="1em" x="0">Entity</tspan>'
     o += '<tspan dy="1em" x="0">Obstacle</tspan>'
     return o + '</text></g>\n'
+
+def menu1():
+    """ """
+    o = '<g id=".menu1"><rect fill="#CCC"/>'
+    o += '<g type="goal><text>Goal</tspan><rect x="10" y="10" width="50" height="100"/></g>'
+    return o + '</g>\n'
 
 def login_logout(user,msg):
     """ """
