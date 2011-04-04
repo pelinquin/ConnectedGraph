@@ -18,8 +18,7 @@
 
 // Use the compressed version: cgmin.js
 
-// TODO
-// FIX: BUG DELETE ALL INOUT CONNECTORS WHEN DELETE A NODE
+// TODO FIX: BUG DELETE ALL INOUT CONNECTORS WHEN DELETE A NODE
 
 const svgns   = 'http://www.w3.org/2000/svg';
 
@@ -684,10 +683,18 @@ function find_id() {
 }
 
 function switch_mode() {
-  if ($('.editor').getAttribute('display') == 'none') {
-    $('.editor').setAttribute('display','inline');
+    // Three states mode  
+  if ($('.editor').getAttribute('display') == 'inline') {
+      if ($('.nodes').getAttribute('visibility') == 'visible') {
+	  $('.nodes').setAttribute('visibility','hidden');
+	  $('.connectors').setAttribute('visibility','hidden');
+      } else {
+	  $('.editor').setAttribute('display','none');
+	  $('.nodes').setAttribute('visibility','visible');
+	  $('.connectors').setAttribute('visibility','visible');
+      }
   } else {
-    $('.editor').setAttribute('display','none');
+    $('.editor').setAttribute('display','inline');
   }
 }
 
