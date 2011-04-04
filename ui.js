@@ -111,8 +111,16 @@ var nodeLink = [];   // Hash key:nodes id, value:array of connectors
 var nodeBox  = [];   // hash key:nodes, value: node bouding box
 var editor   = null; // Pointer to ACE editor
 
+			       
 //---------- Init ----------
 window.onload = function () {   
+    
+    var v1 = "pattern matching A.B";
+    str = "A.B";
+    var re = new RegExp(RegExp.quote(str), "g");
+    var v2 = v1.replace(re, "regex");
+	     
+
   // Test how to modify CSS properties
   //$('.msg').style.setProperty('display','none','');
   //alert (document.documentElement.style);
@@ -147,10 +155,17 @@ function init_editor() {
 }
 
 function init_menu() {
+  //$('.menu').setAttribute('visibility','hidden');
+  var rect = $('.menu').firstChild;
+  var tspan = $('.menu').firstChild.nextSibling.childNodes;
+  for ( var i=0; i<tspan.length; i++ ) {
+    tspan[i].setAttribute('x','0');
+    tspan[i].setAttribute('dy','1.2em');
+  }
   var b = $('.menu').getBBox();
   nodeBox['.menu'] = b;
   $('.menu').setAttribute('display','none');
-  var rect = $('.menu').firstChild;
+  //$('.menu').setAttribute('visibility','visible');
   var m = 3;
   rect.setAttribute('x',b.x-m);
   rect.setAttribute('y',b.y-m);
@@ -162,6 +177,20 @@ function init_menu() {
   var po = document.createElementNS(svgns, 'rect');
   po.id = '.pointer';
   document.documentElement.appendChild(po);
+}
+
+function init_menu1() {
+  var rect = $('.menu1').firstChild;
+  var tspan = $('.menu').firstChild.nextSibling.childNodes;
+  for ( var i=0; i<tspan.length; i++ ) {
+  }
+}
+
+function menu1(evt) {
+  if (evt.target.nodeName == 'text') {
+    var val = evt.target.firstChild.nodeValue;
+    alert (val);
+  }
 }
 
 function init_draw() {
@@ -271,6 +300,7 @@ function change_node_content(n,label) {
   $('.current').setAttribute('display','none');
   var t = $(n).getAttribute('type').toUpperCase();
   var nod = $(n).firstChild.nextSibling.nextSibling;
+  var old =  nod.firstChild.nodeValue;
   nod.firstChild.nodeValue = label;
   var b = nod.getBBox();
   nodeBox[n] = b;
@@ -279,6 +309,11 @@ function change_node_content(n,label) {
   var tid = $(n).childNodes[4];
   resize_shape(t,b,bord,shape,tid);
   draw_connectors_from(n);
+  // Change editor
+  var v = editor.getSession().getValue();
+  var re = new RegExp(RegExp.quote(n)+'\\s*\\['+RegExp.quote(old)+'\\]');
+  editor.getSession().setValue(v.replace(re,n+'['+label+']'));
+  //alert ('APRES\n' + print_nodes());
 }
 
 function signin() {
@@ -344,7 +379,15 @@ function del_connector(c) {
       nodeLink[e].splice(index,1);
     }
   }
+  // change editor
   c.parentNode.removeChild(c);
+  var v = editor.getSession().getValue();
+  var n1 = c.getAttribute('n1').replace('#','');
+  var n2 = c.getAttribute('n2').replace('#','');
+  n1 = n1.split('.').join('\\.');
+  n2 = n2.split('.').join('\\.');
+  var re = new RegExp('(?:[\\W\\.]|\^)' + n1+'\\s*\->\\s*'+n2+'\\b');
+  editor.getSession().setValue(v.replace(re,''));
   //alert ('APRES\n' + print_nodes());
 }
 
@@ -640,15 +683,19 @@ function find_id() {
   return '.n'+(max+1)
 }
 
+function switch_mode() {
+  if ($('.editor').getAttribute('display') == 'none') {
+    $('.editor').setAttribute('display','inline');
+  } else {
+    $('.editor').setAttribute('display','none');
+  }
+}
+
 function onmenu(e) {
   if (e.target.nodeName == 'tspan') {
     var val = e.target.firstChild.nodeValue;
     if (val == 'Ace') {
-      if ($('.editor').getAttribute('display') == 'none') {
-	$('.editor').setAttribute('display','inline');
-      } else {
-	$('.editor').setAttribute('display','none');
-      }
+      switch_mode();
     } else {
       var newid = find_id();
       add_node(newid,val,'my '+val,e.clientX,e.clientY);
@@ -688,6 +735,7 @@ function dragDrop () {
   this.delay = false;
   this.fromNode = null;
   this.margin = 15;
+  this.charCode = null;
   this.p = document.documentElement.createSVGPoint();
   this.o = document.documentElement.createSVGPoint();
   document.documentElement.addEventListener('mousedown', function(evt) {DD.down(evt);}, false);
@@ -698,6 +746,7 @@ function dragDrop () {
 
 dragDrop.prototype.down = function(e) {
   var nod = e.target;
+  //$('.debug').firstChild.nodeValue = nod.nodeName;
   // remove drag event propagation:
   //if (e.button == 2) { e.stopPropagation(); e.preventDefault(); }
   if (this.connector) {
@@ -718,17 +767,19 @@ dragDrop.prototype.down = function(e) {
     this.node = null;
     $('.current').setAttribute('display','none');
   }
-  if (nod.nodeName == 'svg') {
+  if (nod.nodeName == 'svg' || nod.nodeName == 'div') {
     $('.menu').setAttribute('display','none');
     if (this.border) {
       this.border.parentNode.removeChild(this.border);
       this.border = null;
     } else {
       if ((e.button == 0)&&(!this.edit)) {
- 	$('.menu').setAttribute('display','inline');
-	var offset = e.clientY - nodeBox['.menu'].y;
-	$('.menu').setAttribute('transform','translate(' + e.clientX + ',' + offset + ')');
-      } 
+	if (nod.nodeName != 'div') {
+	  $('.menu').setAttribute('display','inline');
+	  var offset = e.clientY - nodeBox['.menu'].y;
+	  $('.menu').setAttribute('transform','translate(' + (e.clientX+3) + ',' + offset + ')');
+	} 
+      }
     }
   } else {
     while (nod.parentNode.id != '.nodes' && nod.parentNode.id != '.connectors' && nod.parentNode.nodeName != 'svg') { 
@@ -822,7 +873,7 @@ dragDrop.prototype.up = function(e) {
   if (this.border) {
     var found = false;
     var nod = e.target;
-    if (nod.nodeName == 'svg') {
+    if (nod.nodeName == 'svg' || nod.nodeName == 'div') {
       this.delay = true;
       $('.menu').setAttribute('display','inline');
       var offset = e.clientY - nodeBox['.menu'].y;
@@ -854,6 +905,8 @@ dragDrop.prototype.key = function(e) {
   if (e.type == 'keydown') {
     if (e.charCode) { var charCode = e.charCode; }
     else { var charCode = e.keyCode; }
+    //alert (charCode);
+    this.charCode = charCode;
     if (charCode == 46){ //del key
       if (this.connector) {
 	del_connector(this.connector);
@@ -862,6 +915,8 @@ dragDrop.prototype.key = function(e) {
 	this.c.parentNode.setAttribute('display','none');
       }
       update();
+    } else if (charCode == 112) { // F1 key
+      switch_mode();
     } else if (charCode == 10 || charCode == 13) { //return key
     } else if (charCode > 31 && charCode != 127 && charCode < 65535) {} //TODO
   }
@@ -916,10 +971,12 @@ function update() {
     // update page title to "unsaved" 
     $('.title').firstChild.nodeValue = '* '+stat();
     // This function call the server on change event of editor content 
-    var ai = new ajax_get(true,get_base_url() + '/update?'+get_user(), function(res) {
+    var fD = new FormData();
+    fD.append('value', 'a');
+    var ai = new ajax_post(true,get_base_url() + '/update?'+get_user(), fD,function(res) {
 	    // resultat dans 'res' 
 	});
-    ai.doGet();   
+    ai.doPost();   
 }
 
 function update_old() {
@@ -970,5 +1027,11 @@ function uploadFailed(evt) {
 function uploadCanceled(evt) {
   alert('The upload has been canceled by the user or the browser dropped the connection.');
 }
+
+//---------- Utility function ----------
+// Unballanced '(' in regex make the javascript beautifuller crasy !
+RegExp.quote = function(str) { 
+    return str.replace(/([.?*+^$[\]\\(){}-])/g, "\\$1"); 
+};
 
 // end

@@ -32,6 +32,7 @@ How to contribute?
 
 * Clone the project:
 
+Run:
     git clone git://github.com/pelinquin/ConnectedGraph.git
     git submodule update --init
 

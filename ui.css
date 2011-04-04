@@ -27,24 +27,26 @@ text,textarea {
   font-size:10pt;
 }
 
-text.tiny, text.small, text.button { 
+text.tiny, text.small, text.button, .item { 
   font-family:helvetica neue,helvetica,arial,sans-serif;
 }
 
-text.small { font-size:7pt; }
+text.small { font-weight:bold; font-size:7pt; }
 text.tiny { font-size:3pt; }
 text.small tspan:hover{ font-weight:bold; stroke-width:0; fill:white;}
-text.button:hover { font-weight:bold; fill:black;}
+text.button:hover { font-weight:bold;}
 
 #editor { 
   top: 20px;
   left: 0px;
-  width:500px;
-  height:300px;
+  right:0px;
+  bottom:0px;
 }
 .current { opacity:0.6;}
 
 #debug { font-size:30pt; opacity:1;}
+
+.theme { fill:#69F; }
 
 g.connectors path:hover{ opacity:0.3; cursor:crosshair;}
 /*g.nodes g rect:hover{ stroke:red; stroke-width:2; cursor:crosshair; }*/
@@ -54,6 +56,10 @@ g.connectors path:hover{ opacity:0.3; cursor:crosshair;}
 .nodes g:hover      { cursor:move;}
 .nodes g path:hover { cursor:crosshair;}
 .nodes g rect:hover { cursor:crosshair;}
+
+.item { font-size:7pt; }
+.item:hover { font-weight:bold; fill:white;}
+.item:hover + g { display: inline;}
 
 ::selection { background: rgba(255,0,0,0);} /* for webkit */
 /*-webkit-user-select: none; does not work*/
