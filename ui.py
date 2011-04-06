@@ -100,7 +100,7 @@ def get_ip(r):
     ip = env['REMOTE_ADDR'] if env.has_key('REMOTE_ADDR') else '0.0.0.0'
     return ip
 
-def edit(req,login='',pw='',pw2=''):
+def edit(req,login='',pw='',pw2='',mode=''):
     """ edit mode """
     base='%s/cg'%__BASE__
     if not os.path.isdir(base):
@@ -121,15 +121,16 @@ def edit(req,login='',pw='',pw2=''):
                 msg = 'Error: bad login or password!'
     else:
         user = load_session(req)
-    return common(req,'..',True,user,msg)
+    return common(req,'..',True,user,msg,mode)
           
 def index(req):
     """ readonly mode"""
     return common(req)
 
-def common(req=None,pfx='.',edit=False,user='',msg=''):
+def common(req=None,pfx='.',edit=False,user='',msg='',mode=''):
     """ common to readonly and edit mode"""
     value = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(req.args))) if req.args else ''
+    value = re.sub('mode=[^&]*&','',value) 
     if value == '':
         return doc_list(req,user)
     req.content_type = 'application/xhtml+xml'
@@ -144,7 +145,8 @@ def common(req=None,pfx='.',edit=False,user='',msg=''):
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>\n'%(_XLINKNS,pfx,__JS__)
     o += defs()
     if edit:
-        o += '<foreignObject id=".editor" z-depth="-1000" display="none" width="100%%" height="100%%"><div %s id="editor"># KAOS\n%s</div></foreignObject>'%(_XHTMLNS,xml.sax.saxutils.escape(value))
+        disp = 'inline' if mode == 'both' else 'none'
+        o += '<foreignObject id=".editor" z-depth="-1000" display="%s" width="100%%" height="100%%"><div %s id="editor"># KAOS\n%s</div></foreignObject>'%(disp,_XHTMLNS,xml.sax.saxutils.escape(value))
     mygraph = cg(value)
     mygraph.set_pos()
     o += mygraph.draw()    

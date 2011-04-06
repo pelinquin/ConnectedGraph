@@ -148,13 +148,19 @@ function init_editor() {
   if (is_webkit() || is_opera()) {
     $('editor').style.setProperty('position','fixed','');
   }
+  var startongraph = false;
+  if ($('.editor').getAttribute('display') == 'inline') {
+      startongraph = true;
+  }
   $('.editor').setAttribute('display','none');
   editor = ace.edit('editor'); 
   editor.setTheme('ace/theme/twilight');
   var pMode = require('ace/mode/python').Mode;
   editor.getSession().setMode(new pMode());
   editor.getSession().on('change', change_editor);
-  //$('.editor').setAttribute('display','inline');
+  if (startongraph) {
+      $('.editor').setAttribute('display','inline');
+  }
   //editor.setReadOnly(false); 
 }
 
