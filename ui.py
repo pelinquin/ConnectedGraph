@@ -81,6 +81,18 @@ __REG_EDGES__ = re.compile(r""" # capture OR connected nodes
         ( @\S{10} | ) #g9:child2
     """,re.X)
 
+__REG_TYPES__ = {'(\[.*|r|req|requirement)':'Requirement',
+                 '(\(.*|g|goal)':'Goal',
+                 '(<.*|a|agent|people)':'Agent',
+                 '(b|obs|obstacle)':'Obstacle',
+                 '(s|asso|association)':'Association',
+                 '(t|ent|entity)':'Entity',
+                 '(e|exp|expectation)':'Expectation',
+                 '(o|op|operation)':'Operation',
+                 '(p|pr|prop|property)':'Property',
+                 '(v|ev|event)':'Event',
+                 '(c|cl|class)':'Class'}
+
 def get_ip(r):
     """ """
     r.add_common_vars()
@@ -118,6 +130,8 @@ def index(req):
 def common(req=None,pfx='.',edit=False,user='',msg=''):
     """ common to readonly and edit mode"""
     value = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(req.args))) if req.args else ''
+    if value == '':
+        return doc_list(req,user)
     req.content_type = 'application/xhtml+xml'
     o = '<?xml version="1.0" encoding="UTF-8"?>\n'
     o += '<?xml-stylesheet href="%s/%s" type="text/css"?>\n'%(pfx,__CSS__)
@@ -130,53 +144,31 @@ def common(req=None,pfx='.',edit=False,user='',msg=''):
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>\n'%(_XLINKNS,pfx,__JS__)
     o += defs()
     if edit:
-        o += '<foreignObject id=".editor" display="none" width="100%%" height="100%%"><div %s id="editor">%s</div></foreignObject>'%(_XHTMLNS,value)
+        o += '<foreignObject id=".editor" z-depth="-1000" display="none" width="100%%" height="100%%"><div %s id="editor"># KAOS\n%s</div></foreignObject>'%(_XHTMLNS,xml.sax.saxutils.escape(value))
     mygraph = cg(value)
     mygraph.set_pos()
     o += mygraph.draw()    
     if edit:
         o += menu()
-        #o += menu1()
         o += '<g id=".current" class="current" display="none" stroke="red" stroke-width="2" fill="none"><rect/></g>\n'
         o += '<g display="none" transform="translate(1,1)"><rect text-anchor="end" width="100" height="14" rx="6" ry="6" stroke-width="1px" stroke="#CCC" fill="none"/><rect id="bar" width="0" height="14" rx="6" ry="6" stroke-width="0px" fill="#CCC"/><text id="prg" x="44" y="11">0%</text></g>\n'
         o += '<g display="none"><foreignObject id=".area"><textarea %s></textarea></foreignObject></g>\n'%_XHTMLNS
-        o += login_logout(user,msg)
+        o += login_logout(req,user,msg)
         o += '<text id=".debug" class="small" x="300" y="12"> </text>'
         o += logo(False);
-        o += '<text fill="white" x="46" y="12" class="button">%s<title>Fork me on Github!</title></text>'%__TITLE__
+        o += '<text fill="white" onclick="fork();" x="46" y="12" class="button">%s<title>Fork me on Github!</title></text>'%__TITLE__
     return o + '</svg>'
+
+def doc_list(req,user):
+    req.content_type = 'text/plain'
+    o = "hello %s"%user
+    return o 
 
 def parse_type(t):
     """ parse node type """
-    if t:
-        if t[0] == '(':
-            return 'GOAL'
-        elif t[0] == '[':
-            return 'REQUIREMENT'
-        elif t[0] == '<':
-            return 'AGENT'
-        if re.match('^(r|req|requirement)$',t,re.IGNORECASE):
-            return 'REQUIREMENT'
-        elif re.match('^(g|goal)$',t,re.IGNORECASE):
-            return 'GOAL'
-        elif re.match('^(a|agent|people)$',t,re.IGNORECASE):
-            return 'AGENT'
-        elif re.match('^(b|obs|obstacle)$',t,re.IGNORECASE):
-            return 'OBSTACLE'
-        elif re.match('^(s|asso|association)$',t,re.IGNORECASE):
-            return 'ASSOCIATION'
-        elif re.match('^(t|ent|entity)$',t,re.IGNORECASE):
-            return 'ENTITY'
-        elif re.match('^(e|exp|expectation)$',t,re.IGNORECASE):
-            return 'EXPECTATION'
-        elif re.match('^(o|op|operation)$',t,re.IGNORECASE):
-            return 'OPERATION'
-        elif re.match('^(p|pr|prop|property)$',t,re.IGNORECASE):
-            return 'PROPERTY'
-        elif re.match('^(v|ev|event)$',t,re.IGNORECASE):
-            return 'EVENT'
-        elif re.match('^(c|cl|class)$',t,re.IGNORECASE):
-            return 'CLASS'
+    for i in __REG_TYPES__:
+        if re.match(i+'$',t,re.IGNORECASE):
+            return __REG_TYPES__[i].upper()
     return ''
 
 class cg:
@@ -245,6 +237,7 @@ class cg:
 
     def set_pos(self):
         w,h,m = 600,400,40
+        random.seed(3)
         for i in self.lab.keys():
             self.pos[i] = [random.randint(m,w),random.randint(m,h)]
                 
@@ -285,40 +278,18 @@ def defs():
 
 def menu():
     """ """
-    o = '<g id=".menu"><rect class="theme"/><text class="small">'
-    #o += '<tspan x="0">Ace</tspan>'
-    o += '<tspan>Goal</tspan>'
-    o += '<tspan>Requirement</tspan>'
-    o += '<tspan>Agent</tspan>'
-    o += '<tspan>Entity</tspan>'
-    o += '<tspan>Obstacle</tspan>'
-    return o + '</text></g>\n'
-
-def menu1():
-    """ """
-    o = '<g id=".menu1" onclick="menu1(evt);" display="inline" transform="translate(100,100)">'
-    o += '<rect fill="#CCC" y="-20" width="100" height="100"/>'
-    o += '<g type="Goal" transform="translate(0,0)"><text class="item">Goal</text><g display="none" transform="translate(100,0)"><rect rx="4" transform="skewX(-10)" fill="url(#.grad)" stroke="gray" stroke-width="1" width="50" height="30"/><text>One Goal</text></g></g>'
-    o += '<g type="Requirement" transform="translate(0,15)"><text class="item">Requirement</text><g display="none" transform="translate(100,0)"><path d="M0,0L50,0L50,30L0,30z" fill="url(#.grad)" stroke="gray" stroke-width="1" /><text>One Requirement</text></g></g>'
+    o = '<g id=".menu"><rect class="theme" rx="4"/>'
+    for i in __REG_TYPES__:
+        o += '<text class="item">%s</text><g></g>'%__REG_TYPES__[i]
     return o + '</g>\n'
 
-def menu2():
-    """ """
-    o = '<g id=".menu2"><rect fill="#CCC"/>'
-    o += '<g type="Goal"><g><rect rx="4" transform="skewX(-10)" width="50" height="50"/></g></g>'
-    o += '<g type="Requirement"><g><path d="M0,0L50,0L50,30L0,30z"/></g></g>'
-    o += '<g type="Agent"><g><path d="M0,0L50,0L50,30L0,30z"/></g></g>'
-    o += '<g type="Entity"><g><path d="M0,0L50,0L50,30L0,30z"/></g></g>'
-    o += '<g type="Obstacle"><g><path d="M0,0L50,0L50,30L0,30z"/></g></g>'
-    return o + '</g>\n'
-
-def login_logout(user,msg):
+def login_logout(req,user,msg):
     """ """
     o = '<g id=".login_page">'
     (txt,action) = (user,'logout') if user else ('Sign in','signin')
-    o += '<rect class="theme" width="100%" height="20"/>'
+    o += '<rect class="theme" width="100%" height="18"/>'
     o += '<text onclick="%s();" fill="white" text-anchor="end" x="95%%" y="12" class="button">%s<title>%s</title></text>'%(action,txt,action)
-    o += '<text fill="white" text-anchor="end" x="99%" y="12" class="button">?<title>help</title></text>'
+    o += '<text fill="white" onclick="help();" text-anchor="end" x="99%%" y="12" class="button">?<title>Version %s [%s]</title></text>'%(__version__,sha1_pkg(req))
     color = 'red' if msg[:5] == 'Error' else 'white'
     o += '<text id=".msg" fill="%s" x="200" y="12">%s </text>'%(color,msg)
     return o + '</g>\n'
@@ -413,6 +384,18 @@ def check_user(login,pw):
                     result = True
             db.close()    
     return result
+
+def sha1_pkg(r):
+    """ pkg commit sha1 """
+    r.add_common_vars()
+    env = r.subprocess_env.copy()
+    e = os.environ.copy()
+    e['GIT_DIR'] = '%s/.git'%os.path.dirname(env['SCRIPT_FILENAME'])
+    out,err = Popen(('git', 'log','--pretty=oneline','-1'), env=e,stdout=PIPE).communicate()
+    if err:
+        return 'error'
+    else:
+        return out[:7]
 
 def login_page(req):
     """ + FORMOSE logo """

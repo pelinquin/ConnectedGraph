@@ -31,13 +31,13 @@ text.tiny, text.small, text.button, .item {
   font-family:helvetica neue,helvetica,arial,sans-serif;
 }
 
-text.small { font-weight:bold; font-size:7pt; }
+text.small, text.item { font-weight:bold; font-size:7pt; }
 text.tiny { font-size:3pt; }
 text.small tspan:hover{ font-weight:bold; stroke-width:0; fill:white;}
 text.button:hover { font-weight:bold;}
 
 #editor { 
-  top: 20px;
+  top: 18px;
   left: 0px;
   right:0px;
   bottom:0px;

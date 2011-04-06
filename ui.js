@@ -18,8 +18,6 @@
 
 // Use the compressed version: cgmin.js
 
-// TODO FIX: BUG DELETE ALL INOUT CONNECTORS WHEN DELETE A NODE
-
 const svgns   = 'http://www.w3.org/2000/svg';
 
 //---------- Utilities ----------
@@ -39,6 +37,16 @@ function is_browser_compatible() {
   var gecko = str.replace(/^Mozilla.*rv:|\).*$/g, '' ) || ( /^rv\:|\).*$/g, '' );
   var s = gecko.substring(0,3);
   if ((s=='1.9') || (s=='2.0') || (s=='2.2')) { return true; } 
+  return false;
+}
+
+function is_webkit() {
+  if (navigator.userAgent.match('AppleWebKit')) { return true; }
+  return false;
+}
+
+function is_opera() {
+  if (navigator.userAgent.match('Presto')) { return true; }
   return false;
 }
 
@@ -113,22 +121,12 @@ var editor   = null; // Pointer to ACE editor
 			       
 //---------- Init ----------
 window.onload = function () {   
-    
-    var v1 = "pattern matching A.B";
-    str = "A.B";
-    var re = new RegExp(RegExp.quote(str), "g");
-    var v2 = v1.replace(re, "regex");
-	     
-
-  // Test how to modify CSS properties
-  //$('.msg').style.setProperty('display','none','');
-  //alert (document.documentElement.style);
-  
   if (!is_browser_compatible()) alert ('Browser not supported !');
   // Select mode (edit or readonly)
   if (document.documentElement.getAttribute('editable') == 'yes') {
     DD = new dragDrop();
     init_menu();
+    init_other();
     init_editor();
   } else {
     // TODO; unset this property: g.connectors path:hover, .border:hover { opacity:0.3;}
@@ -145,32 +143,22 @@ function stat() {
 
 function init_editor() {
   // TODO, Patch Ace Code to avoid CSS warnings on box-sizing and appearance
+  // Webkit needs position fixed for editor
+  //$('.msg').style.setProperty('display','none','');
+  if (is_webkit() || is_opera()) {
+    $('editor').style.setProperty('position','fixed','');
+  }
+  $('.editor').setAttribute('display','none');
   editor = ace.edit('editor'); 
   editor.setTheme('ace/theme/twilight');
   var pMode = require('ace/mode/python').Mode;
   editor.getSession().setMode(new pMode());
   editor.getSession().on('change', change_editor);
+  //$('.editor').setAttribute('display','inline');
   //editor.setReadOnly(false); 
 }
 
-function init_menu() {
-  //$('.menu').setAttribute('visibility','hidden');
-  var rect = $('.menu').firstChild;
-  var tspan = $('.menu').firstChild.nextSibling.childNodes;
-  for ( var i=0; i<tspan.length; i++ ) {
-    tspan[i].setAttribute('x','0');
-    tspan[i].setAttribute('dy','1.2em');
-  }
-  var b = $('.menu').getBBox();
-  nodeBox['.menu'] = b;
-  $('.menu').setAttribute('display','none');
-  //$('.menu').setAttribute('visibility','visible');
-  var m = 3;
-  rect.setAttribute('x',b.x-m);
-  rect.setAttribute('y',b.y-m);
-  rect.setAttribute('width',b.width+2*m);
-  rect.setAttribute('height',b.height+2*m); 
-  $('.menu').addEventListener('mousedown', function(evt) {onmenu(evt);}, false);
+function init_other() {
   $('.area').firstChild.addEventListener('change', function(evt) {DD.change(evt);}, false);
   // Need an object for getBBox
   var po = document.createElementNS(svgns, 'rect');
@@ -178,18 +166,81 @@ function init_menu() {
   document.documentElement.appendChild(po);
 }
 
-function init_menu1() {
-  var rect = $('.menu1').firstChild;
-  var tspan = $('.menu').firstChild.nextSibling.childNodes;
-  for ( var i=0; i<tspan.length; i++ ) {
+function init_menu() {
+  var rect = $('.menu').firstChild;
+  var tab = $('.menu').childNodes;
+  var ypos = 0;
+  for ( var i=0; i<tab.length; i++ ) {
+    if (tab[i].nodeName == 'text') {
+      tab[i].setAttribute('y',ypos);
+      ypos += 12;
+    }
   }
+  var b0 = $('.menu').getBBox();
+  nodeBox['.menu'] = b0;
+  var m = 5;
+  rect.setAttribute('x',b0.x-m);
+  rect.setAttribute('y',b0.y-m);
+  rect.setAttribute('width',b0.width+2*m);
+  rect.setAttribute('height',b0.height+2*m); 
+  ypos = 0;
+  var typ = '';
+  var offset = null;
+  for ( var i=0; i<tab.length; i++ ) {
+    if (tab[i].nodeName == 'text') {
+      typ = tab[i].firstChild.nodeValue;
+      offset = tab[i].getBBox().width;
+    }
+    if (tab[i].nodeName == 'g') {
+      var txt = document.createElementNS(svgns,'text');
+      txt.setAttribute('x','10');
+      txt.setAttribute('y','0');
+      txt.appendChild(document.createTextNode(typ));
+      tab[i].appendChild(txt); 
+      var b = txt.getBBox();
+      tab[i].insertBefore(get_shape(typ.toUpperCase(),b),tab[i].firstChild);
+      tab[i].setAttribute('transform','translate('+offset+','+ypos+')');
+      tab[i].setAttribute('display','none');
+      ypos += 12;
+    }
+  }
+  $('.menu').setAttribute('display','none');
+  $('.menu').addEventListener('mousedown', function(evt) {onmenu(evt);}, false);
 }
 
-function menu1(evt) {
-  if (evt.target.nodeName == 'text') {
-    var val = evt.target.firstChild.nodeValue;
-    alert (val);
+function get_shape(t,b) {
+  if (t=='GOAL' || t=='AGENT') {
+    form = 'path';
+  } else if (t=='REQUIREMENT'){
+    form = 'rect';
+  } else {
+    form = 'ellipse';
   }
+  var shape = document.createElementNS(svgns,form);
+  shape.setAttribute('fill','url(#.grad)'); 
+  shape.setAttribute('stroke','gray'); 
+  shape.setAttribute('stroke-width','1');
+  var m = 5;
+  if (t=='GOAL' || t=='AGENT') {
+    m = 12;
+    var d = 'M'+(b.x-m)+','+(b.y+b.height/2)+'l'+(b.width/2+m)+','+(b.height/2+m)+'l'+(b.width/2+m)+','+(-b.height/2-m)+ 'l'+(-b.width/2-m)+','+(-b.height/2-m)+'z';
+    shape.setAttribute('d',d);
+  } else if (t=='REQUIREMENT') {
+    shape.setAttribute('rx', '4');
+    shape.setAttribute('transform', 'skewX(-10)'); 
+    var x = b.x-m; var y = b.y-m; var w = b.width + 2*m; var h = b.height + 2*m;
+    shape.setAttribute('x',x); 
+    shape.setAttribute('y',y); 
+    shape.setAttribute('width',w); 
+    shape.setAttribute('height',h); 
+  } else {
+    var cx = b.x+b.width/2; var cy = b.y+b.height/2; var rx = b.width/2 + m; var ry = b.height/2 + m;
+    shape.setAttribute('cx',cx); 
+    shape.setAttribute('cy',cy); 
+    shape.setAttribute('rx',rx); 
+    shape.setAttribute('ry',ry); 
+  }
+  return (shape);
 }
 
 function init_draw() {
@@ -392,15 +443,13 @@ function del_connector(c) {
 
 function del_node(n) {
   var t = nodeLink[n];
-  //alert (t.length);
-  for (var i=0; i<t.length;i++) {
-    //alert(t[i]);
-    del_connector(t[i]);
+  while (t.length != 0) {
+    del_connector(t[0]);
   }
   var nod = $(n);
   nod.parentNode.removeChild(nod);
+  delete nodeLink[n];
   //alert (print_nodes());
-  //nodeLink[n] = [];
 }
 
 function Connector(el,n1,n2) {
@@ -683,7 +732,7 @@ function find_id() {
 }
 
 function switch_mode() {
-    // Three states mode  
+    // Three states mode
   if ($('.editor').getAttribute('display') == 'inline') {
       if ($('.nodes').getAttribute('visibility') == 'visible') {
 	  $('.nodes').setAttribute('visibility','hidden');
@@ -699,20 +748,16 @@ function switch_mode() {
 }
 
 function onmenu(e) {
-  if (e.target.nodeName == 'tspan') {
+  if (e.target.nodeName == 'text') {
     var val = e.target.firstChild.nodeValue;
-    if (val == 'Ace') {
-      switch_mode();
-    } else {
-      var newid = find_id();
-      add_node(newid,val,'my '+val,e.clientX,e.clientY);
-      if (DD.border) {
-	finalise_connector(DD.border,newid,false);
-	DD.border = false;
-      }
-      DD.delay = false;
-      update();
+    var newid = find_id();
+    add_node(newid,val,'my '+val,e.clientX,e.clientY);
+    if (DD.border) {
+      finalise_connector(DD.border,newid,false);
+      DD.border = false;
     }
+    DD.delay = false;
+    update();
     $('.menu').setAttribute('display','none');
   }
 }
@@ -978,12 +1023,12 @@ function update() {
     // update page title to "unsaved" 
     $('.title').firstChild.nodeValue = '* '+stat();
     // This function call the server on change event of editor content 
-    var fD = new FormData();
-    fD.append('value', 'a');
-    var ai = new ajax_post(true,get_base_url() + '/update?'+get_user(), fD,function(res) {
+    //var fD = new FormData();
+    //fD.append('value', 'a');
+    //var ai = new ajax_post(true,get_base_url() + '/update?'+get_user(), fD,function(res) {
 	    // resultat dans 'res' 
-	});
-    ai.doPost();   
+    //});
+    //ai.doPost();   
 }
 
 function update_old() {
@@ -1033,6 +1078,13 @@ function uploadFailed(evt) {
 
 function uploadCanceled(evt) {
   alert('The upload has been canceled by the user or the browser dropped the connection.');
+}
+
+function fork() {
+  document.location.replace('https://github.com/pelinquin/ConnectedGraph');
+}
+function help() {
+  alert ('Help window next!\n see https://github.com/pelinquin/ConnectedGraph');
 }
 
 //---------- Utility function ----------
