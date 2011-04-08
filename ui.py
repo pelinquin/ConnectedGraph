@@ -159,6 +159,7 @@ def common(req=None,pfx='.',edit=False,user='',msg='',mode=''):
         o += '<text id=".debug" class="small" x="300" y="12"> </text>'
         o += logo(False);
         o += '<text fill="white" onclick="fork();" x="46" y="12" class="button">%s<title>Fork me on Github!</title></text>'%__TITLE__
+        o += '<text id=".name" fill="white" onclick="change_name();" x="50%" y="12" class="button">Untitled<title>Change name</title></text>'
     return o + '</svg>'
 
 def doc_list(req,user):
@@ -387,6 +388,28 @@ def check_user(login,pw):
             db.close()    
     return result
 
+##### DB #####
+def register_graph(content=''):
+    """ If the same diagram is requested, diagram id does not change"""
+    base='%s/cg'%__BASE__
+    if not os.path.isdir(base):
+        os.mkdir(base)
+    rev = dbhash.open('%s/rev.db'%base,'c')
+    if rev.has_key(content):
+        gid = rev[content]
+    else:
+        gid = create_id(rev)
+        rev[content] = gid
+    rev.close()    
+    return gid
+
+def create_id(rev):
+    """ Create a new diagram id"""
+    rev['_'] = '%d'%(long(rev['_'])+1) if rev.has_key('_') else '0'
+    return base64.urlsafe_b64encode(hashlib.sha1(rev['_']).digest())[:-18]
+
+##### SHA1 #####
+
 def sha1_pkg(r):
     """ pkg commit sha1 """
     r.add_common_vars()
@@ -422,7 +445,7 @@ def login_page(req):
 def logo(full=True):    
     o = '<!-- Copyright 2010 Stephane Macario -->'
     if not full:
-        o += '<g onclick="switch_mode()">'
+        o += '<g id=".logo" onclick="switch_mode()">'
     o += '<defs><radialGradient id=".rd1" fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(84.70,0.76,-0.76,84.70,171.57,-156.43)" spreadMethod="pad"><stop style="stop-color:#94d787" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient><radialGradient id=".rd2" fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(84.69,0.76,-0.76,84.69,171.58,-156.42)" spreadMethod="pad"><stop style="stop-color:#94d787" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient><radialGradient id=".rd3" fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(161.13,1.45,-1.45,161.13,99.46,-256.92)" spreadMethod="pad"><stop style="stop-color:#bae381" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient></defs>'
     if full:
         o += '<g transform="matrix(0.5,0,0,0.5,120,500)" style="fill:#ffffff;stroke:none">'
@@ -437,3 +460,13 @@ def logo(full=True):
         o += '</g>'
     return o
 
+if __name__ == '__main__':
+    base='/tmp/test.db'
+    db = dbhash.open(base,'c')
+    db['1'] = 'A0'
+    db['2'] = 'Bdsds'
+    db['3'] = 'Cdd'
+    db['4'] = 'fff'
+    db['5'] = 'Dsq'
+    print db
+    db.close()    

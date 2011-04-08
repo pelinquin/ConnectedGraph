@@ -293,7 +293,7 @@ function init_draw_node(nod) {
   var title = document.createElementNS(svgns,'title');
   title.appendChild(document.createTextNode(nod.id.toUpperCase()+':'+t));
   var bord = document.createElementNS(svgns,form);
-  bord.setAttribute('stroke','red');
+  bord.setAttribute('stroke','yellow');
   bord.setAttribute('opacity','0');
   bord.setAttribute('stroke-width','15');
   bord.setAttribute('class','border');
@@ -471,7 +471,7 @@ function create_selection_path() {
   p.setAttribute('fill','none');
   p.setAttribute('stroke-width','8');
   p.setAttribute('stroke-linecap','round');
-  p.setAttribute('stroke','red');
+  p.setAttribute('stroke','yellow');
   p.setAttribute('opacity','0');
   return (p);
 }
@@ -804,7 +804,7 @@ function dragDrop () {
 
 dragDrop.prototype.down = function(e) {
   var nod = e.target;
-  //$('.debug').firstChild.nodeValue = nod.nodeName;
+  $('.debug').firstChild.nodeValue = nod.nodeName;
   // remove drag event propagation:
   //if (e.button == 2) { e.stopPropagation(); e.preventDefault(); }
   if (this.connector) {
@@ -831,7 +831,8 @@ dragDrop.prototype.down = function(e) {
       this.border.parentNode.removeChild(this.border);
       this.border = null;
     } else {
-      if ((e.button == 0)&&(!this.edit)) {
+	//if ((e.button == 0)&&(!this.edit)) {
+	if (e.button == 0) {
 	if (nod.nodeName != 'div') {
 	  $('.menu').setAttribute('display','inline');
 	  var offset = e.clientY - nodeBox['.menu'].y;
@@ -846,19 +847,20 @@ dragDrop.prototype.down = function(e) {
 	  this.border = document.createElementNS(svgns, 'g');
 	  var p = create_visible_path()
 	  p.setAttribute('pointer-events','none');
-	  p.setAttribute('stroke','red'); 
+	  p.setAttribute('stroke','yellow'); 
 	  this.border.appendChild(p);
 	}
       }
       nod = nod.parentNode;
     }
-    if (nod.parentNode.id == '.connectors') { 
+    if (nod.parentNode.nodeName == 'svg') {
+	$('.menu').setAttribute('display','none');
+    } else if (nod.parentNode.id == '.connectors') { 
       $('.menu').setAttribute('display','none');
       nod.firstChild.nextSibling.setAttribute('opacity','.6');
       nod.firstChild.nextSibling.setAttribute('stroke','red');
       this.connector = nod;
-    }
-    if (nod.parentNode.id == '.nodes') { 
+    } else if (nod.parentNode.id == '.nodes') { 
       $('.menu').setAttribute('display','none');
       this.el = nod;
       var tr = nod.getCTM();
@@ -896,8 +898,9 @@ dragDrop.prototype.down = function(e) {
 	  this.c.setAttribute('y',y);
 	  this.c.parentNode.setAttribute('display','inline');
 	}
-      }
-      //$('.msg').firstChild.nodeValue = 'msg'; 
+      } 
+    } else {
+	alert ('svg pb!');
     }
   }
 };
@@ -905,7 +908,7 @@ dragDrop.prototype.down = function(e) {
 dragDrop.prototype.change = function(e) {
   if (this.edit) {
     change_node_content(this.edit.id,$('.area').firstChild.value);
-    this.edit = null;
+    //this.edit = null;
   }
 };
 
@@ -1089,8 +1092,13 @@ function uploadCanceled(evt) {
 function fork() {
   document.location.replace('https://github.com/pelinquin/ConnectedGraph');
 }
+
 function help() {
-  alert ('Help window next!\n see https://github.com/pelinquin/ConnectedGraph');
+  alert ('Help window soon!\n see https://github.com/pelinquin/ConnectedGraph');
+}
+
+function change_name() {
+    alert ($('.name').firstChild.nodeValue);  
 }
 
 //---------- Utility function ----------
