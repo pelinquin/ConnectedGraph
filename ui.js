@@ -108,9 +108,8 @@ function get_url () {
 }
 
 function get_base_url () { 
-  var url = get_url().replace(/\/[^\/]*$/,'');
-  return (url);
-};
+    return (get_url().replace(/\/[^\/]*$/,''));
+}
 
 //---------- Globals ----------
 var DD       = null; // DragAndDrop object
@@ -120,7 +119,7 @@ var editor   = null; // Pointer to ACE editor
 
 			       
 //---------- Init ----------
-window.onload = function () {   
+window.onload = function () {  
   if (!is_browser_compatible()) alert ('Browser not supported !');
   // Select mode (edit or readonly)
   if (document.documentElement.getAttribute('editable') == 'yes') {
@@ -145,21 +144,21 @@ function init_editor() {
   // TODO, Patch Ace Code to avoid CSS warnings on box-sizing and appearance
   // Webkit needs position fixed for editor
   //$('.msg').style.setProperty('display','none','');
-  if (is_webkit() || is_opera()) {
-    $('editor').style.setProperty('position','fixed','');
-  }
+  //if (is_webkit() || is_opera()) {
+  //  $('.editor').style.setProperty('position','fixed','');
+  //}
   var startongraph = false;
-  if ($('.editor').getAttribute('display') == 'inline') {
+  if ($('.editor').parentNode.getAttribute('display') == 'inline') {
       startongraph = true;
   }
-  $('.editor').setAttribute('display','none');
-  editor = ace.edit('editor'); 
+  $('.editor').parentNode.setAttribute('display','none');
+  editor = ace.edit('.editor'); 
   editor.setTheme('ace/theme/twilight');
   var pMode = require('ace/mode/python').Mode;
   editor.getSession().setMode(new pMode());
   editor.getSession().on('change', change_editor);
   if (startongraph) {
-      $('.editor').setAttribute('display','inline');
+      $('.editor').parentNode.setAttribute('display','inline');
   }
   //editor.setReadOnly(false); 
 }
@@ -367,9 +366,17 @@ function change_node_content(n,label) {
   draw_connectors_from(n);
   // Change editor
   var v = editor.getSession().getValue();
-  var re = new RegExp(RegExp.quote(n)+'\\s*\\['+RegExp.quote(old)+'\\]');
-  editor.getSession().setValue(v.replace(re,n+'['+label+']'));
+  var re = new RegExp(RegExp.quote(n)+'\\s*\\('+RegExp.quote(old)+'\\)');
+  set_editor(v.replace(re,n+'('+label+')'));
   //alert ('APRES\n' + print_nodes());
+}
+
+function set_editor(str) {
+  editor.getSession().getDocument().setValue(str);
+}
+
+function get_editor() {
+  return editor.getSession().getValue();
 }
 
 function signin() {
@@ -381,8 +388,8 @@ function signin() {
 }
 
 function editor_add(txt) {
-  var v = editor.getSession().getValue();
-  editor.getSession().setValue(v + '\n' + txt); 
+  //alert (editor);
+  set_editor(get_editor() + '\n' + txt); 
 }
 
 
@@ -402,7 +409,7 @@ function add_node(n,typ,label,x,y) {
   g.appendChild(txt);
   $('.nodes').appendChild(g);
   init_draw_node(g);
-  editor_add(n+'['+label+']:'+typ);
+  editor_add(n+'('+label+'):'+typ);
 }
 
 function add_connector(n1,n2) {
@@ -414,40 +421,27 @@ function add_connector(n1,n2) {
   editor_add(n1+'->'+n2);
 }
 
-function print_nodes() {
-  var msg = '';
-  for ( var i in nodeLink) {
-    var tab = nodeLink[i];
-    msg += i + '('+tab.length + ')' + $(i).firstChild.nextSibling.nextSibling.firstChild.nodeValue; 
-    for ( var j=0; j<tab.length; j++ ) {
-      msg += ':'+tab[j].getAttribute('n1')+ ' ' + tab[j].getAttribute('n2'); 
-    }
-    msg += '\n';
-  }
-  return (msg);
-}
-
 function del_connector(c) {
-  //alert (print_nodes() + '\n' + c.getAttribute('n1')+ ' ' +c.getAttribute('n2'));
+  //alert ('del connector\n' + c.getAttribute('n1')+ ' ' +c.getAttribute('n2'));
   for (var e in nodeLink) {
     var index = nodeLink[e].indexOf(c);
     if (index != -1) {
       nodeLink[e].splice(index,1);
     }
   }
-  // change editor
   c.parentNode.removeChild(c);
-  var v = editor.getSession().getValue();
+  // update editor:
   var n1 = c.getAttribute('n1').replace('#','');
   var n2 = c.getAttribute('n2').replace('#','');
   n1 = n1.split('.').join('\\.');
   n2 = n2.split('.').join('\\.');
   var re = new RegExp('(?:[\\W\\.]|\^)' + n1+'\\s*\->\\s*'+n2+'\\b');
-  editor.getSession().setValue(v.replace(re,''));
+  set_editor(get_editor().replace(re,''));
   //alert ('APRES\n' + print_nodes());
 }
 
 function del_node(n) {
+  //alert ('del node ' + n );
   var t = nodeLink[n];
   while (t.length != 0) {
     del_connector(t[0]);
@@ -456,6 +450,9 @@ function del_node(n) {
   nod.parentNode.removeChild(nod);
   delete nodeLink[n];
   //alert (print_nodes());
+  // update editor:
+  var re = new RegExp(RegExp.quote(n) + '\\([^\\)]*\\):Goal\\s?');
+  set_editor(get_editor().replace(re,''));
 }
 
 function Connector(el,n1,n2) {
@@ -739,17 +736,17 @@ function find_id() {
 
 function switch_mode() {
     // Three states mode
-  if ($('.editor').getAttribute('display') == 'inline') {
+  if ($('.editor').parentNode.getAttribute('display') == 'inline') {
       if ($('.nodes').getAttribute('visibility') == 'visible') {
 	  $('.nodes').setAttribute('visibility','hidden');
 	  $('.connectors').setAttribute('visibility','hidden');
       } else {
-	  $('.editor').setAttribute('display','none');
+	  $('.editor').parentNode.setAttribute('display','none');
 	  $('.nodes').setAttribute('visibility','visible');
 	  $('.connectors').setAttribute('visibility','visible');
       }
   } else {
-    $('.editor').setAttribute('display','inline');
+    $('.editor').parentNode.setAttribute('display','inline');
   }
 }
 
@@ -757,7 +754,7 @@ function onmenu(e) {
   if (e.target.nodeName == 'text') {
     var val = e.target.firstChild.nodeValue;
     var newid = find_id();
-    add_node(newid,val,'my '+val,e.clientX,e.clientY);
+    add_node(newid,val,val,e.clientX,e.clientY);
     if (DD.border) {
       finalise_connector(DD.border,newid,false);
       DD.border = false;
@@ -804,7 +801,7 @@ function dragDrop () {
 
 dragDrop.prototype.down = function(e) {
   var nod = e.target;
-  $('.debug').firstChild.nodeValue = nod.nodeName;
+  //$('.debug').firstChild.nodeValue = nod.nodeName;
   // remove drag event propagation:
   //if (e.button == 2) { e.stopPropagation(); e.preventDefault(); }
   if (this.connector) {
@@ -971,6 +968,7 @@ dragDrop.prototype.key = function(e) {
     if (charCode == 46){ //del key
       if (this.connector) {
 	del_connector(this.connector);
+	this.connector = null;
       } else if (this.node) {
 	del_node(this.node.id);
 	this.c.parentNode.setAttribute('display','none');
@@ -1003,41 +1001,61 @@ function logout() {
   aj.doGet(); 
 }
 
+//---------- New Document ----------
+
+function new_doc() {
+  var ai = new ajax_get(true,get_base_url() + '/new_doc?'+get_user(), function(res) {
+			  document.location.replace(get_base_url()+ '/edit?id='+res);
+			});
+  ai.doGet();
+}
+
+function save_doc() {
+  var ai = new ajax_get(true,get_base_url() + '/save_doc?'+get_user_id(), function(res) {
+			  alert (res);
+			});
+  ai.doGet();
+}
+
 //---------- Server Synchronization ----------
 
 function get_user() {
   return ('user='+document.documentElement.getAttribute('user'));
 }
 
+function get_user_id() {
+  return ('user='+document.documentElement.getAttribute('user') + '&id='+document.documentElement.getAttribute('did'));
+}
+
 
 function refresh(n) {
-    // This function call the server periodically
-    if (n == 100) {
-	alert ('fin'); // just for testing
-    } else {
-	var ai = new ajax_get(true,get_base_url() + '/read?'+get_user(), function(res) {
-		//$('.msg').firstChild.nodeValue = res; // debug
-		if (res != editor.getSession().getValue()) {
-		    editor.getSession().setValue(res); 
-		}
-	    });
-	ai.doGet();
-	n += 1;
-	// 1 seconde period
-	setTimeout('refresh('+n+')', 1000);
-    }
+  // This function call the server periodically
+  if (n == 100) {
+    alert ('fin'); // just for testing
+  } else {
+    var ai = new ajax_get(true,get_base_url() + '/read?'+get_user(), function(res) {
+			    //$('.msg').firstChild.nodeValue = res; // debug
+			    if (res != editor.getSession().getValue()) {
+			      set_editor(res); 
+			    }
+			  });
+    ai.doGet();
+    n += 1;
+    // 1 seconde period
+    setTimeout('refresh('+n+')', 1000);
+  }
 }
 
 function update() {
-    // update page title to "unsaved" 
-    $('.title').firstChild.nodeValue = '* '+stat();
-    // This function call the server on change event of editor content 
-    //var fD = new FormData();
-    //fD.append('value', 'a');
-    //var ai = new ajax_post(true,get_base_url() + '/update?'+get_user(), fD,function(res) {
-	    // resultat dans 'res' 
-    //});
-    //ai.doPost();   
+  // update page title to "unsaved" 
+  $('.title').firstChild.nodeValue = '* '+stat();
+  // This function call the server on change event of editor content 
+  //var fD = new FormData();
+  //fD.append('value', 'a');
+  //var ai = new ajax_post(true,get_base_url() + '/update?'+get_user(), fD,function(res) {
+  // resultat dans 'res' 
+  //});
+  //ai.doPost();   
 }
 
 function update_old() {
@@ -1089,16 +1107,42 @@ function uploadCanceled(evt) {
   alert('The upload has been canceled by the user or the browser dropped the connection.');
 }
 
-function fork() {
-  document.location.replace('https://github.com/pelinquin/ConnectedGraph');
+function fork(flag) {
+    if (flag == true) {
+	document.location.replace('https://github.com/pelinquin/ConnectedGraph');
+    } else {
+	document.location.replace(get_base_url()+'/edit');
+    }
 }
 
 function help() {
   alert ('Help window soon!\n see https://github.com/pelinquin/ConnectedGraph');
 }
 
-function change_name() {
-    alert ($('.name').firstChild.nodeValue);  
+function change_name(first) {
+    var inp = $('.name').nextSibling;
+    if (first) {
+	inp.firstChild.firstChild.value = $('.name').firstChild.nodeValue;
+	inp.setAttribute('display','inline');
+    } else {
+	inp.setAttribute('display','none');
+	$('.name').firstChild.nodeValue = inp.firstChild.firstChild.value;
+    }
+}
+
+// This should move to test_ui.js
+
+function print_nodes() {
+  var msg = '';
+  for ( var i in nodeLink) {
+    var tab = nodeLink[i];
+    msg += i + '('+tab.length + ')' + $(i).firstChild.nextSibling.nextSibling.firstChild.nodeValue; 
+    for ( var j=0; j<tab.length; j++ ) {
+      msg += ':'+tab[j].getAttribute('n1')+ ' ' + tab[j].getAttribute('n2'); 
+    }
+    msg += '\n';
+  }
+  return (msg);
 }
 
 //---------- Utility function ----------

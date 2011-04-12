@@ -16,7 +16,6 @@
     along with Formose.  If not, see <http://www.gnu.org/licenses/>.
 ---------------------------------------------------------------------------*/
 
-
 @font-face { 
   font-family: Graublau Sans Web; 
   src: url('fonts/GraublauWeb.otf') format("opentype"); 
@@ -36,16 +35,8 @@ text.tiny { font-size:3pt; }
 text.small tspan:hover{ font-weight:bold; stroke-width:0; fill:white;}
 text.button:hover { font-weight:bold;}
 
-#editor { 
-  top: 18px;
-  left: 0px;
-  right:0px;
-  bottom:0px;
-}
+.editor { top: 18px; left: 0px; right:0px; bottom:0px; }
 .current { opacity:0.6;}
-
-#debug { font-size:30pt; opacity:1;}
-
 .theme { fill:#69F; }
 
 g.connectors path:hover{ opacity:0.3; cursor:crosshair;}
@@ -63,3 +54,5 @@ g.connectors path:hover{ opacity:0.3; cursor:crosshair;}
 
 ::selection { background: rgba(255,0,0,0);} /* for webkit */
 /*-webkit-user-select: none; does not work*/
+
+#debug { font-size:30pt; opacity:1;}

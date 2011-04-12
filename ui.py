@@ -32,7 +32,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.2a'
+__version__='0.2b'
 __TITLE__='Connected Graph'
 
 __BASE__='/tmp'
@@ -100,7 +100,10 @@ def get_ip(r):
     ip = env['REMOTE_ADDR'] if env.has_key('REMOTE_ADDR') else '0.0.0.0'
     return ip
 
-def edit(req,login='',pw='',pw2='',mode=''):
+def documents(req,login='',pw='',pw2=''):
+    return edit(req,'',login,pw,pw2,'',True)
+
+def edit(req,id='',login='',pw='',pw2='',mode='',newdoc=False):
     """ edit mode """
     base='%s/cg'%__BASE__
     if not os.path.isdir(base):
@@ -121,32 +124,40 @@ def edit(req,login='',pw='',pw2='',mode=''):
                 msg = 'Error: bad login or password!'
     else:
         user = load_session(req)
-    return common(req,'..',True,user,msg,mode)
-          
+    return common(req,'..',id,True,user,msg,mode,newdoc)
+
+def test(req):
+    return common(req,'..','',True,'','','',False,True)
+
 def index(req):
     """ readonly mode"""
     return common(req)
 
-def common(req=None,pfx='.',edit=False,user='',msg='',mode=''):
+def common(req=None,pfx='.',id='',edit=False,user='',msg='',mode='',newdoc=False,test=False):
     """ common to readonly and edit mode"""
     value = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(req.args))) if req.args else ''
-    value = re.sub('mode=[^&]*&','',value) 
-    if value == '':
-        return doc_list(req,user)
+    value = re.sub('mode=[^&]*&?','',value)
+    value = re.sub('id=[^&]*&?','',value) 
+    #if value == '':
+    #    return doc_list(req,user)
     req.content_type = 'application/xhtml+xml'
     o = '<?xml version="1.0" encoding="UTF-8"?>\n'
     o += '<?xml-stylesheet href="%s/%s" type="text/css"?>\n'%(pfx,__CSS__)
-    o += '<svg %s editable="%s" user="%s">\n'%(_SVGNS,'yes' if edit else 'no',user)
+    o += '<svg %s editable="%s" user="%s" did="%s" tool="%s">\n'%(_SVGNS,'yes' if edit else 'no',user,id,__version__)
     o += '<title id=".title">%s</title>'%__TITLE__
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
+    # Javascript loading
     if edit:
-        support = '%s/support/ace/build/src/'%pfx
+        support = '%s/support/ace/build/src'%pfx
         o += '<script %s type="text/ecmascript" xlink:href="%s/ace.js"></script><script %s type="text/ecmascript" xlink:href="%s/theme-twilight.js"></script><script %s type="text/ecmascript" xlink:href="%s/mode-python.js"></script>'%(_XLINKNS,support,_XLINKNS,support,_XLINKNS,support)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>\n'%(_XLINKNS,pfx,__JS__)
+    if test:
+        o += '<script %s type="text/ecmascript" xlink:href="%s/test_client.js"></script>\n'%(_XLINKNS,pfx)
+    #
     o += defs()
     if edit:
         disp = 'inline' if mode == 'both' else 'none'
-        o += '<foreignObject id=".editor" z-depth="-1000" display="%s" width="100%%" height="100%%"><div %s id="editor"># KAOS\n%s</div></foreignObject>'%(disp,_XHTMLNS,xml.sax.saxutils.escape(value))
+        o += '<foreignObject display="%s" width="100%%" height="100%%"><div %s id=".editor" class="editor"># KAOS\n%s</div></foreignObject>'%(disp,_XHTMLNS,xml.sax.saxutils.escape(value))
     mygraph = cg(value)
     mygraph.set_pos()
     o += mygraph.draw()    
@@ -155,11 +166,20 @@ def common(req=None,pfx='.',edit=False,user='',msg='',mode=''):
         o += '<g id=".current" class="current" display="none" stroke="red" stroke-width="2" fill="none"><rect/></g>\n'
         o += '<g display="none" transform="translate(1,1)"><rect text-anchor="end" width="100" height="14" rx="6" ry="6" stroke-width="1px" stroke="#CCC" fill="none"/><rect id="bar" width="0" height="14" rx="6" ry="6" stroke-width="0px" fill="#CCC"/><text id="prg" x="44" y="11">0%</text></g>\n'
         o += '<g display="none"><foreignObject id=".area"><textarea %s></textarea></foreignObject></g>\n'%_XHTMLNS
-        o += login_logout(req,user,msg)
+        o += login_logout(req,user,msg,test)
         o += '<text id=".debug" class="small" x="300" y="12"> </text>'
         o += logo(False);
-        o += '<text fill="white" onclick="fork();" x="46" y="12" class="button">%s<title>Fork me on Github!</title></text>'%__TITLE__
-        o += '<text id=".name" fill="white" onclick="change_name();" x="50%" y="12" class="button">Untitled<title>Change name</title></text>'
+        (act,ttl) = ('false','Use the tool!') if test else ('true','Fork me on Github!')            
+        o += '<text fill="white" onclick="fork(%s);" x="46" y="12" class="button">%s<title>%s</title></text>'%(act,__TITLE__,ttl)
+        if newdoc:
+            if user:
+                o += '<text id=".name" fill="white" onclick="new_doc();" x="50%" y="12" class="button">New document<title>Create a new document</title></text>'
+        elif not test:
+            o += '<text id=".name" fill="white" onclick="change_name(true);" x="50%%" y="12" class="button">Untitled<title>Change name</title></text><foreignObject display="none" x="50%%" width="120" height="30"><div %s><input onchange="change_name(false);" size="10" value=""/></div></foreignObject>'%_XHTMLNS
+            o += '<text id=".save" fill="white" onclick="save_doc();" text-anchor="end" x="85%" y="12" class="button">Save</text>'
+    if test:
+        o += '<g onclick="run_tests();"><rect x="160" width="70" height="18" fill="red" class="button"/><text y="12" x="166" class="button" fill="white">Run tests</text></g><g transform="translate(5,40)"><text id=".results" stroke-width="0"/></g>'
+        o += '<g onclick="update_tool();"><rect x="245" width="80" height="18" fill="red" class="button"/><text y="12" x="251" class="button" fill="white">Update tool</text></g>'
     return o + '</svg>'
 
 def doc_list(req,user):
@@ -286,12 +306,13 @@ def menu():
         o += '<text class="item">%s</text><g></g>'%__REG_TYPES__[i]
     return o + '</g>\n'
 
-def login_logout(req,user,msg):
+def login_logout(req,user,msg,test):
     """ """
     o = '<g id=".login_page">'
     (txt,action) = (user,'logout') if user else ('Sign in','signin')
     o += '<rect class="theme" width="100%" height="18"/>'
-    o += '<text onclick="%s();" fill="white" text-anchor="end" x="95%%" y="12" class="button">%s<title>%s</title></text>'%(action,txt,action)
+    if not test:
+        o += '<text onclick="%s();" fill="white" text-anchor="end" x="95%%" y="12" class="button">%s<title>%s</title></text>'%(action,txt,action)
     o += '<text fill="white" onclick="help();" text-anchor="end" x="99%%" y="12" class="button">?<title>Version %s [%s]</title></text>'%(__version__,sha1_pkg(req))
     color = 'red' if msg[:5] == 'Error' else 'white'
     o += '<text id=".msg" fill="%s" x="200" y="12">%s </text>'%(color,msg)
@@ -334,6 +355,36 @@ def read(req,user):
     req.content_type = 'text/plain'
     tex = open('%s/test.tex'%__BASE__).read()
     return tex
+
+def new_doc(req,user):
+    """ utiliser user """
+    base='%s/cg'%__BASE__
+    req.content_type = 'text/plain'
+    rev = dbhash.open('%s/rev.db'%base,'c')
+    gid = create_id(rev)
+    rev.close()    
+    return gid
+
+def create_id(rev):
+    """ Create a new diagram id"""
+    rev['_'] = '%d'%(long(rev['_'])+1) if rev.has_key('_') else '0'
+    return base64.urlsafe_b64encode(hashlib.sha1(rev['_']).digest())[:-18]
+
+def save_doc(req,user,id):
+    """ utiliser user """
+    from mod_python import Session
+    session = Session.DbmSession(req)
+    session.save()
+    session.load()
+    sid = session.id()
+    base='%s/cg'%__BASE__
+    req.content_type = 'text/plain'
+    txt = open('%s/content.txt'%base,'a')
+    txt.write('user: %s\n'%user)
+    txt.write('id document: %s\n'%id)
+    txt.write('id session: %s\n'%sid)
+    txt.close()
+    return 'ok'
 
 ##### SESSION ####
 
@@ -387,26 +438,6 @@ def check_user(login,pw):
                     result = True
             db.close()    
     return result
-
-##### DB #####
-def register_graph(content=''):
-    """ If the same diagram is requested, diagram id does not change"""
-    base='%s/cg'%__BASE__
-    if not os.path.isdir(base):
-        os.mkdir(base)
-    rev = dbhash.open('%s/rev.db'%base,'c')
-    if rev.has_key(content):
-        gid = rev[content]
-    else:
-        gid = create_id(rev)
-        rev[content] = gid
-    rev.close()    
-    return gid
-
-def create_id(rev):
-    """ Create a new diagram id"""
-    rev['_'] = '%d'%(long(rev['_'])+1) if rev.has_key('_') else '0'
-    return base64.urlsafe_b64encode(hashlib.sha1(rev['_']).digest())[:-18]
 
 ##### SHA1 #####
 
