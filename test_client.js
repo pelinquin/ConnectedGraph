@@ -38,15 +38,16 @@ function test_add_connector() {
 }
 
 function test_editor() {
-    var exp = '# KAOS\n\nn1(lab1):Goal\nn2(lab2):Goal\nn1->n2'
+    var exp = '\nn1(lab1):Goal\nn2(lab2):Goal\nn1->n2'
     assertEquals(exp,editor.getSession().getValue());
 } 
 
 function test_clear() {
     del_node('n1');
     del_node('n2');
-    assertEquals('# KAOS\n\n',print_nodes() + editor.getSession().getValue());
+    assertEquals('\n',print_nodes() + editor.getSession().getValue());
 }
+
 
 
 ///////////////////////////// glue ////////////////////
@@ -91,26 +92,38 @@ function get_root_url () {
 
 
 function test_server() {
-    add_entry('* Server side tests:');
-    var ai = new ajax_get(true,get_root_url() + '/test_server.py', function(res) {
-	    var tab = res.split('\n');
-	    for (var n=0; n<tab.length; n++) {
-		add_entry(tab[n]);
-	    }
-	});
-    ai.doGet();
+  call_python('run_server');
+}
+
+function update_tool() {
+  call_python('update_tool');
+}
+
+function call_python(f) {
+  add_entry('* '+f);
+  var ai = new ajax_get(true,get_url() + '/'+f, function(res) {
+			  var tab = res.split('\n');
+			  for (var n=0; n<tab.length; n++) {
+			    add_entry(tab[n]);
+			  }
+			});
+  ai.doGet();
 }
 
 function run_tests() {
-    good = 0;
-    bad = 0;
-    var startTime = (new Date()).getTime();
-    add_entry('* Client side tests:');
-    for (var x = 0; x < tests.length; x++) {
-	add_entry('Test: \''+ tests[x] + '\'');
-	eval(tests[x] + '()');
-    }
-    var endTime = (new Date()).getTime();
-    add_entry('Tests passed: ' + good + ' Tests failed: ' + bad + ' Total time: ' + (endTime - startTime) + ' ms');
-    test_server();
+  good = 0;
+  bad = 0;
+  var startTime = (new Date()).getTime();
+  add_entry('* Client side tests:');
+  for (var x = 0; x < tests.length; x++) {
+    add_entry('Test: \''+ tests[x] + '\'');
+    eval(tests[x] + '()');
+  }
+  var endTime = (new Date()).getTime();
+  add_entry('Tests passed: ' + good + ' Tests failed: ' + bad + ' Total time: ' + (endTime - startTime) + ' ms');
+  test_server();
+}
+
+function reload() {
+  document.location.replace(get_base_url()+'/ui.py/edit');
 }

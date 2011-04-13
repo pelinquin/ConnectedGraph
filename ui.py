@@ -32,7 +32,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.2b'
+__version__='0.2c'
 __TITLE__='Connected Graph'
 
 __BASE__='/tmp'
@@ -94,13 +94,14 @@ __REG_TYPES__ = {'(\[.*|r|req|requirement)':'Requirement',
                  '(c|cl|class)':'Class'}
 
 def get_ip(r):
-    """ """
+    """ get client ip address """
     r.add_common_vars()
     env = r.subprocess_env.copy()
     ip = env['REMOTE_ADDR'] if env.has_key('REMOTE_ADDR') else '0.0.0.0'
     return ip
 
 def documents(req,login='',pw='',pw2=''):
+    """ document list """
     return edit(req,'',login,pw,pw2,'',True)
 
 def edit(req,id='',login='',pw='',pw2='',mode='',newdoc=False):
@@ -124,62 +125,55 @@ def edit(req,id='',login='',pw='',pw2='',mode='',newdoc=False):
                 msg = 'Error: bad login or password!'
     else:
         user = load_session(req)
+    #user = 'toto'
     return common(req,'..',id,True,user,msg,mode,newdoc)
-
-def test(req):
-    return common(req,'..','',True,'','','',False,True)
 
 def index(req):
     """ readonly mode"""
     return common(req)
 
-def common(req=None,pfx='.',id='',edit=False,user='',msg='',mode='',newdoc=False,test=False):
+def include_ace(pfx):
+    support = '%s/support/ace/build/src'%pfx
+    return '<script %s type="text/ecmascript" xlink:href="%s/ace.js"></script><script %s type="text/ecmascript" xlink:href="%s/theme-twilight.js"></script><script %s type="text/ecmascript" xlink:href="%s/mode-python.js"></script>'%(_XLINKNS,support,_XLINKNS,support,_XLINKNS,support)
+
+def common(req=None,pfx='.',did='',edit=False,user='',msg='',mode='',newdoc=False):
     """ common to readonly and edit mode"""
     value = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(req.args))) if req.args else ''
     value = re.sub('mode=[^&]*&?','',value)
-    value = re.sub('id=[^&]*&?','',value) 
+    value = re.sub('id=[^&]*&?','',value)
+    #from mod_python import Session
+    #s = Session.MemorySession(req)
+    #s.load()
+    #sid = s.id()
+    sid = "bleble"
     #if value == '':
     #    return doc_list(req,user)
     req.content_type = 'application/xhtml+xml'
     o = '<?xml version="1.0" encoding="UTF-8"?>\n'
     o += '<?xml-stylesheet href="%s/%s" type="text/css"?>\n'%(pfx,__CSS__)
-    o += '<svg %s editable="%s" user="%s" did="%s" tool="%s">\n'%(_SVGNS,'yes' if edit else 'no',user,id,__version__)
+    o += '<svg %s editable="%s" user="%s" did="%s" tool="%s" sid="%s">\n'%(_SVGNS,'yes' if edit else 'no',user,did,__version__,sid)
     o += '<title id=".title">%s</title>'%__TITLE__
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
-    # Javascript loading
     if edit:
-        support = '%s/support/ace/build/src'%pfx
-        o += '<script %s type="text/ecmascript" xlink:href="%s/ace.js"></script><script %s type="text/ecmascript" xlink:href="%s/theme-twilight.js"></script><script %s type="text/ecmascript" xlink:href="%s/mode-python.js"></script>'%(_XLINKNS,support,_XLINKNS,support,_XLINKNS,support)
+        o += include_ace(pfx)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>\n'%(_XLINKNS,pfx,__JS__)
-    if test:
-        o += '<script %s type="text/ecmascript" xlink:href="%s/test_client.js"></script>\n'%(_XLINKNS,pfx)
-    #
     o += defs()
     if edit:
         disp = 'inline' if mode == 'both' else 'none'
-        o += '<foreignObject display="%s" width="100%%" height="100%%"><div %s id=".editor" class="editor"># KAOS\n%s</div></foreignObject>'%(disp,_XHTMLNS,xml.sax.saxutils.escape(value))
+        o += '<foreignObject display="%s" width="100%%" height="100%%"><div %s id=".editor" class="editor">%s</div></foreignObject>'%(disp,_XHTMLNS,xml.sax.saxutils.escape(value))
     mygraph = cg(value)
     mygraph.set_pos()
     o += mygraph.draw()    
     if edit:
-        o += menu()
-        o += '<g id=".current" class="current" display="none" stroke="red" stroke-width="2" fill="none"><rect/></g>\n'
-        o += '<g display="none" transform="translate(1,1)"><rect text-anchor="end" width="100" height="14" rx="6" ry="6" stroke-width="1px" stroke="#CCC" fill="none"/><rect id="bar" width="0" height="14" rx="6" ry="6" stroke-width="0px" fill="#CCC"/><text id="prg" x="44" y="11">0%</text></g>\n'
-        o += '<g display="none"><foreignObject id=".area"><textarea %s></textarea></foreignObject></g>\n'%_XHTMLNS
-        o += login_logout(req,user,msg,test)
-        o += '<text id=".debug" class="small" x="300" y="12"> </text>'
-        o += logo(False);
-        (act,ttl) = ('false','Use the tool!') if test else ('true','Fork me on Github!')            
-        o += '<text fill="white" onclick="fork(%s);" x="46" y="12" class="button">%s<title>%s</title></text>'%(act,__TITLE__,ttl)
+        o += menu() + gui_elements() + menubar(req,True,user,msg) + logo(False);
+        o += '<text fill="white" onclick="fork();" x="46" y="12" class="button">%s<title>Fork me on Github!</title></text>'%(__TITLE__)
         if newdoc:
             if user:
                 o += '<text id=".name" fill="white" onclick="new_doc();" x="50%" y="12" class="button">New document<title>Create a new document</title></text>'
-        elif not test:
+        else:
             o += '<text id=".name" fill="white" onclick="change_name(true);" x="50%%" y="12" class="button">Untitled<title>Change name</title></text><foreignObject display="none" x="50%%" width="120" height="30"><div %s><input onchange="change_name(false);" size="10" value=""/></div></foreignObject>'%_XHTMLNS
-            o += '<text id=".save" fill="white" onclick="save_doc();" text-anchor="end" x="85%" y="12" class="button">Save</text>'
-    if test:
-        o += '<g onclick="run_tests();"><rect x="160" width="70" height="18" fill="red" class="button"/><text y="12" x="166" class="button" fill="white">Run tests</text></g><g transform="translate(5,40)"><text id=".results" stroke-width="0"/></g>'
-        o += '<g onclick="update_tool();"><rect x="245" width="80" height="18" fill="red" class="button"/><text y="12" x="251" class="button" fill="white">Update tool</text></g>'
+            if did:
+                o += '<text id=".save" fill="white" onclick="save_doc();" text-anchor="end" x="85%" y="12" class="button">Save</text>'
     return o + '</svg>'
 
 def doc_list(req,user):
@@ -292,7 +286,6 @@ def build_pdf(req):
     drawing = svg2rlg('file.svg')
     renderPDF.drawToFile(drawing, 'file.pdf')
 
-
 def defs():
     """ """
     o = '<defs>'
@@ -300,23 +293,31 @@ def defs():
     return o + '</defs>\n'
 
 def menu():
-    """ """
+    """ node menu prebuild """
     o = '<g id=".menu"><rect class="theme" rx="4"/>'
     for i in __REG_TYPES__:
         o += '<text class="item">%s</text><g></g>'%__REG_TYPES__[i]
     return o + '</g>\n'
 
-def login_logout(req,user,msg,test):
-    """ """
-    o = '<g id=".login_page">'
-    (txt,action) = (user,'logout') if user else ('Sign in','signin')
-    o += '<rect class="theme" width="100%" height="18"/>'
-    if not test:
+def menubar(req,full=False,user='',msg=''):
+    """ top menu bar """
+    o = '<g id=".menubar"><rect class="theme" width="100%" height="18"/>'
+    if full:
+        (txt,action) = (user,'logout') if user else ('Sign in','signin')
         o += '<text onclick="%s();" fill="white" text-anchor="end" x="95%%" y="12" class="button">%s<title>%s</title></text>'%(action,txt,action)
     o += '<text fill="white" onclick="help();" text-anchor="end" x="99%%" y="12" class="button">?<title>Version %s [%s]</title></text>'%(__version__,sha1_pkg(req))
-    color = 'red' if msg[:5] == 'Error' else 'white'
-    o += '<text id=".msg" fill="%s" x="200" y="12">%s </text>'%(color,msg)
+    if full:
+        color = 'red' if msg[:5] == 'Error' else 'white'
+        o += '<text id=".msg" fill="%s" x="200" y="12">%s </text>'%(color,msg)
     return o + '</g>\n'
+
+def gui_elements():
+    """ """
+    o = '<g id=".current" class="current" display="none" stroke="red" stroke-width="2" fill="none"><rect/></g>\n'
+    #o += '<g id=".currentline" class="current" display="none" stroke="red" stroke-width="2" fill="none"><rect/></g>\n'
+    o += '<g display="none" transform="translate(1,10)"><rect text-anchor="end" width="100" height="14" rx="6" ry="6" stroke-width="1px" stroke="#CCC" fill="none"/><rect id=".bar" class="bar" width="0" height="14" rx="6" ry="6"/><text id=".prg" x="44" y="11">0%</text></g>\n'
+    o += '<g display="none"><foreignObject id=".area"><textarea %s></textarea></foreignObject></g>\n'%_XHTMLNS
+    return o + '<text id=".debug" class="small" x="300" y="12"> </text>'
 
 def connectors():
     """ """
@@ -370,21 +371,54 @@ def create_id(rev):
     rev['_'] = '%d'%(long(rev['_'])+1) if rev.has_key('_') else '0'
     return base64.urlsafe_b64encode(hashlib.sha1(rev['_']).digest())[:-18]
 
-def save_doc(req,user,id):
-    """ utiliser user """
-    from mod_python import Session
-    session = Session.DbmSession(req)
-    session.save()
-    session.load()
-    sid = session.id()
+def save_doc(req,user,did,sid,patch):
+    """  """
     base='%s/cg'%__BASE__
     req.content_type = 'text/plain'
-    txt = open('%s/content.txt'%base,'a')
-    txt.write('user: %s\n'%user)
-    txt.write('id document: %s\n'%id)
-    txt.write('id session: %s\n'%sid)
-    txt.close()
+    stack = dbhash.open('%s/stack.db'%base,'c')
+    if stack.has_key(did):
+        if not re.search(sid,stack[did]):
+            stack[did] += ':%s'%sid
+    else:
+        stack[did] = sid
+
+    for other in stack[did].split(':'):
+        if (other != sid) and (other != ''):
+            if stack.has_key(other):
+                stack[other] += patch
+            else :
+                stack[other] = patch
+    stack['U%s'%sid] = user        
+    stack.close()
+    #Popen(['rm', '-f', '/tmp/cg/stack.db'],stdout=PIPE).communicate()
     return 'ok'
+
+def read_doc(req,user,did,sid):
+    """ Periodic patch stack read"""
+    import time
+    base='%s/cg'%__BASE__
+    req.content_type = 'text/plain'
+    stack = dbhash.open('%s/stack.db'%base,'c')
+    t = datetime.datetime.now()
+    d = time.mktime(t.timetuple())
+    stack['_%s'%sid] = '%s'%d
+    if stack.has_key(did):
+        for other in stack[did].split(':'):
+            if (other != sid) and (other != ''):
+                if stack.has_key('_%s'%other):
+                    delta = d - float(stack['_%s'%other])
+                    if delta > 60:
+                        if stack.has_key(did):
+                            stack[did] = re.sub('%s:?'%other,'',stack[did])
+                        del stack[other]
+                        del stack['_%s'%other]
+                        del stack['U%s'%other]
+    o = ''
+    if stack.has_key(sid):
+        o = stack[sid]
+        stack[sid] = ''
+    stack.close()
+    return o
 
 ##### SESSION ####
 
@@ -465,7 +499,7 @@ def login_page(req):
     o += '<foreignObject display="inline" y="200" x="200" width="120" height="80">' 
     o += '<div %s><form id="myform" method="post">'%_XHTMLNS
     o += '<input id="login" name="login" title="Login" size="10" value=""/>'
-    o += '<input id="pw" name="pw" type="password" title="Password" size="10" value=""/>'
+    o += '<input id="pw" onchange="submit();" name="pw" type="password" title="Password" size="10" value=""/>'
     o += '<input id="pw2" style="display:none" name="pw2" type="password" title="Password repeat" size="10" value=""/>'
     o += '</form></div>'
     o += '</foreignObject>'
@@ -492,12 +526,5 @@ def logo(full=True):
     return o
 
 if __name__ == '__main__':
-    base='/tmp/test.db'
-    db = dbhash.open(base,'c')
-    db['1'] = 'A0'
-    db['2'] = 'Bdsds'
-    db['3'] = 'Cdd'
-    db['4'] = 'fff'
-    db['5'] = 'Dsq'
-    print db
-    db.close()    
+    print 'end'
+

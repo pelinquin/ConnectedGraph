@@ -37,7 +37,7 @@ text.button:hover { font-weight:bold;}
 
 .editor { top: 18px; left: 0px; right:0px; bottom:0px; }
 .current { opacity:0.6;}
-.theme { fill:#69F; }
+.theme { fill:#69F;}
 
 g.connectors path:hover{ opacity:0.3; cursor:crosshair;}
 /*g.nodes g rect:hover{ stroke:red; stroke-width:2; cursor:crosshair; }*/

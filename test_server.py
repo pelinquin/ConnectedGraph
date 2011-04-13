@@ -19,13 +19,12 @@
 #-----------------------------------------------------------------------------
 
 """
- USAGE: test file for the cg.py script
+ USAGE: test file for the server script
  test cases are stored in dictionaries where:
   - the key is the input string
   - the value is the expected result
 """
 
-import os
 import ui
 
 set_node = {
@@ -282,7 +281,9 @@ set_type = {
     'A:A':"{'A': 'AGENT'}",
     }
 
-def test(h,cpt):
+##### TEST GLUE #####
+
+def utest(h,cpt):
     n,ok=0,0
     o = 'test_%s:'%cpt
     for i in h.keys():
@@ -295,18 +296,26 @@ def test(h,cpt):
     o += '\n'
     return n,o
 
-def index(req=None):
+def run_server(req=None):
     if req:
         req.content_type = 'text/plain'
     n,o = 0,''
-    n1,o1 = test(set_node,'node')
-    n2,o2 = test(set_type,'type')
+    n1,o1 = utest(set_node,'node')
+    n2,o2 = utest(set_type,'type')
+    #...
     o += o1 + o2
     o += '%s tests cases\n'%(n1+n2)
     return o + 'Git Commit: ' + ui.sha1_pkg(req)
 
+def clean(req):
+    from subprocess import Popen, PIPE
+    req.content_type = 'text/plain'
+    Popen(['rm', '-f', '/tmp/cg/stack.db'],stdout=PIPE).communicate()
+    return 'ok'
+
 def get_env(r):
     """ """
+    import os
     r.add_common_vars()
     env = r.subprocess_env.copy()
     ip = env['REMOTE_ADDR'] if env.has_key('REMOTE_ADDR') else '0.0.0.0'
@@ -314,50 +323,56 @@ def get_env(r):
     bname = os.path.basename(env['SCRIPT_FILENAME'])
     return (dname,bname[:-3],ip)
 
-def get_server(r):
-    """ """
-    import re
-    r.add_common_vars()
-    env = r.subprocess_env.copy()
-    se = 'http://%s%s'%(env['SERVER_NAME'],env['SCRIPT_NAME']) if (env.has_key('SERVER_NAME') and env.has_key('SCRIPT_NAME')) else ''
-    se = re.sub(r'\/[^\/]*$','/ui.py/edit',se)
-    return se
-
-def update(req):
-    """ update  """
+def update_tool(req):
+    """ update the tool from github """
     import datetime,time,dbhash,re
     from subprocess import Popen, PIPE
     (pwd, name,ip) = get_env(req)
     t = datetime.datetime.now()
     d = time.mktime(t.timetuple())
     rev = dbhash.open('%s/cg/rev.db'%ui.__BASE__,'w')
-    server,allow,delta = get_server(req),False,d - float(rev['_update_'])
-    #if rev.has_key('_update_') and not re.search('formose_dev',server):
+    allow,delta = False,0
     if rev.has_key('_update_'):
-        if delta > 60:
+        delta = d - float(rev['_update_'])
+        if delta > 120:
             rev['_update_'],allow = '%s'%d,True
     if not rev.has_key('_update_'):
         rev['_update_'] = '%s'%d
-    rev.close()    
+    rev.close()
+    req.content_type = 'text/plain'  
     if not allow:
-        req.content_type = 'text/plain'
-        return 'Error: Bad server or duration between updates [%d secondes] less than 2 minutes !'%int(delta)
-    req.content_type = 'text/html'        
+        return 'Error: Time since last between updates is %d secondes; less than 2 minutes !'%int(delta)
     cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git; cd ConnectedGraph; git submodule update --init'%pwd
-    #out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
+    out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
     out,err = '',''
-    o = '<html>'
-    o += '<link href="../%s" rel="stylesheet" type="text/css"/>'%ui.__CSS__
-    o += '<h1>Application Updated to %s commit</h1>'%(ui.sha1_pkg(req))
+    o = 'Application Updated to %s commit\n'%(ui.sha1_pkg(req))
     if err:
-        o += '<p>Error:%s</p>'%err
+        o += 'Error:%s\n'%err
     else:
-        o += '<p>Message:%s</p>'%out
-    o += '<a href="%s"><h2>Use the application</h2></a>'%server    
-    return o + '</html>'
+        o += 'Message:%s\n'%out
+    return o 
+
+def index(req):
+    """ main test page """
+    req.content_type = 'application/xhtml+xml'
+    o = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    o += '<?xml-stylesheet href="%s" type="text/css"?>\n'%ui.__CSS__
+    o += '<svg %s editable="yes">\n'%ui._SVGNS
+    o += '<title id=".title">Test</title>'
+    o += '<link %s rel="shortcut icon" href="logo16.png"/>\n'%ui._XHTMLNS
+    o += ui.include_ace('.')
+    o += '<script %s type="text/ecmascript" xlink:href="%s"></script>\n'%(ui._XLINKNS,ui.__JS__)
+    o += '<script %s type="text/ecmascript" xlink:href="test_client.js"></script>\n'%ui._XLINKNS
+    o += '<foreignObject display="none" width="100%%" height="100%%"><div %s id=".editor" class="editor"></div></foreignObject>'%ui._XHTMLNS
+    mygraph = ui.cg('')
+    o += mygraph.draw() + ui.menu() + ui.gui_elements() + ui.menubar(req)
+    o += '<text fill="white" onclick="reload();" x="46" y="12" class="button">%s<title>Use the tool!</title></text>'%ui.__TITLE__
+    o += '<g onclick="run_tests();"><rect x="160" width="70" height="18" fill="red" class="button"/><text y="12" x="166" class="button" fill="white">Run tests</text></g><g transform="translate(5,20)"><text id=".results" stroke-width="0"/></g>'
+    o += '<g onclick="update_tool();"><rect x="245" width="80" height="18" fill="red" class="button"/><text y="12" x="251" class="button" fill="white">Update tool</text></g>'
+    return o + '</svg>'
 
 if __name__ == '__main__':
-    print index()
+    print run_server()
     
     
    

@@ -24,6 +24,11 @@ const svgns   = 'http://www.w3.org/2000/svg';
 if (typeof($)=='undefined') { 
   function $(id) { return document.getElementById(id.replace(/^#/,'')); } 
 }
+    
+function isIn(val, li) {
+  for(var i=0; i < li.length; i++) { if((li[i] == val)) { return true; }}
+  return false;  
+}
 
 function is_browser_compatible() {
   var str = navigator.userAgent; //alert (str);
@@ -133,7 +138,7 @@ window.onload = function () {
   init_draw();
   //$('.title').firstChild.nodeValue = stat();
   //alert (print_nodes()); // debug
-  //refresh(0);
+  //read_doc(0);
 }
 
 function stat() {
@@ -156,7 +161,7 @@ function init_editor() {
   editor.setTheme('ace/theme/twilight');
   var pMode = require('ace/mode/python').Mode;
   editor.getSession().setMode(new pMode());
-  editor.getSession().on('change', change_editor);
+  editor.getSession().doc.on('change', change_editor);
   if (startongraph) {
       $('.editor').parentNode.setAttribute('display','inline');
   }
@@ -213,26 +218,64 @@ function init_menu() {
   $('.menu').addEventListener('mousedown', function(evt) {onmenu(evt);}, false);
 }
 
-function get_shape(t,b) {
-  if (t=='GOAL' || t=='AGENT') {
+function get_init_shape(t,up) {
+  if (isIn(t,['ASSOCIATION','AGENT','PROPERTY','EVENT'])) {
     form = 'path';
-  } else if (t=='REQUIREMENT'){
+  } else if (isIn(t,['REQUIREMENT','CLASS','GOAL','ENTITY','OBSTACLE','EXPECTATION'])){
     form = 'rect';
   } else {
     form = 'ellipse';
   }
-  var shape = document.createElementNS(svgns,form);
-  shape.setAttribute('fill','url(#.grad)'); 
-  shape.setAttribute('stroke','gray'); 
-  shape.setAttribute('stroke-width','1');
-  var m = 5;
-  if (t=='GOAL' || t=='AGENT') {
-    m = 12;
-    var d = 'M'+(b.x-m)+','+(b.y+b.height/2)+'l'+(b.width/2+m)+','+(b.height/2+m)+'l'+(b.width/2+m)+','+(-b.height/2-m)+ 'l'+(-b.width/2-m)+','+(-b.height/2-m)+'z';
+  var fig = document.createElementNS(svgns,form);
+  if (up) {
+    fig.setAttribute('fill','url(#.grad)');
+    fig.setAttribute('stroke','gray'); 
+    if (t=='REQUIREMENT') {
+      fig.setAttribute('stroke-width','2');
+    } else {
+      fig.setAttribute('stroke-width','1');
+    }
+  } else {
+    fig.setAttribute('stroke','yellow');
+    fig.setAttribute('opacity','0');
+    fig.setAttribute('stroke-width','15');
+    fig.setAttribute('class','border');
+  }
+  if (t=='REQUIREMENT' || t=='GOAL') {
+    fig.setAttribute('rx', '4');
+    fig.setAttribute('transform', 'skewX(-10)'); 
+  } else if (t=='CLASS' || t == 'ENTITY'|| t=='EXPECTATION') {
+    fig.setAttribute('rx', '1');
+  } else if (t=='OBSTACLE') {
+    fig.setAttribute('transform', 'skewX(10)'); 
+  }
+  return (fig);
+}
+
+function resize_shape(t,b,shape) {
+  var m = 5; 
+  if (isIn(t,['ASSOCIATION','AGENT','PROPERTY','EVENT'])) {
+    var d = 'M';
+    m = 10;
+    if (t == 'AGENT') {
+      var f = 8;
+      var x = b.x - m;
+      var y = b.y - m;
+      var w = b.width + 2*m;
+      var h = b.height + 2*m;
+      d += (x+f)+','+y + 
+	'l' + (w-2*f) + ',0' + 
+	'l' + f +',' + (h/2) + 
+	'l' + (-f) + ',' + (h/2)  + 
+	'l' + (2*f-w) +',0' + 
+	'l' + (-f) + ',' + (-h/2) + 'z';
+      // simple rectangle for debugging
+      //d += (b.x-m)+','+(b.y-m)+'l'+(b.width+2*m)+',0l0,'+(b.height+2*m)+'l-'+(b.width+2*m)+',0z'; 
+    } else {
+      d += (b.x-m)+','+(b.y+b.height/2)+'l'+(b.width/2+m)+','+(b.height/2+m)+'l'+(b.width/2+m)+','+(-b.height/2-m)+ 'l'+(-b.width/2-m)+','+(-b.height/2-m)+'z';
+    }
     shape.setAttribute('d',d);
-  } else if (t=='REQUIREMENT') {
-    shape.setAttribute('rx', '4');
-    shape.setAttribute('transform', 'skewX(-10)'); 
+  } else if (isIn(t,['REQUIREMENT','CLASS','GOAL','ENTITY','OBSTACLE','EXPECTATION'])){
     var x = b.x-m; var y = b.y-m; var w = b.width + 2*m; var h = b.height + 2*m;
     shape.setAttribute('x',x); 
     shape.setAttribute('y',y); 
@@ -245,6 +288,11 @@ function get_shape(t,b) {
     shape.setAttribute('rx',rx); 
     shape.setAttribute('ry',ry); 
   }
+}
+
+function get_shape(t,b) {
+  var shape = get_init_shape(t,true)
+  resize_shape(t,b,shape);
   return (shape);
 }
 
@@ -271,13 +319,6 @@ function init_draw_node(nod) {
   nodeLink[nod.id] = [];
   var b = nod.getBBox();
   nodeBox[nod.id] = b;
-  if (t=='GOAL' || t=='AGENT') {
-    form = 'path';
-  } else if (t=='REQUIREMENT'){
-    form = 'rect';
-  } else {
-    form = 'ellipse';
-  }
   var txt = document.createElementNS(svgns,'text');
   txt.setAttribute('x','0');
   txt.setAttribute('y','-13');
@@ -291,64 +332,18 @@ function init_draw_node(nod) {
   tid.appendChild(document.createTextNode(nod.id.toUpperCase()));
   var title = document.createElementNS(svgns,'title');
   title.appendChild(document.createTextNode(nod.id.toUpperCase()+':'+t));
-  var bord = document.createElementNS(svgns,form);
-  bord.setAttribute('stroke','yellow');
-  bord.setAttribute('opacity','0');
-  bord.setAttribute('stroke-width','15');
-  bord.setAttribute('class','border');
-  var shape = document.createElementNS(svgns,form);
-  shape.setAttribute('stroke-width','1');
-  shape.setAttribute('fill','url(#.grad)');
+  var bord = get_init_shape(t,false);
+  var shape = get_init_shape(t,true)
   //shape.setAttribute('filter','url(#.shadow)'); // pb with Safari
   shape.setAttribute('stroke','gray');
-  if (t=='REQUIREMENT') {
-    bord.setAttribute('rx', '4');
-    bord.setAttribute('transform', 'skewX(-10)'); 
-    shape.setAttribute('rx', '4');
-    shape.setAttribute('transform', 'skewX(-10)'); 
-  } 
   nod.insertBefore(bord,nod.firstChild);
   nod.insertBefore(shape,nod.lastChild);
   nod.appendChild(txt);
   nod.appendChild(tid);
   nod.appendChild(title);
-  resize_shape(t,b,bord,shape,tid);
-}
-
-function resize_shape(t,b,bord,shape,tid) { 
-  var m = 5; // margin
   tid.setAttribute('x',b.width);
-  if (t=='GOAL') {
-    var d = 'M'+(b.x-m)+','+(b.y-m)+'l'+(b.width+2*m)+',0l0,'+(b.height+2*m)+'l-'+(b.width+2*m)+',0z';
-    bord.setAttribute('d',d);
-    shape.setAttribute('d',d);
-  } else if (t=='AGENT') {
-    m = 12;
-    var d = 'M'+(b.x-m)+','+(b.y+b.height/2)+'l'+(b.width/2+m)+','+(b.height/2+m)+'l'+(b.width/2+m)+','+(-b.height/2-m)+ 'l'+(-b.width/2-m)+','+(-b.height/2-m)+'z';
-    bord.setAttribute('d',d);
-    shape.setAttribute('d',d);
-  } else if (t=='REQUIREMENT') {
-    var x = b.x-m; var y = b.y-m; var w = b.width + 2*m; var h = b.height + 2*m;
-    bord.setAttribute('width',w);
-    bord.setAttribute('height',h);
-    bord.setAttribute('x',x);
-    bord.setAttribute('y',y);  
-    shape.setAttribute('width',w);
-    shape.setAttribute('height',h);
-    shape.setAttribute('x',x);
-    shape.setAttribute('y',y);      
-  } else {
-    m = 10;
-    var x = b.x-m; var y = b.y-m; var w = b.width + 2*m; var h = b.height + 2*m;
-    bord.setAttribute('rx',w/2);
-    bord.setAttribute('ry',h/2);
-    bord.setAttribute('cx',x+w/2);
-    bord.setAttribute('cy',y+h/2);  
-    shape.setAttribute('rx',w/2);
-    shape.setAttribute('ry',h/2);
-    shape.setAttribute('cx',x+w/2);
-    shape.setAttribute('cy',y+h/2);      
-  }
+  resize_shape(t,b,bord);
+  resize_shape(t,b,shape);
 }
 
 function change_node_content(n,label) {
@@ -361,8 +356,9 @@ function change_node_content(n,label) {
   nodeBox[n] = b;
   var bord = $(n).firstChild;
   var shape = $(n).firstChild.nextSibling;
-  var tid = $(n).childNodes[4];
-  resize_shape(t,b,bord,shape,tid);
+  $(n).childNodes[4].setAttribute('x',b.width);
+  resize_shape(t,b,bord);
+  resize_shape(t,b,shape);
   draw_connectors_from(n);
   // Change editor
   var v = editor.getSession().getValue();
@@ -372,7 +368,11 @@ function change_node_content(n,label) {
 }
 
 function set_editor(str) {
-  editor.getSession().getDocument().setValue(str);
+  //editor.getSession().getDocument().setValue(str);
+  editor.getSession().setValue(str);
+  //editor.detach();
+  //editor.getSession().doc.setValue(str);
+  //editor.insert("Something cool");
 }
 
 function get_editor() {
@@ -380,7 +380,7 @@ function get_editor() {
 }
 
 function signin() {
-  var tg = $('.login_page');
+  var tg = $('.menubar');
   var ai = new ajax_get(false,get_base_url() + '/login_page', function(res) {
 			  tg.replaceChild(cl_xml(res),tg.lastChild);
 			});
@@ -393,10 +393,11 @@ function editor_add(txt) {
 }
 
 
-function change_editor() {
+function change_editor(evt) {
   //TODO; link editor content with current diagram!
   //Parsing on client side
-  update();
+  //update();
+  //alert (evt.data.lines);
 }
 
 function add_node(n,typ,label,x,y) {
@@ -760,7 +761,7 @@ function onmenu(e) {
       DD.border = false;
     }
     DD.delay = false;
-    update();
+    //update();
     $('.menu').setAttribute('display','none');
   }
 }
@@ -777,7 +778,7 @@ function finalise_connector(nod,n2,upd) {
   draw_path(nod,n1,n2);
   editor_add(n1+'->'+n2);
   if (upd) {
-    update();
+    //update();
   }
 }
 
@@ -973,7 +974,7 @@ dragDrop.prototype.key = function(e) {
 	del_node(this.node.id);
 	this.c.parentNode.setAttribute('display','none');
       }
-      update();
+      //update();
     } else if (charCode == 112) { // F1 key
       switch_mode();
     } else if (charCode == 10 || charCode == 13) { //return key
@@ -1011,10 +1012,13 @@ function new_doc() {
 }
 
 function save_doc() {
-  var ai = new ajax_get(true,get_base_url() + '/save_doc?'+get_user_id(), function(res) {
-			  alert (res);
-			});
-  ai.doGet();
+  //$('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid');
+  var fD = new FormData();
+  fD.append('patch', get_editor());
+  var ai = new ajax_post(true,get_base_url() + '/save_doc?'+get_env(), fD,function(res) {
+			   //alert (res);
+			 });
+  ai.doPost();
 }
 
 //---------- Server Synchronization ----------
@@ -1023,32 +1027,34 @@ function get_user() {
   return ('user='+document.documentElement.getAttribute('user'));
 }
 
-function get_user_id() {
-  return ('user='+document.documentElement.getAttribute('user') + '&id='+document.documentElement.getAttribute('did'));
+function get_env() {
+  return ('user='+document.documentElement.getAttribute('user') + '&did='+document.documentElement.getAttribute('did') + '&sid='+document.documentElement.getAttribute('sid'));
 }
 
-
-function refresh(n) {
-  // This function call the server periodically
-  if (n == 100) {
+function read_doc(n) {
+  // This function call the server periodically 
+  $('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid') + ' ' + n;
+  if (n == 1000) {
     alert ('fin'); // just for testing
   } else {
-    var ai = new ajax_get(true,get_base_url() + '/read?'+get_user(), function(res) {
+    //alert (get_base_url() + '/read_doc?'+get_env());
+    var ai = new ajax_get(true,get_base_url() + '/read_doc?'+get_env(), function(res) {
 			    //$('.msg').firstChild.nodeValue = res; // debug
-			    if (res != editor.getSession().getValue()) {
+			    if (res != '') {
 			      set_editor(res); 
 			    }
 			  });
     ai.doGet();
     n += 1;
     // 1 seconde period
-    setTimeout('refresh('+n+')', 1000);
+    setTimeout('read_doc('+n+')', 2000);
   }
 }
 
 function update() {
   // update page title to "unsaved" 
   $('.title').firstChild.nodeValue = '* '+stat();
+  //save_doc();
   // This function call the server on change event of editor content 
   //var fD = new FormData();
   //fD.append('value', 'a');
@@ -1080,23 +1086,23 @@ function update_old() {
 function uploadProgress(evt) {
   if (evt.lengthComputable) {
     var percentComplete = Math.round(evt.loaded * 100 / evt.total);
-    $('bar').parentNode.setAttribute('display','inline');
-    $('prg').firstChild.nodeValue = percentComplete.toString() + '%';
-    $('bar').setAttribute('width',percentComplete);
+    $('.bar').parentNode.setAttribute('display','inline');
+    $('.prg').firstChild.nodeValue = percentComplete.toString() + '%';
+    $('.bar').setAttribute('width',percentComplete);
   } else {
     alert ('pb');
-    $('prg').firstChild.nodeValue = 'unable to compute';
+    $('.prg').firstChild.nodeValue = 'unable to compute';
   }
 }
 
 function uploadComplete(evt) {
-  $('prg').firstChild.nodeValue = '100%';
-  $('bar').setAttribute('width',100);
+  $('.prg').firstChild.nodeValue = '100%';
+  $('.bar').setAttribute('width',100);
   //setTimeout("clearbar()",800); 
 }
 
 function clearbar() {
-  $('bar').parentNode.setAttribute('display','none');
+  $('.bar').parentNode.setAttribute('display','none');
 }
 
 function uploadFailed(evt) {
@@ -1108,11 +1114,8 @@ function uploadCanceled(evt) {
 }
 
 function fork(flag) {
-    if (flag == true) {
-	document.location.replace('https://github.com/pelinquin/ConnectedGraph');
-    } else {
-	document.location.replace(get_base_url()+'/edit');
-    }
+  document.location.replace('https://github.com/pelinquin/ConnectedGraph');
+
 }
 
 function help() {
