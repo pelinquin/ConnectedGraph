@@ -479,7 +479,7 @@ def login_page(req):
     o += '<rect x="5%" y="5%" width="90%" height="90%" opacity=".9" fill="#DDD"/>'
     o += '<text x="140" y="220">Login:</text>'
     o += '<text x="140" y="240">Password:</text>'
-    o += '<text id="cr_acnt" class="button" onclick="create_account();" x="140" y="310">Create a new account</text>'
+    o += '<text class="button" onclick="create_account(this);" x="140" y="310">Create a new account</text>'
     o += '<text id="msg" display="none" x="208" y="190" fill="red">New account:</text>'
     o += '<foreignObject display="inline" y="200" x="200" width="120" height="80">' 
     o += '<div %s><form id="myform" method="post">'%_XHTMLNS

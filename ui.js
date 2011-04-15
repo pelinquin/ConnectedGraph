@@ -392,7 +392,6 @@ function editor_add(txt) {
   set_editor(get_editor() + '\n' + txt); 
 }
 
-
 function change_editor(evt) {
   //TODO; link editor content with current diagram!
   //Parsing on client side
@@ -782,6 +781,26 @@ function finalise_connector(nod,n2,upd) {
   }
 }
 
+function set_current(x,y,w,h) {
+    obj = $('.current').firstChild;
+    obj.setAttribute('width',w);
+    obj.setAttribute('height',h);
+    obj.setAttribute('x',x);
+    obj.setAttribute('y',y);
+    obj.parentNode.setAttribute('display','inline');
+    return (obj);
+}
+
+function show_menu(e) {
+    if (typeof(e) == 'undefined') {
+	$('.menu').setAttribute('display','none');
+    } else {
+	$('.menu').setAttribute('display','inline');
+	var offset = e.clientY - nodeBox['.menu'].y;
+	$('.menu').setAttribute('transform','translate(' + e.clientX + ',' + offset + ')');
+    } 
+}
+
 function dragDrop () {
   this.el = null;
   this.node = null;
@@ -824,7 +843,7 @@ dragDrop.prototype.down = function(e) {
     $('.current').setAttribute('display','none');
   }
   if (nod.nodeName == 'svg' || nod.nodeName == 'div') {
-    $('.menu').setAttribute('display','none');
+    show_menu();
     if (this.border) {
       this.border.parentNode.removeChild(this.border);
       this.border = null;
@@ -832,9 +851,7 @@ dragDrop.prototype.down = function(e) {
 	//if ((e.button == 0)&&(!this.edit)) {
 	if (e.button == 0) {
 	if (nod.nodeName != 'div') {
-	  $('.menu').setAttribute('display','inline');
-	  var offset = e.clientY - nodeBox['.menu'].y;
-	  $('.menu').setAttribute('transform','translate(' + (e.clientX+3) + ',' + offset + ')');
+	    show_menu(e);
 	} 
       }
     }
@@ -852,14 +869,15 @@ dragDrop.prototype.down = function(e) {
       nod = nod.parentNode;
     }
     if (nod.parentNode.nodeName == 'svg') {
-	$('.menu').setAttribute('display','none');
+      show_menu();
     } else if (nod.parentNode.id == '.connectors') { 
-      $('.menu').setAttribute('display','none');
+      show_menu();
       nod.firstChild.nextSibling.setAttribute('opacity','.6');
       nod.firstChild.nextSibling.setAttribute('stroke','red');
       this.connector = nod;
+      //show_menu(e);
     } else if (nod.parentNode.id == '.nodes') { 
-      $('.menu').setAttribute('display','none');
+      show_menu();
       this.el = nod;
       var tr = nod.getCTM();
       if (this.border) {
@@ -882,19 +900,13 @@ dragDrop.prototype.down = function(e) {
 	  area.setAttribute('height',b.height+50);
 	  area.parentNode.setAttribute('transform','translate('+x+','+y+')');
 	  area.firstChild.setAttribute('style','resize:none; border:1px solid #ccc;width:' + (b.width+20)+ 'pt;height:' + (b.height+20)+ 'pt'); 
-	  //area.firstChild.setAttribute('tabindex', '1');
 	  var txt = nod.firstChild.nextSibling.nextSibling.firstChild.nodeValue;
 	  area.firstChild.value = txt;
 	  $('.area').parentNode.setAttribute('display','inline');
 	  $('.area').parentNode.setAttribute('visibility','visible');
 	} else {
 	  this.o.x = e.clientX; this.o.y = e.clientY;
-	  this.c = $('.current').firstChild;
-	  this.c.setAttribute('width',b.width+2*this.margin);
-	  this.c.setAttribute('height',b.height+2*this.margin);
-	  this.c.setAttribute('x',x);
-	  this.c.setAttribute('y',y);
-	  this.c.parentNode.setAttribute('display','inline');
+	  this.c = set_current(x,y,b.width+2*this.margin,b.height+2*this.margin);
 	}
       } 
     } else {
@@ -934,9 +946,7 @@ dragDrop.prototype.up = function(e) {
     var nod = e.target;
     if (nod.nodeName == 'svg' || nod.nodeName == 'div') {
       this.delay = true;
-      $('.menu').setAttribute('display','inline');
-      var offset = e.clientY - nodeBox['.menu'].y;
-      $('.menu').setAttribute('transform','translate(' + e.clientX + ',' + offset + ')');
+      show_menu(e);
     } else {
       while (nod.parentNode.id != '.nodes' && nod.parentNode.nodeName != 'svg') { 
         nod = nod.parentNode;
@@ -985,12 +995,12 @@ dragDrop.prototype.key = function(e) {
 
 //---------- Authentication ----------
 
-function create_account() {
+function create_account(obj) {
   $('pw2').setAttribute('style','display:inline');
   $('pw2').setAttribute('onchange','submit();');
   $('pw').removeAttribute('onchange');
   $('msg').setAttribute('display','inline');
-  $('cr_acnt').setAttribute('display','none');
+  obj.setAttribute('display','none');
 }
 
 function check() {

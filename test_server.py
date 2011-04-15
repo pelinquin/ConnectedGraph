@@ -341,14 +341,14 @@ def update_tool(req):
     rev.close()
     req.content_type = 'text/plain'  
     if not allow:
-        return 'Error: Time since last between updates is %d secondes; less than 2 minutes !'%int(delta)
+        return 'Error: Time since last update is %d secondes; should be greater than 2 minutes!'%int(delta)
     cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git; cd ConnectedGraph; git submodule update --init'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
-    o = 'Application Updated to %s commit\n'%(ui.sha1_pkg(req))
+    o = 'Application Updating from %s commit...\n'%(ui.sha1_pkg(req))
     if err:
         o += 'Error:%s\n'%err
     else:
-        o += 'Message:%s\n'%out
+        o += 'Message:%s\nUpdate OK\n'%out
     return o 
 
 def index(req):
