@@ -149,9 +149,9 @@ function init_editor() {
   // TODO, Patch Ace Code to avoid CSS warnings on box-sizing and appearance
   // Webkit needs position fixed for editor
   //$('.msg').style.setProperty('display','none','');
-  //if (is_webkit() || is_opera()) {
-  //  $('.editor').style.setProperty('position','fixed','');
-  //}
+  if (is_webkit()) {
+    $('.editor').style.setProperty('position','fixed','');
+  }
   var startongraph = false;
   if ($('.editor').parentNode.getAttribute('display') == 'inline') {
       startongraph = true;
@@ -1008,7 +1008,7 @@ function logout() {
 
 function new_doc() {
   var ai = new ajax_get(true,get_base_url() + '/new_doc?'+get_user(), function(res) {
-			  document.location.replace(get_base_url()+ '/edit?id='+res);
+			  document.location.href = get_base_url()+ '/edit?id='+res;
 			});
   ai.doGet();
 }
@@ -1116,8 +1116,7 @@ function uploadCanceled(evt) {
 }
 
 function fork(flag) {
-  document.location.replace('https://github.com/pelinquin/ConnectedGraph');
-
+  document.location.href = 'https://github.com/pelinquin/ConnectedGraph';
 }
 
 function help() {

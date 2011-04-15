@@ -125,5 +125,5 @@ function run_tests() {
 }
 
 function reload() {
-  document.location.replace(get_base_url()+'/ui.py/edit');
+  document.location.href = get_base_url()+'/ui.py/edit';
 }

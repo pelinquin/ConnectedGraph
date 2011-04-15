@@ -344,7 +344,6 @@ def update_tool(req):
         return 'Error: Time since last between updates is %d secondes; less than 2 minutes !'%int(delta)
     cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git; cd ConnectedGraph; git submodule update --init'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
-    out,err = '',''
     o = 'Application Updated to %s commit\n'%(ui.sha1_pkg(req))
     if err:
         o += 'Error:%s\n'%err
