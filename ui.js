@@ -16,7 +16,7 @@
 //    along with Formose.  If not, see <http://www.gnu.org/licenses/>.
 //----------------------------------------------------------------------------
 
-// Use the compressed version: cgmin.js
+// Use the compressed version: uimin.js
 
 const svgns   = 'http://www.w3.org/2000/svg';
 
