@@ -167,11 +167,12 @@ def common(req=None,pfx='.',did='',edit=False,user='',msg='',mode='',newdoc=Fals
     if edit:
         o += menu() + gui_elements() + menubar(req,True,user,msg) + logo(False);
         o += '<text fill="white" onclick="fork();" x="46" y="12" class="button">%s<title>Fork me on Github!</title></text>'%(__TITLE__)
+        theid = 'id=".name"'
         if newdoc:
             if user:
-                o += '<text id=".name" fill="white" onclick="new_doc();" x="50%" y="12" class="button">New document<title>Create a new document</title></text>'
+                o += '<text %s fill="white" onclick="new_doc();" x="50%%" y="12" class="button">New document<title>Create a new document</title></text>'%theid
         else:
-            o += '<text id=".name" fill="white" onclick="change_name(true);" x="50%%" y="12" class="button">Untitled<title>Change name</title></text><foreignObject display="none" x="50%%" width="120" height="30"><div %s><input onchange="change_name(false);" size="10" value=""/></div></foreignObject>'%_XHTMLNS
+            o += '<text %s fill="white" onclick="change_name(true);" x="50%%" y="12" class="button">Untitled<title>Change name</title></text><foreignObject display="none" x="50%%" width="120" height="30"><div %s><input onchange="change_name(false);" size="10" value=""/></div></foreignObject>'%(theid,_XHTMLNS)
             if did:
                 o += '<text id=".save" fill="white" onclick="save_doc();" text-anchor="end" x="85%" y="12" class="button">Save</text>'
     return o + '</svg>'
@@ -314,26 +315,10 @@ def menubar(req,full=False,user='',msg=''):
 def gui_elements():
     """ """
     o = '<g id=".current" class="current" display="none" stroke="red" stroke-width="2" fill="none"><rect/></g>\n'
-    #o += '<g id=".currentline" class="current" display="none" stroke="red" stroke-width="2" fill="none"><rect/></g>\n'
+    o += '<g id=".currentline" class="current" display="none" stroke="red" stroke-width="2" fill="none"><rect/></g>\n'
     o += '<g display="none" transform="translate(1,10)"><rect text-anchor="end" width="100" height="14" rx="6" ry="6" stroke-width="1px" stroke="#CCC" fill="none"/><rect id=".bar" class="bar" width="0" height="14" rx="6" ry="6"/><text id=".prg" x="44" y="11">0%</text></g>\n'
     o += '<g display="none"><foreignObject id=".area"><textarea %s></textarea></foreignObject></g>\n'%_XHTMLNS
     return o + '<text id=".debug" class="small" x="300" y="12"> </text>'
-
-def connectors():
-    """ """
-    o = '<g id=".connectors" class="connectors" stroke-width="1">'
-    o += '<g type="direct" n1="#.n3" n2="#.n4"/>'
-    o += '<g type="conflict" n1="#.n1" n2="#.n3"/>'
-    return o + '</g>\n'
-    
-def nodes():
-    """ """
-    o = '<g id=".nodes" class="nodes" stroke="none">'
-    o += '<g id=".n1" type="goal" transform="translate(350,100)"><text>AA</text></g>'
-    o += '<g id=".n6" type="goal" transform="translate(250,200)"><text>BB</text></g>'
-    o += '<g id=".n3" type="agent" transform="translate(200,40)"><text>This is a text</text></g>'
-    o += '<g id=".n4" type="requirement" transform="translate(20,200)"><text>This is line1<tspan dy="20" x="0"> and line2</tspan></text></g>'
-    return o + '</g>\n'
 
 ##### AJAX CALL ####
 

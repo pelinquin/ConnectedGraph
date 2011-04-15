@@ -987,6 +987,8 @@ dragDrop.prototype.key = function(e) {
 
 function create_account() {
   $('pw2').setAttribute('style','display:inline');
+  $('pw2').setAttribute('onchange','submit();');
+  $('pw').removeAttribute('onchange');
   $('msg').setAttribute('display','inline');
   $('cr_acnt').setAttribute('display','none');
 }
