@@ -298,6 +298,14 @@ def menu():
     o = '<g id=".menu"><rect class="theme" rx="4"/>'
     for i in __REG_TYPES__:
         o += '<text class="item">%s</text><g></g>'%__REG_TYPES__[i]
+    o += '</g>\n'
+    o += '<g id=".menu_node"><rect class="theme" rx="4"/>'
+    o += '<text class="item">Delete node</text>'
+    o += '<text class="item">Change node to...</text>'
+    o += '</g>\n'
+    o += '<g id=".menu_connector"><rect class="theme" rx="4"/>'
+    o += '<text class="item">Delete Connector</text>'
+    o += '<text class="item">Flip connector way</text>'
     return o + '</g>\n'
 
 def menubar(req,full=False,user='',msg=''):

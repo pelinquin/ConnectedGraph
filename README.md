@@ -16,9 +16,9 @@ Show me a demo
 --------------
 
 * look at a minimal diagram:
-  http://193.84.73.209/formose/cg.py/view?@hello
+  http://193.84.73.209/formose/ui.py?hello
 * enter edit mode:
-  http://193.84.73.209/formose/cg.py/edit?A->B
+  http://193.84.73.209/formose/ui.py/edit?A->B
 
 Where is the repository?
 ------------------------
@@ -33,8 +33,9 @@ How to contribute?
 * Clone the project:
 
 Run:
-    git clone git://github.com/pelinquin/ConnectedGraph.git
-    git submodule update --init
+
+     git clone git://github.com/pelinquin/ConnectedGraph.git
+     git submodule update --init
 
 Which Browser is currently supported?
 -------------------------------------
@@ -64,10 +65,10 @@ If you need to attach OpenOffice.org documents, you need
    openoffice > v3
 
 * Run the install script
-sudo ./install.sh
+    sudo ./install.sh
 
 * Run your browser on your local web app; for instance: 
-'firefox http://pelinquin/formose/cg.py'
+    'firefox http://localhost/formose/cg.py'
 
 Contact: 
 --------

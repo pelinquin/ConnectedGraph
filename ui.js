@@ -31,17 +31,18 @@ function isIn(val, li) {
 }
 
 function is_browser_compatible() {
-  var str = navigator.userAgent; //alert (str);
+  var str = navigator.userAgent; 
   // Webkit
   //Mozilla/5.0 (X11; U; Linux i686; en-US) AppleWebKit/534.17 (KHTML, like Gecko) Ubuntu/10.10 Chromium/10.0.651.0 Chrome/10.0.651.0 Safari/534.17
   if (str.match('AppleWebKit')) { return true; }
   // Opera
   if (str.match('Presto')) { return true; }
   // FF4
+  //Mozilla/5.0 (X11; Linux i686; rv:6.0a1) Gecko/20110413 Firefox/6.0a1
   //Mozilla/5.0 (Windows NT 5.1; rv:2.0b11pre) Gecko/20110201 Firefox/4.0b11pre
   var gecko = str.replace(/^Mozilla.*rv:|\).*$/g, '' ) || ( /^rv\:|\).*$/g, '' );
   var s = gecko.substring(0,3);
-  if ((s=='1.9') || (s=='2.0') || (s=='2.2')) { return true; } 
+  if ((s=='1.9') || (s=='2.0') || (s=='2.2') || (s=='6.0')) { return true; } 
   return false;
 }
 
@@ -421,6 +422,15 @@ function add_connector(n1,n2) {
   editor_add(n1+'->'+n2);
 }
 
+function flip_connector(c) {
+    var tmp = c.getAttribute('n1');
+    c.setAttribute('n1',c.getAttribute('n2'));
+    c.setAttribute('n2',tmp);   
+    var n1 = c.getAttribute('n1').replace('#','');
+    var n2 = c.getAttribute('n2').replace('#','');
+    draw_path(c,n1,n2);
+}
+
 function del_connector(c) {
   //alert ('del connector\n' + c.getAttribute('n1')+ ' ' +c.getAttribute('n2'));
   for (var e in nodeLink) {
@@ -485,7 +495,7 @@ function create_visible_path() {
 }
 
 function draw_path(el,n1,n2) {
-  // Optimization: only one node transformation should be computed!
+  // Optimization to do: only one node transformation should be computed!
   var childs = el.childNodes;
   var d = trunk_path_curve(nodeBox[n1],nodeBox[n2],$(n1).getCTM(),$(n2).getCTM());
   for (var n=0; n<childs.length; n++) {
@@ -875,7 +885,10 @@ dragDrop.prototype.down = function(e) {
       nod.firstChild.nextSibling.setAttribute('opacity','.6');
       nod.firstChild.nextSibling.setAttribute('stroke','red');
       this.connector = nod;
-      //show_menu(e);
+      if (e.detail == 2) { 
+	  flip_connector(nod);
+	  //show_menu(e);
+      }
     } else if (nod.parentNode.id == '.nodes') { 
       show_menu();
       this.el = nod;
