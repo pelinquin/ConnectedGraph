@@ -1239,6 +1239,7 @@ function uploadCanceled(evt) {
 }
 
 function fork(flag) {
+    alert ('fork');
   document.location.href = 'https://github.com/pelinquin/ConnectedGraph';
 }
 

@@ -318,8 +318,8 @@ def menubar(req,action,full=False,user='',msg='',newdoc=False,did=''):
     """ top menu bar """
     o = '<g id=".menubar"><rect class="theme" width="100%" height="18"/>'
     if full:
-        (txt,action) = (user,'logout') if user else ('Sign in','signin')
-        o += '<text class="button" onclick="%s();" fill="white" text-anchor="end" x="95%%" y="12">%s<title>%s</title></text>'%(action,txt,action)
+        (txt,act) = (user,'logout') if user else ('Sign in','signin')
+        o += '<text class="button" onclick="%s();" fill="white" text-anchor="end" x="95%%" y="12">%s<title>%s</title></text>'%(act,txt,act)
     o += '<text class="button" fill="white" onclick="help();" text-anchor="end" x="99%%" y="12">?<title>Version %s [%s]</title></text>'%(__version__,sha1_pkg(req))
     o += '<text class="button" fill="white" onclick="%s();" x="46" y="12">%s<title>Fork me on Github!</title></text>'%(action,__TITLE__)
     if full:
