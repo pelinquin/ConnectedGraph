@@ -113,13 +113,13 @@ def edit(req,id='',login='',pw='',pw2='',mode='',newdoc=False):
     if login:
         if pw2:
             if register_user(login,pw,pw2,ip):
-                user,msg = login,'Welcome \'%s\', your account is well created!'%login
+                user,msg = login,'Hi %s, your account is well created!'%login
                 save_session(req,user)
             else:
                 msg = 'Error: login already used or more than 10 logins/ip or difference in repeated password or password too much simple!'
         else:
             if check_user(login,pw):
-                user,msg = login,'Welcome \'%s\'!'%login
+                user,msg = login,'Hi %s!'%login
                 save_session(req,user)
             else:
                 msg = 'Error: bad login or password!'
@@ -160,21 +160,16 @@ def common(req=None,pfx='.',did='',edit=False,user='',msg='',mode='',newdoc=Fals
     o += defs()
     if edit:
         disp = 'inline' if mode == 'both' else 'none'
-        o += '<foreignObject display="%s" width="100%%" height="100%%"><div %s id=".editor" class="editor">%s</div></foreignObject>'%(disp,_XHTMLNS,xml.sax.saxutils.escape(value))
+        o += '<foreignObject display="%s" width="100%%" height="100%%">'%disp
+        o += '<div %s id=".editor" class="editor">%s</div>'%(_XHTMLNS,xml.sax.saxutils.escape(value))
+        #o += '<textarea %s id=".editor" class="editor" spellcheck="false" rows="20" style="color:white;background-color:#444;margin:20pt;width:800px">%s</textarea>'%(_XHTMLNS,xml.sax.saxutils.escape(value))
+        o += '</foreignObject>'
     mygraph = cg(value)
     mygraph.set_pos()
     o += mygraph.draw()    
     if edit:
-        o += menu() + gui_elements() + menubar(req,True,user,msg) + logo(False);
-        o += '<text fill="white" onclick="fork();" x="46" y="12" class="button">%s<title>Fork me on Github!</title></text>'%(__TITLE__)
-        theid = 'id=".name"'
-        if newdoc:
-            if user:
-                o += '<text %s fill="white" onclick="new_doc();" x="50%%" y="12" class="button">New document<title>Create a new document</title></text>'%theid
-        else:
-            o += '<text %s fill="white" onclick="change_name(true);" x="50%%" y="12" class="button">Untitled<title>Change name</title></text><foreignObject display="none" x="50%%" width="120" height="30"><div %s><input onchange="change_name(false);" size="10" value=""/></div></foreignObject>'%(theid,_XHTMLNS)
-            if did:
-                o += '<text id=".save" fill="white" onclick="save_doc();" text-anchor="end" x="85%" y="12" class="button">Save</text>'
+        o += menu() + gui_elements() + menubar(req,'fork',True,user,msg,newdoc,did);
+    o += '<text id=".debug" class="small" x="300" y="12"> </text>\n'
     return o + '</svg>'
 
 def doc_list(req,user):
@@ -259,12 +254,23 @@ class cg:
         for i in self.lab.keys():
             self.pos[i] = [random.randint(m,w),random.randint(m,h)]
                 
+    def cut(self,i):
+        first = True;
+        o = '<text>'
+        for line in self.lab[i].split('\n'):
+            if first:
+                o += line
+                first = False
+            else:
+                o += '<tspan x="0" dy="1.2em">%s</tspan>'%line
+        return o + '</text>'
+
     def draw(self):
         o = '<g id=".nodes" visibility="visible" class="nodes" stroke="none">'
         for i in self.lab.keys():
             if self.pos.has_key(i):
                 t = self.typ[i] if self.typ.has_key(i) else ''
-                o += '<g id="%s" type="%s" transform="translate(%s,%s)"><text>%s</text></g>'%(i,t,self.pos[i][0],self.pos[i][1],self.lab[i])
+                o += '<g id="%s" type="%s" transform="translate(%s,%s)">%s</g>'%(i,t,self.pos[i][0],self.pos[i][1],self.cut(i))
         o += '</g>\n'
         o += '<g id=".connectors" visibility="visible" class="connectors" stroke-width="1">'
         for c in self.connectors:
@@ -308,25 +314,34 @@ def menu():
     o += '<text class="item">Flip connector way</text>'
     return o + '</g>\n'
 
-def menubar(req,full=False,user='',msg=''):
+def menubar(req,action,full=False,user='',msg='',newdoc=False,did=''):
     """ top menu bar """
     o = '<g id=".menubar"><rect class="theme" width="100%" height="18"/>'
     if full:
         (txt,action) = (user,'logout') if user else ('Sign in','signin')
-        o += '<text onclick="%s();" fill="white" text-anchor="end" x="95%%" y="12" class="button">%s<title>%s</title></text>'%(action,txt,action)
-    o += '<text fill="white" onclick="help();" text-anchor="end" x="99%%" y="12" class="button">?<title>Version %s [%s]</title></text>'%(__version__,sha1_pkg(req))
+        o += '<text class="button" onclick="%s();" fill="white" text-anchor="end" x="95%%" y="12">%s<title>%s</title></text>'%(action,txt,action)
+    o += '<text class="button" fill="white" onclick="help();" text-anchor="end" x="99%%" y="12">?<title>Version %s [%s]</title></text>'%(__version__,sha1_pkg(req))
+    o += '<text class="button" fill="white" onclick="%s();" x="46" y="12">%s<title>Fork me on Github!</title></text>'%(action,__TITLE__)
     if full:
+        theid = 'id=".name"'
+        if newdoc:
+            if user:
+                o += '<text %s fill="white" onclick="new_doc();" x="50%%" y="12" class="button">New document<title>Create a new document</title></text>\n'%theid
+        else:
+            o += '<text %s fill="white" onclick="change_name(true);" x="50%%" y="12" class="button">Untitled<title>Change name</title></text><foreignObject display="none" x="50%%" width="120" height="30"><div %s><input onchange="change_name(false);" size="10" value=""/></div></foreignObject>\n'%(theid,_XHTMLNS)
+            if did:
+                o += '<text id=".save" fill="white" onclick="save_doc();" text-anchor="end" x="85%" y="12" class="button">Save</text>\n'
         color = 'red' if msg[:5] == 'Error' else 'white'
-        o += '<text id=".msg" fill="%s" x="200" y="12">%s </text>'%(color,msg)
+        o += logo(False) + '<text id=".msg" fill="%s" x="200" y="12">%s </text>'%(color,msg) 
     return o + '</g>\n'
 
 def gui_elements():
-    """ """
+    """ current node + progress bar + node area """
     o = '<g id=".current" class="current" display="none" stroke="red" stroke-width="2" fill="none"><rect/></g>\n'
     o += '<g id=".currentline" class="current" display="none" stroke="red" stroke-width="2" fill="none"><rect/></g>\n'
     o += '<g display="none" transform="translate(1,10)"><rect text-anchor="end" width="100" height="14" rx="6" ry="6" stroke-width="1px" stroke="#CCC" fill="none"/><rect id=".bar" class="bar" width="0" height="14" rx="6" ry="6"/><text id=".prg" x="44" y="11">0%</text></g>\n'
     o += '<g display="none"><foreignObject id=".area"><textarea %s></textarea></foreignObject></g>\n'%_XHTMLNS
-    return o + '<text id=".debug" class="small" x="300" y="12"> </text>'
+    return o
 
 ##### AJAX CALL ####
 
@@ -501,9 +516,10 @@ def login_page(req):
     return o + logo() + '</g>'
 
 def logo(full=True):    
-    o = '<!-- Copyright 2010 Stephane Macario -->'
+    o = ''
     if not full:
-        o += '<g id=".logo" onclick="switch_mode()">'
+        o += '<g onclick="switch_mode();">'
+    o += '<!-- Copyright 2010 Stephane Macario -->'
     o += '<defs><radialGradient id=".rd1" fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(84.70,0.76,-0.76,84.70,171.57,-156.43)" spreadMethod="pad"><stop style="stop-color:#94d787" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient><radialGradient id=".rd2" fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(84.69,0.76,-0.76,84.69,171.58,-156.42)" spreadMethod="pad"><stop style="stop-color:#94d787" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient><radialGradient id=".rd3" fx="0" fy="0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(161.13,1.45,-1.45,161.13,99.46,-256.92)" spreadMethod="pad"><stop style="stop-color:#bae381" offset="0"/><stop style="stop-color:#6bc62e" offset="1"/></radialGradient></defs>'
     if full:
         o += '<g transform="matrix(0.5,0,0,0.5,120,500)" style="fill:#ffffff;stroke:none">'
@@ -515,7 +531,7 @@ def logo(full=True):
     o += '<g transform="translate(-5.80,-492.07)"><path d="m 194.97,-241.90 c 0.06,-7.29 -0.78,-14.39 -2.40,-21.18 -12.30,42.46 -48.78,74.56 -93.44,80.57 0,0 0.49,1.90 0.49,1.90 7.36,0.32 13.85,5.02 15.66,12.04 1.18,4.60 0.10,9.27 -2.55,13.00 45.51,-2.58 81.83,-40.09 82.25,-86.34 z" style="fill:url(#.rd2);stroke:none"/></g>'
     o += '<g transform="translate(-5.80,-492.07)"><path d="m 174.53,-298.79 c -1.33,2.19 -3.38,4.04 -6.02,5.16 -5.24,2.22 -11.13,0.93 -14.64,-2.79 0,0 -66.45,27.28 -66.45,27.28 -1.04,4.29 -3.88,8.13 -7.94,10.55 0,0 7.64,29.58 7.64,29.58 0,0 50.14,-4.17 50.14,-4.17 0.72,-3.86 3.44,-7.37 7.59,-9.13 6.47,-2.74 13.96,-0.12 16.70,5.84 2.74,5.97 -0.28,13.04 -6.77,15.78 -5.77,2.44 -12.33,0.62 -15.64,-4.01 0,0 -49.83,4.15 -49.83,4.15 0,0 9.82,38.03 9.82,38.03 -4.48,0.60 -9.05,0.94 -13.69,1.00 0,0 -19.33,-74.79 -19.33,-74.79 -6.12,-1.26 -11.20,-5.59 -12.77,-11.67 -2.25,-8.71 3.54,-17.68 12.95,-20.06 8.58,-2.16 17.20,1.96 20.35,9.33 0,0 64.21,-26.35 64.21,-26.35 0.34,-3.82 2.68,-7.39 6.39,-9.47 -13.86,-9.58 -30.63,-15.26 -48.76,-15.42 -48.21,-0.43 -87.64,38.29 -88.07,86.50 -0.17,19.29 5.94,37.17 16.41,51.72 14.04,6.43 29.62,10.11 46.07,10.26 51.89,0.46 95.91,-34.09 109.68,-81.60 -3.19,-13.35 -9.47,-25.51 -18.03,-35.70 z" style="fill:url(#.rd3);stroke:none"/></g><path d="m 145.03,-797.14 c 0,0 -64.21,26.35 -64.21,26.35 -3.14,-7.37 -11.76,-11.49 -20.35,-9.33 -9.40,2.37 -15.20,11.35 -12.95,20.06 1.57,6.08 6.65,10.41 12.77,11.67 0,0 19.33,74.79 19.33,74.79 4.63,-0.05 9.20,-0.39 13.69,-1.00 0,0 -9.82,-38.03 -9.82,-38.03 0,0 49.83,-4.15 49.83,-4.15 3.30,4.64 9.86,6.45 15.64,4.01 6.48,-2.74 9.51,-9.81 6.77,-15.78 -2.74,-5.96 -10.22,-8.59 -16.70,-5.84 -4.14,1.75 -6.86,5.26 -7.59,9.13 0,0 -50.14,4.17 -50.14,4.17 0,0 -7.64,-29.58 -7.64,-29.58 4.05,-2.42 6.89,-6.25 7.94,-10.55 0,0 66.45,-27.28 66.45,-27.28 3.51,3.72 9.40,5.01 14.64,2.79 2.64,-1.11 4.68,-2.96 6.02,-5.16 -5.03,-5.99 -10.84,-11.29 -17.30,-15.75 -3.71,2.08 -6.05,5.65 -6.39,9.47 z"/><path d="m 109.47,-660.64 c -1.81,-7.01 -8.29,-11.71 -15.66,-12.04 0,0 -0.49,-1.90 -0.49,-1.90 -4.48,0.60 -9.05,0.94 -13.69,1.00 0,0 1.34,5.21 1.34,5.21 -4.76,4.00 -7.12,10.21 -5.55,16.29 0.04,0.19 0.12,0.37 0.17,0.56 8.05,2.54 16.61,3.95 25.49,4.03 1.95,0.01 3.89,-0.05 5.82,-0.16 2.65,-3.73 3.74,-8.40 2.55,-13.00 z"/></g>'
     if not full:
-        o += '</g>'
+        o += '</g>\n'
     return o
 
 if __name__ == '__main__':

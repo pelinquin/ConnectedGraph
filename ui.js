@@ -132,7 +132,11 @@ window.onload = function () {
     DD = new dragDrop();
     init_menu();
     init_other();
-    init_editor();
+    if ($('.editor').nodeName == 'div') {
+	init_editor(true);
+    } else {
+	init_editor(false);
+    }
   } else {
     // TODO; unset this property: g.connectors path:hover, .border:hover { opacity:0.3;}
   }
@@ -146,7 +150,7 @@ function stat() {
   return ($('.nodes').childNodes.length + ' nodes ' + $('.connectors').childNodes.length + ' links')
 }
 
-function init_editor() {
+function init_editor(is_ace) {
   // TODO, Patch Ace Code to avoid CSS warnings on box-sizing and appearance
   // Webkit needs position fixed for editor
   //$('.msg').style.setProperty('display','none','');
@@ -158,19 +162,23 @@ function init_editor() {
       startongraph = true;
   }
   $('.editor').parentNode.setAttribute('display','none');
-  editor = ace.edit('.editor'); 
-  editor.setTheme('ace/theme/twilight');
-  var pMode = require('ace/mode/python').Mode;
-  editor.getSession().setMode(new pMode());
-  editor.getSession().doc.on('change', change_editor);
+  if (is_ace) {
+      editor = ace.edit('.editor'); 
+      editor.setTheme('ace/theme/twilight');
+      var pMode = require('ace/mode/python').Mode;
+      editor.getSession().setMode(new pMode());
+      editor.getSession().doc.on('change', change_editor);
+  } else {
+      $('.editor').addEventListener('keypress', change_editor, false);
+  }
   if (startongraph) {
       $('.editor').parentNode.setAttribute('display','inline');
   }
-  //editor.setReadOnly(false); 
 }
 
 function init_other() {
   $('.area').firstChild.addEventListener('change', function(evt) {DD.change(evt);}, false);
+  $('.area').parentNode.setAttribute('visibility', 'hidden');
   // Need an object for getBBox
   var po = document.createElementNS(svgns, 'rect');
   po.id = '.pointer';
@@ -351,8 +359,9 @@ function change_node_content(n,label) {
   $('.current').setAttribute('display','none');
   var t = $(n).getAttribute('type').toUpperCase();
   var nod = $(n).firstChild.nextSibling.nextSibling;
-  var old =  nod.firstChild.nodeValue;
-  nod.firstChild.nodeValue = label;
+  var old = concat_node_text(nod,'|');
+  set_node_text(nod,label);
+  var new_label = concat_node_text(nod,'|');
   var b = nod.getBBox();
   nodeBox[n] = b;
   var bord = $(n).firstChild;
@@ -362,22 +371,30 @@ function change_node_content(n,label) {
   resize_shape(t,b,shape);
   draw_connectors_from(n);
   // Change editor
-  var v = editor.getSession().getValue();
+  var v = get_editor();
   var re = new RegExp(RegExp.quote(n)+'\\s*\\('+RegExp.quote(old)+'\\)');
-  set_editor(v.replace(re,n+'('+label+')'));
+  set_editor(v.replace(re,n+'('+new_label+')'));
   //alert ('APRES\n' + print_nodes());
 }
 
 function set_editor(str) {
   //editor.getSession().getDocument().setValue(str);
-  editor.getSession().setValue(str);
+  //editor.getSession().setValue(str);
   //editor.detach();
-  //editor.getSession().doc.setValue(str);
+  if (editor) {
+      editor.getSession().doc.setValue(str);
+  } else {
+      $('.editor').value = str;
+  }
   //editor.insert("Something cool");
 }
 
-function get_editor() {
-  return editor.getSession().getValue();
+function get_editor() { 
+    if (editor) {
+	return editor.getSession().getValue();
+    } else {
+	return $('.editor').value;
+    }
 }
 
 function signin() {
@@ -394,7 +411,9 @@ function editor_add(txt) {
 }
 
 function change_editor(evt) {
+    show_menu();
   //TODO; link editor content with current diagram!
+    //alert ('here');
   //Parsing on client side
   //update();
   //alert (evt.data.lines);
@@ -422,6 +441,11 @@ function add_connector(n1,n2) {
   editor_add(n1+'->'+n2);
 }
 
+function editor_flip(n1,n2) {
+    var re = new RegExp('(?:[\\W\\.]|\^)' + RegExp.quote(n1) +'\\s*\->\\s*' + RegExp.quote(n2) +'\\b');
+    set_editor(get_editor().replace(re,'\n'+n2+'->'+n1));
+}
+
 function flip_connector(c) {
     var tmp = c.getAttribute('n1');
     c.setAttribute('n1',c.getAttribute('n2'));
@@ -429,6 +453,7 @@ function flip_connector(c) {
     var n1 = c.getAttribute('n1').replace('#','');
     var n2 = c.getAttribute('n2').replace('#','');
     draw_path(c,n1,n2);
+    editor_flip(n1,n2);
 }
 
 function del_connector(c) {
@@ -443,9 +468,7 @@ function del_connector(c) {
   // update editor:
   var n1 = c.getAttribute('n1').replace('#','');
   var n2 = c.getAttribute('n2').replace('#','');
-  n1 = n1.split('.').join('\\.');
-  n2 = n2.split('.').join('\\.');
-  var re = new RegExp('(?:[\\W\\.]|\^)' + n1+'\\s*\->\\s*'+n2+'\\b');
+  var re = new RegExp('(?:[\\W\\.]|\^)' + RegExp.quote(n1) +'\\s*\->\\s*' + RegExp.quote(n2) +'\\b');
   set_editor(get_editor().replace(re,''));
   //alert ('APRES\n' + print_nodes());
 }
@@ -805,16 +828,20 @@ function show_menu(e) {
     if (typeof(e) == 'undefined') {
 	$('.menu').setAttribute('display','none');
     } else {
-	$('.menu').setAttribute('display','inline');
-	var offset = e.clientY - nodeBox['.menu'].y;
-	$('.menu').setAttribute('transform','translate(' + e.clientX + ',' + offset + ')');
-    } 
+	//alert ($('.area').parentNode.getAttribute('visibility'));
+	if ($('.nodes').getAttribute('visibility') == 'visible') {
+	    $('.menu').setAttribute('display','inline');
+	    var offset = e.clientY - nodeBox['.menu'].y;
+	    $('.menu').setAttribute('transform','translate(' + (e.clientX + 5) + ',' + offset + ')');
+	}
+    }
 }
 
 function dragDrop () {
   this.el = null;
   this.node = null;
   this.edit = null;
+  this.editing = false;
   this.connector = null;
   this.border = false;
   this.delay = false;
@@ -829,11 +856,53 @@ function dragDrop () {
   document.documentElement.addEventListener('keydown',   function(evt) {DD.key(evt);}, false);
 }
 
+dragDrop.prototype.background = function(e) {
+    show_menu();
+    if (this.border) {
+	this.border.parentNode.removeChild(this.border);
+	this.border = null;
+    } else {
+	//if ((e.button == 0)&&(!this.edit)) {
+	if (e.button == 0) {
+	    if (!this.editing) {
+		show_menu(e);
+	    }
+	}
+    }
+}
+
+dragDrop.prototype.down_lab = function(e) {
+    var nod = e.target;
+    $('.debug').firstChild.nodeValue = nod.nodeName;
+    if (nod.nodeName == 'svg') {
+	alert ('svg'); // open menu
+    } else if (nod.hasAttribute('class') && nod.getAttribute('class') == 'border') {
+	alert ('border'); 
+    } else {
+	while (nod.parentNode.id[0] != '.' && nod.parentNode.nodeName != 'svg') { nod = nod.parentNode; }
+	if (nod.parentNode.id == '.connectors') { 
+	    alert ('connectors'); // select connector or flip
+	} else if (nod.parentNode.id == '.nodes') {
+	    alert ('nodes'); // select node or edit content
+	} else if (nod.parentNode.id == '.menubar') {
+	    alert ('menubar'); // release menu and selections
+	} else if (nod.parentNode.nodeName == 'svg') {
+	    alert ('svg children'); // open menu
+	} else {
+	    alert ('error! ' + nod.parentNode.id);
+	}
+    }
+}
+
+
 dragDrop.prototype.down = function(e) {
   var nod = e.target;
-  //$('.debug').firstChild.nodeValue = nod.nodeName;
-  // remove drag event propagation:
-  //if (e.button == 2) { e.stopPropagation(); e.preventDefault(); }
+  //$('.debug').firstChild.nodeValue = nod.nodeName + '|' + nod.id;
+  if (this.editing) {
+      if ($('.area').parentNode.getAttribute('visibility') == 'hidden') {
+	  this.editing = false;
+      }
+  }
   if (this.connector) {
     this.connector.firstChild.nextSibling.setAttribute('opacity','1');
     this.connector.firstChild.nextSibling.setAttribute('stroke','gray');
@@ -843,7 +912,7 @@ dragDrop.prototype.down = function(e) {
       $('.msg').removeChild($('.msg').firstChild);
     }
   }
-  if (nod.nodeName != 'textarea') {
+  if (nod.nodeName == 'svg' || nod.parentNode.id != '.area') { 
     if (this.edit) {
       $('.area').parentNode.setAttribute('visibility','hidden');
     }
@@ -852,42 +921,32 @@ dragDrop.prototype.down = function(e) {
     this.node = null;
     $('.current').setAttribute('display','none');
   }
-  if (nod.nodeName == 'svg' || nod.nodeName == 'div') {
-    show_menu();
-    if (this.border) {
-      this.border.parentNode.removeChild(this.border);
-      this.border = null;
-    } else {
-	//if ((e.button == 0)&&(!this.edit)) {
-	if (e.button == 0) {
-	if (nod.nodeName != 'div') {
-	    show_menu(e);
-	} 
-      }
-    }
+  //
+  if (nod.nodeName == 'svg' || nod.id == '.editor') {
+      this.background(e); 
   } else {
-    while (nod.parentNode.id != '.nodes' && nod.parentNode.id != '.connectors' && nod.parentNode.nodeName != 'svg') { 
-      if (nod.hasAttribute('class')) {
-	if (nod.getAttribute('class') == 'border') {
+      if (nod.hasAttribute('class') && (nod.getAttribute('class') == 'border')) {
 	  this.border = document.createElementNS(svgns, 'g');
 	  var p = create_visible_path()
 	  p.setAttribute('pointer-events','none');
 	  p.setAttribute('stroke','yellow'); 
 	  this.border.appendChild(p);
-	}
       }
+    while (nod.parentNode.id != '.nodes' && nod.parentNode.id != '.connectors' && nod.parentNode.id != '.editor' && nod.parentNode.nodeName != 'svg') { 
       nod = nod.parentNode;
     }
     if (nod.parentNode.nodeName == 'svg') {
       show_menu();
-    } else if (nod.parentNode.id == '.connectors') { 
+    } else if (nod.parentNode.id == '.editor') { 
+	this.background(e); 
+    } else if (nod.parentNode.id == '.connectors') {
       show_menu();
       nod.firstChild.nextSibling.setAttribute('opacity','.6');
       nod.firstChild.nextSibling.setAttribute('stroke','red');
       this.connector = nod;
       if (e.detail == 2) { 
 	  flip_connector(nod);
-	  //show_menu(e);
+	  //show_connectormenu(e);
       }
     } else if (nod.parentNode.id == '.nodes') { 
       show_menu();
@@ -908,15 +967,8 @@ dragDrop.prototype.down = function(e) {
 	if (e.detail == 2) { 
 	  this.el = null;
 	  this.edit = nod;
-	  var area = $('.area');
-	  area.setAttribute('width',b.width+50);
-	  area.setAttribute('height',b.height+50);
-	  area.parentNode.setAttribute('transform','translate('+x+','+y+')');
-	  area.firstChild.setAttribute('style','resize:none; border:1px solid #ccc;width:' + (b.width+20)+ 'pt;height:' + (b.height+20)+ 'pt'); 
-	  var txt = nod.firstChild.nextSibling.nextSibling.firstChild.nodeValue;
-	  area.firstChild.value = txt;
-	  $('.area').parentNode.setAttribute('display','inline');
-	  $('.area').parentNode.setAttribute('visibility','visible');
+	  this.editing = true;
+	  set_area(nod.firstChild.nextSibling.nextSibling,x,y,b.width,b.height); 
 	} else {
 	  this.o.x = e.clientX; this.o.y = e.clientY;
 	  this.c = set_current(x,y,b.width+2*this.margin,b.height+2*this.margin);
@@ -927,6 +979,51 @@ dragDrop.prototype.down = function(e) {
     }
   }
 };
+
+function set_node_text(nod,label) {
+    while (nod.hasChildNodes()) { nod.removeChild(nod.firstChild); }
+    var t = label.split('\n');
+    var first = true;
+    for ( var c=0; c<t.length; c++ ) {
+	if (first) {
+	    nod.appendChild(document.createTextNode(t[c]));
+	    first = false;
+	} else {
+	    var n1 = document.createElementNS(svgns,'tspan');
+	    n1.setAttribute('x', 0);
+	    n1.setAttribute('dy', '1.2em');
+	    n1.appendChild(document.createTextNode(t[c]));
+	    nod.appendChild(n1);
+	}
+    }
+}
+
+function concat_node_text(nod,sep) {
+    var txt = '';
+    var t0 = nod.childNodes;
+    for ( var c=0; c<t0.length; c++ ) {
+	if (t0[c].nodeName == '#text') {
+	    txt += t0[c].nodeValue;
+	} else {
+	    var t1 = t0[c].childNodes;
+	    for ( var j=0; j<t1.length; j++ ) {
+		txt += sep+t1[j].nodeValue;
+	    }
+	}
+    }
+    return (txt);
+}
+
+function set_area(nod,x,y,w,h) {
+    var area = $('.area');
+    area.setAttribute('width',w+50);
+    area.setAttribute('height',h+50);
+    area.parentNode.setAttribute('transform','translate('+x+','+y+')');
+    area.firstChild.setAttribute('style','resize:none; border:1px solid #ccc;width:'+(w+20)+'pt;height:'+(h+20)+'pt');
+    area.firstChild.value = concat_node_text(nod,'\n');
+    area.parentNode.setAttribute('display','inline');
+    area.parentNode.setAttribute('visibility','visible');
+}
 
 dragDrop.prototype.change = function(e) {
   if (this.edit) {
@@ -957,14 +1054,17 @@ dragDrop.prototype.up = function(e) {
   if (this.border) {
     var found = false;
     var nod = e.target;
-    if (nod.nodeName == 'svg' || nod.nodeName == 'div') {
+    if (nod.nodeName == 'svg' || nod.id == '.editor') {
       this.delay = true;
       show_menu(e);
     } else {
-      while (nod.parentNode.id != '.nodes' && nod.parentNode.nodeName != 'svg') { 
+      while (nod.parentNode.id != '.nodes' && nod.parentNode.id != '.editor' && nod.parentNode.nodeName != 'svg') { 
         nod = nod.parentNode;
       }
-      if (nod.parentNode.id == '.nodes') { 
+      if (nod.parentNode.id == '.editor') { 
+	  this.delay = true;
+	  show_menu(e);
+      } else if (nod.parentNode.id == '.nodes') { 
 	var n1 = this.border.getAttribute('n1').replace('#','');
 	if (test_if_connector_exist(n1,nod.id)) {
 	  found = true;

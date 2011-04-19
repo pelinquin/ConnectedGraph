@@ -364,8 +364,7 @@ def index(req):
     o += '<script %s type="text/ecmascript" xlink:href="test_client.js"></script>\n'%ui._XLINKNS
     o += '<foreignObject display="none" width="100%%" height="100%%"><div %s id=".editor" class="editor"></div></foreignObject>'%ui._XHTMLNS
     mygraph = ui.cg('')
-    o += mygraph.draw() + ui.menu() + ui.gui_elements() + ui.menubar(req)
-    o += '<text fill="white" onclick="reload();" x="46" y="12" class="button">%s<title>Use the tool!</title></text>'%ui.__TITLE__
+    o += mygraph.draw() + ui.menu() + ui.gui_elements() + ui.menubar(req,'reload')
     o += '<g onclick="run_tests();"><rect x="160" width="70" height="18" fill="red" class="button"/><text y="12" x="166" class="button" fill="white">Run tests</text></g><g transform="translate(5,20)"><text id=".results" stroke-width="0"/></g>'
     o += '<g onclick="update_tool();"><rect x="245" width="80" height="18" fill="red" class="button"/><text y="12" x="251" class="button" fill="white">Update tool</text></g>'
     return o + '</svg>'
