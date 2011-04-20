@@ -156,6 +156,7 @@ def common(req=None,pfx='.',did='',edit=False,user='',msg='',mode='',newdoc=Fals
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
     if edit:
         o += include_ace(pfx)
+        o += '<script %s type="text/ecmascript" xlink:href="%s/diff_match_patch.js"></script>\n'%(_XLINKNS,pfx)
     o += '<script %s type="text/ecmascript" xlink:href="%s/%s"></script>\n'%(_XLINKNS,pfx,__JS__)
     o += defs()
     if edit:

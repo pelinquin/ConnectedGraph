@@ -253,7 +253,7 @@ function get_init_shape(t,up) {
   if (t=='REQUIREMENT' || t=='GOAL') {
     fig.setAttribute('rx', '4');
     fig.setAttribute('transform', 'skewX(-10)'); 
-  } else if (t=='CLASS' || t == 'ENTITY'|| t=='EXPECTATION') {
+  } else if (t == 'ENTITY'|| t=='EXPECTATION' || t=='CLASS' ) {
     fig.setAttribute('rx', '1');
   } else if (t=='OBSTACLE') {
     fig.setAttribute('transform', 'skewX(10)'); 
@@ -339,6 +339,11 @@ function init_draw_node(nod) {
   tid.setAttribute('text-anchor','end');
   tid.setAttribute('class', 'tiny');
   tid.appendChild(document.createTextNode(nod.id.toUpperCase()));
+  var sep = document.createElementNS(svgns,'path'); 
+  sep.setAttribute('stroke','gray');
+  var sw = 0;
+  if (t == 'CLASS') { sw = 1; }
+  sep.setAttribute('stroke-width',sw);
   var title = document.createElementNS(svgns,'title');
   title.appendChild(document.createTextNode(nod.id.toUpperCase()+':'+t));
   var bord = get_init_shape(t,false);
@@ -350,7 +355,9 @@ function init_draw_node(nod) {
   nod.appendChild(txt);
   nod.appendChild(tid);
   nod.appendChild(title);
+  nod.appendChild(sep);
   tid.setAttribute('x',b.width);
+  sep.setAttribute('d','M-5,4 l'+(b.width+10)+',0');
   resize_shape(t,b,bord);
   resize_shape(t,b,shape);
 }
@@ -367,6 +374,7 @@ function change_node_content(n,label) {
   var bord = $(n).firstChild;
   var shape = $(n).firstChild.nextSibling;
   $(n).childNodes[4].setAttribute('x',b.width);
+  $(n).childNodes[6].setAttribute('d','M-5,4 l'+(b.width+10)+',0');
   resize_shape(t,b,bord);
   resize_shape(t,b,shape);
   draw_connectors_from(n);
@@ -1015,11 +1023,13 @@ function concat_node_text(nod,sep) {
 }
 
 function set_area(nod,x,y,w,h) {
+    if (w<30) {w=30;}
+    if (h<20) {h=20;}
     var area = $('.area');
-    area.setAttribute('width',w+50);
-    area.setAttribute('height',h+50);
+    area.setAttribute('width',w+35);
+    area.setAttribute('height',h+35);
     area.parentNode.setAttribute('transform','translate('+x+','+y+')');
-    area.firstChild.setAttribute('style','resize:none; border:1px solid #ccc;width:'+(w+20)+'pt;height:'+(h+20)+'pt');
+    area.firstChild.setAttribute('style','resize:none; border:1px solid #ccc;width:'+(w+30)+'px;height:'+(h+30)+'px');
     area.firstChild.value = concat_node_text(nod,'\n');
     area.parentNode.setAttribute('display','inline');
     area.parentNode.setAttribute('visibility','visible');
