@@ -19,6 +19,7 @@
 // Use the compressed version: uimin.js
 
 const svgns   = 'http://www.w3.org/2000/svg';
+const xlinkns = 'http://www.w3.org/1999/xlink';
 
 //---------- Utilities ----------
 if (typeof($)=='undefined') { 
@@ -342,15 +343,15 @@ function init_draw_node(nod) {
   tid.appendChild(document.createTextNode(nod.id.toUpperCase()));
   var sep = document.createElementNS(svgns,'path'); 
   sep.setAttribute('stroke','gray');
+  var sep1 = document.createElementNS(svgns,'path'); 
+  sep1.setAttribute('stroke','gray');
   var sw = 0;
   if (t == 'CLASS') { 
       sw = 1; 
-      nod.firstChild.firstChild.setAttribute('x',(b.width/2));
-      nod.firstChild.firstChild.setAttribute('text-anchor','middle');
-      nod.firstChild.firstChild.setAttribute('font-weight','bold');
-
+      set_node_header(nod.firstChild.firstChild,b.width/2);
   }
   sep.setAttribute('stroke-width',sw);
+  sep1.setAttribute('stroke-width',sw);
   var title = document.createElementNS(svgns,'title');
   title.appendChild(document.createTextNode(nod.id.toUpperCase()+':'+t));
   var bord = get_init_shape(t,false);
@@ -363,10 +364,18 @@ function init_draw_node(nod) {
   nod.appendChild(tid);
   nod.appendChild(title);
   nod.appendChild(sep);
+  nod.appendChild(sep1);
   tid.setAttribute('x',b.width);
   sep.setAttribute('d','M-6,3 l'+(b.width+10)+',0');
+  sep1.setAttribute('d','M-6,20 l'+(b.width+10)+',0');
   resize_shape(t,b,bord);
   resize_shape(t,b,shape);
+}
+
+function set_node_header(nod,x) {
+    nod.setAttribute('x',x); 
+    nod.setAttribute('text-anchor','middle');
+    nod.setAttribute('font-weight','bold');
 }
 
 function change_node_content(n,label) {
@@ -383,9 +392,7 @@ function change_node_content(n,label) {
   $(n).childNodes[4].setAttribute('x',b.width);
   $(n).childNodes[6].setAttribute('d','M-5,4 l'+(b.width+10)+',0');
   if (t == 'CLASS') { 
-      nod.firstChild.setAttribute('x',(b.width/2)); 
-      nod.firstChild.setAttribute('text-anchor','middle');
-      nod.firstChild.setAttribute('font-weight','bold');
+      set_node_header(nod.firstChild,b.width/2);
   }
   resize_shape(t,b,bord);
   resize_shape(t,b,shape);
@@ -515,6 +522,16 @@ function Connector(el,n1,n2) {
   nodeLink[n2].push(el);
   el.appendChild(create_selection_path());
   el.appendChild(create_visible_path());
+  // test to add text on the path
+  //var t = document.createElementNS(svgns, 'text');
+  //var p = document.createElementNS(svgns, 'textPath');
+  //p.appendChild(document.createTextNode('Hello this is text'));
+  //p.setAttribute('xmlns:xlink',xlinkns); 
+  //p.setAttribute('xlink:href','#ZZ');
+  //p.setAttribute('stroke','red');
+  //t.appendChild(p);
+  //el.appendChild(t);
+  //el.firstChild.nextSibling.setAttribute('id','ZZ');
   draw_path(el,n1,n2);
 }
 
@@ -524,7 +541,7 @@ function create_selection_path() {
   p.setAttribute('stroke-width','8');
   p.setAttribute('stroke-linecap','round');
   p.setAttribute('stroke','yellow');
-  p.setAttribute('opacity','0');
+  p.setAttribute('opacity','0'); 
   return (p);
 }
 
@@ -532,10 +549,12 @@ function create_visible_path() {
   var p = document.createElementNS(svgns, 'path');
   p.setAttribute('fill','none');
   p.setAttribute('marker-end','url(#.arrow)');
-  //p.setAttribute('marker-mid','url(#.conflict)'); REVOIR
   p.setAttribute('stroke-width','1.8');
   p.setAttribute('stroke-linecap','round');
   p.setAttribute('stroke','gray');
+  p.setAttribute('marker-start', 'url(#.simple_start)'); 
+  p.setAttribute('marker-end', 'url(#.simple_end)');
+  //p.setAttribute('marker-mid', 'url(#.conflict)');
   return (p);
 }
 
