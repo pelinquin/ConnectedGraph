@@ -130,7 +130,7 @@ window.onload = function () {
   // Select mode (edit or readonly)
   if (document.documentElement.getAttribute('editable') == 'yes') {
     DD = new dragDrop();
-    $('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid') + ' ' + document.documentElement.getAttribute('uid');
+    //$('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid') + ' ' + document.documentElement.getAttribute('uid');
     init_menu();
     init_other();
     if ($('.editor').nodeName == 'div') {
