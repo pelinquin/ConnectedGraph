@@ -261,7 +261,7 @@ class cg:
         o = '<text>'
         for line in self.lab[i].split('\n'):
             if first:
-                o += line
+                o += '<tspan>%s</tspan>'%line
                 first = False
             else:
                 o += '<tspan x="0" dy="1.2em">%s</tspan>'%line

@@ -343,7 +343,13 @@ function init_draw_node(nod) {
   var sep = document.createElementNS(svgns,'path'); 
   sep.setAttribute('stroke','gray');
   var sw = 0;
-  if (t == 'CLASS') { sw = 1; }
+  if (t == 'CLASS') { 
+      sw = 1; 
+      nod.firstChild.firstChild.setAttribute('x',(b.width/2));
+      nod.firstChild.firstChild.setAttribute('text-anchor','middle');
+      nod.firstChild.firstChild.setAttribute('font-weight','bold');
+
+  }
   sep.setAttribute('stroke-width',sw);
   var title = document.createElementNS(svgns,'title');
   title.appendChild(document.createTextNode(nod.id.toUpperCase()+':'+t));
@@ -376,6 +382,11 @@ function change_node_content(n,label) {
   var shape = $(n).firstChild.nextSibling;
   $(n).childNodes[4].setAttribute('x',b.width);
   $(n).childNodes[6].setAttribute('d','M-5,4 l'+(b.width+10)+',0');
+  if (t == 'CLASS') { 
+      nod.firstChild.setAttribute('x',(b.width/2)); 
+      nod.firstChild.setAttribute('text-anchor','middle');
+      nod.firstChild.setAttribute('font-weight','bold');
+  }
   resize_shape(t,b,bord);
   resize_shape(t,b,shape);
   draw_connectors_from(n);
@@ -430,7 +441,9 @@ function change_editor(evt) {
 
 function add_node(n,typ,label,x,y) {
   var txt = document.createElementNS(svgns, 'text');
-  txt.appendChild(document.createTextNode(label));
+  var ts = document.createElementNS(svgns, 'tspan');
+  ts.appendChild(document.createTextNode(label));
+  txt.appendChild(ts);
   var g = document.createElementNS(svgns, 'g');
   g.setAttribute('id', n);
   g.setAttribute('type', typ);
@@ -995,7 +1008,9 @@ function set_node_text(nod,label) {
     var first = true;
     for ( var c=0; c<t.length; c++ ) {
 	if (first) {
-	    nod.appendChild(document.createTextNode(t[c]));
+	    var n1 = document.createElementNS(svgns,'tspan');
+	    n1.appendChild(document.createTextNode(t[c]));
+	    nod.appendChild(n1);
 	    first = false;
 	} else {
 	    var n1 = document.createElementNS(svgns,'tspan');
@@ -1009,14 +1024,14 @@ function set_node_text(nod,label) {
 
 function concat_node_text(nod,sep) {
     var txt = '';
+    var sep1 = '';
     var t0 = nod.childNodes;
     for ( var c=0; c<t0.length; c++ ) {
-	if (t0[c].nodeName == '#text') {
-	    txt += t0[c].nodeValue;
-	} else {
+	if (t0[c].nodeName != '#text') {
 	    var t1 = t0[c].childNodes;
 	    for ( var j=0; j<t1.length; j++ ) {
-		txt += sep+t1[j].nodeValue;
+		txt += sep1+t1[j].nodeValue;
+		sep1 = sep;
 	    }
 	}
     }
@@ -1032,6 +1047,7 @@ function set_area(nod,x,y,w,h) {
     area.parentNode.setAttribute('transform','translate('+x+','+y+')');
     area.firstChild.setAttribute('style','resize:none; border:1px solid #ccc;width:'+(w+30)+'px;height:'+(h+30)+'px');
     area.firstChild.value = concat_node_text(nod,'\n');
+    //alert (area.firstChild.value);
     area.parentNode.setAttribute('display','inline');
     area.parentNode.setAttribute('visibility','visible');
 }
