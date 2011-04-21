@@ -32,7 +32,7 @@ import datetime
 import hashlib,base64
 from subprocess import Popen, PIPE
 
-__version__='0.2c'
+__version__='0.2d'
 __TITLE__='Connected Graph'
 
 __BASE__='/tmp'
@@ -106,10 +106,11 @@ def documents(req,login='',pw='',pw2=''):
 
 def edit(req,id='',login='',pw='',pw2='',mode='',newdoc=False):
     """ edit mode """
+    did = id # id is a reserved name in python but we want it as an URL parameter
     base='%s/cg'%__BASE__
     if not os.path.isdir(base):
         os.mkdir(base)
-    msg,user,ip = '','',get_ip(req)
+    msg,user,ip,uid = '','',get_ip(req),''
     if login:
         if pw2:
             if register_user(login,pw,pw2,ip):
@@ -124,34 +125,34 @@ def edit(req,id='',login='',pw='',pw2='',mode='',newdoc=False):
             else:
                 msg = 'Error: bad login or password!'
     else:
-        user = load_session(req)
+        user,uid = load_session(req)
     #user = 'toto'
-    return common(req,'..',id,True,user,msg,mode,newdoc)
+    return main_call(req,'..',did,uid,True,user,msg,mode,newdoc)
 
 def index(req):
     """ readonly mode"""
-    return common(req)
+    return main_call(req)
 
 def include_ace(pfx):
     support = '%s/support/ace/build/src'%pfx
     return '<script %s type="text/ecmascript" xlink:href="%s/ace.js"></script><script %s type="text/ecmascript" xlink:href="%s/theme-twilight.js"></script><script %s type="text/ecmascript" xlink:href="%s/mode-python.js"></script>'%(_XLINKNS,support,_XLINKNS,support,_XLINKNS,support)
 
-def common(req=None,pfx='.',did='',edit=False,user='',msg='',mode='',newdoc=False):
+def main_call(req=None,pfx='.',did='',uid='',edit=False,user='',msg='',mode='',newdoc=False):
     """ common to readonly and edit mode"""
     value = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(req.args))) if req.args else ''
     value = re.sub('mode=[^&]*&?','',value)
     value = re.sub('id=[^&]*&?','',value)
-    #from mod_python import Session
+    from mod_python import Session
+    sid = "no sessionID!"
     #s = Session.MemorySession(req)
     #s.load()
     #sid = s.id()
-    sid = "bleble"
     #if value == '':
     #    return doc_list(req,user)
     req.content_type = 'application/xhtml+xml'
     o = '<?xml version="1.0" encoding="UTF-8"?>\n'
     o += '<?xml-stylesheet href="%s/%s" type="text/css"?>\n'%(pfx,__CSS__)
-    o += '<svg %s editable="%s" user="%s" did="%s" tool="%s" sid="%s">\n'%(_SVGNS,'yes' if edit else 'no',user,did,__version__,sid)
+    o += '<svg %s editable="%s" user="%s" did="%s" tool="%s" sid="%s" uid="%s">\n'%(_SVGNS,'yes' if edit else 'no',user,did,__version__,sid,uid)
     o += '<title id=".title">%s</title>'%__TITLE__
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
     if edit:
@@ -429,22 +430,34 @@ def read_doc(req,user,did,sid):
     stack.close()
     return o
 
+def reset(req,pw):
+    """ clear GIT database....
+    you must provide the right password for reseting the database !
+    """
+    req.content_type = 'text/plain'
+    if hashlib.sha1(pw).hexdigest() == 'd2cd4178312fa9485b750280bc863d8b1ac9e9bf':
+        Popen(('rm -rf %s/cg;'%__BASE__), shell=True).communicate()
+        return 'reset done'
+    return 'reset no allowed !'
+
 ##### SESSION ####
 
 def load_session(req):
     """ """
     from mod_python import Session
-    session = Session.DbmSession(req)
-    session.load()
-    user = session['user'] if session.has_key('user') else ''
-    return user
+    s = Session.DbmSession(req)    
+    #s = Session.MemorySession(req)
+    s.load()
+    user = s['user'] if s.has_key('user') else ''
+    return user,s.id()
 
 def save_session(req,user=''):
     """ """
     from mod_python import Session
-    session = Session.DbmSession(req)
-    session['user'] = user
-    session.save()
+    s = Session.DbmSession(req) 
+    #s = Session.MemorySession(req)
+    s['user'] = user
+    s.save()
     req.content_type = 'text/plain'
     return 'ok'
 

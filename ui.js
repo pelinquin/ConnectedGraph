@@ -130,6 +130,7 @@ window.onload = function () {
   // Select mode (edit or readonly)
   if (document.documentElement.getAttribute('editable') == 'yes') {
     DD = new dragDrop();
+    $('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid') + ' ' + document.documentElement.getAttribute('uid');
     init_menu();
     init_other();
     if ($('.editor').nodeName == 'div') {
@@ -357,7 +358,7 @@ function init_draw_node(nod) {
   nod.appendChild(title);
   nod.appendChild(sep);
   tid.setAttribute('x',b.width);
-  sep.setAttribute('d','M-5,4 l'+(b.width+10)+',0');
+  sep.setAttribute('d','M-6,3 l'+(b.width+10)+',0');
   resize_shape(t,b,bord);
   resize_shape(t,b,shape);
 }
@@ -881,7 +882,7 @@ dragDrop.prototype.background = function(e) {
 
 dragDrop.prototype.down_lab = function(e) {
     var nod = e.target;
-    $('.debug').firstChild.nodeValue = nod.nodeName;
+    //$('.debug').firstChild.nodeValue = nod.nodeName;
     if (nod.nodeName == 'svg') {
 	alert ('svg'); // open menu
     } else if (nod.hasAttribute('class') && nod.getAttribute('class') == 'border') {
@@ -1249,7 +1250,6 @@ function uploadCanceled(evt) {
 }
 
 function fork(flag) {
-    alert ('fork');
   document.location.href = 'https://github.com/pelinquin/ConnectedGraph';
 }
 
