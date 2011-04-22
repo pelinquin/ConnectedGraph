@@ -130,7 +130,9 @@ window.onload = function () {
   if (!is_browser_compatible()) alert ('Browser not supported !');
   // Select mode (edit or readonly)
   if (document.documentElement.getAttribute('editable') == 'yes') {
-    DD = new dragDrop();
+      if (!document.documentElement.hasAttribute('test')) {
+	  DD = new dragDrop();
+      }
     //$('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid') + ' ' + document.documentElement.getAttribute('uid');
     init_menu();
     init_other();
@@ -498,6 +500,19 @@ function flip_connector(c) {
     var n2 = c.getAttribute('n2').replace('#','');
     draw_path(c,n1,n2);
     editor_flip(n1,n2);
+}
+
+function del_link(n1,n2) {
+    var tco = $('.connectors').childNodes;
+    for ( var c=0; c<tco.length; c++ ) {
+	if (tco[c].nodeName[0] != '#') {
+	    var nc1 = tco[c].getAttribute('n1').replace('#','');
+	    var nc2 = tco[c].getAttribute('n2').replace('#','');
+	    if ((n1 == nc1) && (n2 == nc2)) {
+		del_connector(tco[c]);
+	    }
+	}
+    }
 }
 
 function del_connector(c) {

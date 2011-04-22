@@ -24,7 +24,12 @@ function clear_all() {
     nodeBox = [];
 }
 
-var tests = [ 'test_add_node','test_add_connector','test_editor','test_clear'];
+var tests = [ 'test_add_node',
+	      'test_add_connector',
+	      'test_editor',
+	      'test_clear',
+	      'test_add_del',
+	      'test_add_del1'];
 
 function test_add_node() {
     add_node('n1','Goal','lab1',100,100);
@@ -38,15 +43,32 @@ function test_add_connector() {
 }
 
 function test_editor() {
-    var exp = 'n1(lab1):Goal\nn2(lab2):Goal\nn1->n2'
-    assertEquals(exp,editor.getSession().getValue());
+    assertEquals('n1(lab1):Goal\nn2(lab2):Goal\nn1->n2',get_editor());
 } 
 
 function test_clear() {
     del_node('n1');
     del_node('n2');
-    assertEquals('',print_nodes());
-    assertEquals('',editor.getSession().getValue());
+    assertEquals('',print_nodes() + get_editor());
+}
+
+function test_add_del() {
+    add_node('n1','Goal','lab1',120,120); 
+    add_node('n2','Goal','lab2',120,120); 
+    add_connector('n1','n2');
+    del_node('n1');
+    assertEquals('n2(lab2):Goal',get_editor());
+    del_node('n2');
+}
+
+function test_add_del1() {
+    add_node('n1','Goal','lab1',120,120); 
+    add_node('n2','Goal','lab2',120,120); 
+    add_connector('n1','n2');
+    del_link('n1','n2');
+    assertEquals('n1(lab1):Goal\nn2(lab2):Goal',get_editor());
+    del_node('n2');
+    del_node('n1');
 }
 
 

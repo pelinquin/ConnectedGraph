@@ -356,7 +356,7 @@ def index(req):
     req.content_type = 'application/xhtml+xml'
     o = '<?xml version="1.0" encoding="UTF-8"?>\n'
     o += '<?xml-stylesheet href="%s" type="text/css"?>\n'%ui.__CSS__
-    o += '<svg %s editable="yes">\n'%ui._SVGNS
+    o += '<svg %s editable="yes" test="yes">\n'%ui._SVGNS
     o += '<title id=".title">Test</title>'
     o += '<link %s rel="shortcut icon" href="logo16.png"/>\n'%ui._XHTMLNS
     o += ui.include_ace('.')
