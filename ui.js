@@ -499,7 +499,20 @@ function flip_connector(c) {
     var n1 = c.getAttribute('n1').replace('#','');
     var n2 = c.getAttribute('n2').replace('#','');
     draw_path(c,n1,n2);
-    editor_flip(n1,n2);
+    editor_flip(n2,n1);
+}
+
+function flip_link(n1,n2) {
+    var tco = $('.connectors').childNodes;
+    for ( var c=0; c<tco.length; c++ ) {
+	if (tco[c].nodeName[0] != '#') {
+	    var nc1 = tco[c].getAttribute('n1').replace('#','');
+	    var nc2 = tco[c].getAttribute('n2').replace('#','');
+	    if ((n1 == nc1) && (n2 == nc2)) {
+		flip_connector(tco[c]);
+	    }
+	}
+    }
 }
 
 function del_link(n1,n2) {
@@ -529,21 +542,17 @@ function del_connector(c) {
   var n2 = c.getAttribute('n2').replace('#','');
   var re = new RegExp('(?:[\\W\\.]|\^)' + RegExp.quote(n1) +'\\s*\->\\s*' + RegExp.quote(n2) +'\\b');
   set_editor(get_editor().replace(re,''));
-  //alert ('APRES\n' + print_nodes());
+  //alert (print_nodes());
 }
 
 function del_node(n) {
-  //alert ('del node ' + n );
-  var t = nodeLink[n];
-  while (t.length != 0) {
-    del_connector(t[0]);
-  }
+  var tab = nodeLink[n];
+  while (tab.length != 0) { del_connector(tab[0]); }
   var nod = $(n);
+  var t = nod.getAttribute('type');
   nod.parentNode.removeChild(nod);
   delete nodeLink[n];
-  //alert (print_nodes());
-  // update editor:
-  var re = new RegExp(RegExp.quote(n) + '\\([^\\)]*\\):Goal\\s?');
+  var re = new RegExp(RegExp.quote(n) + '\\([^\\)]*\\):'+t+'\\s?');
   set_editor(get_editor().replace(re,''));
 }
 
@@ -603,7 +612,7 @@ function create_visible_path() {
   return (p);
 }
 
-function draw_path(el,n1,n2) {
+function draw_path(el,n1,n2) { 
   // Optimization to do: only one node transformation should be computed!
   var childs = el.childNodes;
   var t1 = $(n1).getCTM();

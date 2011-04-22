@@ -29,7 +29,8 @@ var tests = [ 'test_add_node',
 	      'test_editor',
 	      'test_clear',
 	      'test_add_del',
-	      'test_add_del1'];
+	      'test_add_del1',
+	      'test_flip'];
 
 function test_add_node() {
     add_node('n1','Goal','lab1',100,100);
@@ -71,7 +72,15 @@ function test_add_del1() {
     del_node('n1');
 }
 
-
+function test_flip() {
+    add_node('n1','Goal','lab1',10,10); 
+    add_node('n2','Requirement','lab2',10,10); 
+    add_connector('n1','n2');
+    flip_link('n1','n2');
+    assertEquals('n1(lab1):Goal\nn2(lab2):Requirement\nn2->n1',get_editor());
+    del_node('n1');
+    del_node('n2');
+}
 
 ///////////////////////////// glue ////////////////////
 
