@@ -336,20 +336,19 @@ function init_draw_node(nod) {
   sep.setAttribute('stroke','gray');
   var sep1 = document.createElementNS(svgns,'path'); 
   sep1.setAttribute('stroke','gray');
-  var sw = 0;
   if (t == 'CLASS') { 
-      sw = 1; 
       set_node_header(nod.firstChild.firstChild,b.width/2);
+      set_separators(nod.firstChild.childNodes.length,sep,sep1,b.width);
+  } else {
+      sep.setAttribute('stroke-width',0);
+      sep1.setAttribute('stroke-width',0);
   }
-  sep.setAttribute('stroke-width',sw);
-  sep1.setAttribute('stroke-width',sw);
   var title = document.createElementNS(svgns,'title');
   title.appendChild(document.createTextNode(nod.id.toUpperCase()+':'+t));
   var bord = get_init_shape(t,false);
   var shape = get_init_shape(t,true)
   //shape.setAttribute('filter','url(#.shadow)'); // pb with Safari
   shape.setAttribute('stroke','gray');
-  set_separators(nod.firstChild.childNodes.length,sep,sep1,b.width)
   nod.insertBefore(bord,nod.firstChild);
   nod.insertBefore(shape,nod.lastChild);
   nod.appendChild(txt);
@@ -400,9 +399,9 @@ function change_node_content(n,label) {
   var bord = $(n).firstChild;
   var shape = $(n).firstChild.nextSibling;
   $(n).childNodes[4].setAttribute('x',b.width);
-  set_separators(nod.childNodes.length,$(n).childNodes[6],$(n).childNodes[7],b.width)
   if (t == 'CLASS') { 
       set_node_header(nod.firstChild,b.width/2);
+      set_separators(nod.childNodes.length,$(n).childNodes[6],$(n).childNodes[7],b.width)
   }
   resize_shape(t,b,bord);
   resize_shape(t,b,shape);
@@ -443,8 +442,13 @@ function signin() {
 }
 
 function editor_add(txt) {
-  //alert (editor);
-  set_editor(get_editor() + '\n' + txt); 
+    //alert (editor);
+    var sep = '';
+    var old = get_editor();
+    if (old != '') {
+	sep = '\n';
+    }
+    set_editor(old + sep + txt); 
 }
 
 function change_editor(evt) {
@@ -469,6 +473,7 @@ function add_node(n,typ,label,x,y) {
   $('.nodes').appendChild(g);
   init_draw_node(g);
   editor_add(n+'('+label+'):'+typ);
+  //alert (print_nodes()); // debug
 }
 
 function add_connector(n1,n2) {
@@ -970,7 +975,9 @@ dragDrop.prototype.down = function(e) {
     }
   }
   if (nod.nodeName != 'input' && nod.id != '.name') { 
-      $('.name').nextSibling.setAttribute('display','none');
+      if ($('.name')) {
+	  $('.name').nextSibling.setAttribute('display','none');
+      }
   }
   if (this.node) {
     this.node = null;
@@ -1323,7 +1330,7 @@ function print_nodes() {
   var msg = '';
   for ( var i in nodeLink) {
     var tab = nodeLink[i];
-    msg += i + '('+tab.length + ')' + $(i).firstChild.nextSibling.nextSibling.firstChild.nodeValue; 
+    msg += i + '('+tab.length + ')' + concat_node_text($(i).firstChild.nextSibling.nextSibling,'|');
     for ( var j=0; j<tab.length; j++ ) {
       msg += ':'+tab[j].getAttribute('n1')+ ' ' + tab[j].getAttribute('n2'); 
     }

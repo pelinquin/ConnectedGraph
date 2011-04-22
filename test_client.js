@@ -38,14 +38,15 @@ function test_add_connector() {
 }
 
 function test_editor() {
-    var exp = '\nn1(lab1):Goal\nn2(lab2):Goal\nn1->n2'
+    var exp = 'n1(lab1):Goal\nn2(lab2):Goal\nn1->n2'
     assertEquals(exp,editor.getSession().getValue());
 } 
 
 function test_clear() {
     del_node('n1');
     del_node('n2');
-    assertEquals('\n',print_nodes() + editor.getSession().getValue());
+    assertEquals('',print_nodes());
+    assertEquals('',editor.getSession().getValue());
 }
 
 
