@@ -39,7 +39,7 @@ text.button:hover { font-weight:bold;}
 .current { opacity:0.6;}
 .theme { fill:#69F;}
 
-g.connectors path:hover{ opacity:0.3; cursor:crosshair;}
+g.connectors path:hover, g.connectors circle:hover { opacity:0.3; cursor:crosshair;}
 /*g.nodes g rect:hover{ stroke:red; stroke-width:2; cursor:crosshair; }*/
 /*.nodes g:hover { stroke:red; stroke-width:2; cursor:crosshair; }*/
 .border:hover { opacity:0.3;}

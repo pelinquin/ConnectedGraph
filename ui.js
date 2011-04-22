@@ -155,13 +155,9 @@ function stat() {
 function init_editor(is_ace) {
   // TODO, Patch Ace Code to avoid CSS warnings on box-sizing and appearance
   // Webkit needs position fixed for editor
-  //$('.msg').style.setProperty('display','none','');
   if (is_webkit()) {
     $('.editor').style.setProperty('position','fixed','');
   }
-  //var startongraph = false;
-  //if ($('.editor').parentNode.getAttribute('display') == 'inline') { startongraph = true; }
-  //$('.editor').parentNode.setAttribute('display','none');
   if (is_ace) {
       editor = ace.edit('.editor'); 
       editor.setTheme('ace/theme/twilight');
@@ -171,7 +167,6 @@ function init_editor(is_ace) {
   } else {
       $('.editor').addEventListener('keypress', change_editor, false);
   }
-  //if (startongraph) { $('.editor').parentNode.setAttribute('display','inline'); }
 }
 
 function init_other() {
@@ -547,7 +542,22 @@ function Connector(el,n1,n2) {
   //t.appendChild(p);
   //el.appendChild(t);
   //el.firstChild.nextSibling.setAttribute('id','ZZ');
+  
+  // end path selection circles
+  //el.appendChild(create_selection_circle(n1));
+  //el.appendChild(create_selection_circle(n2));
   draw_path(el,n1,n2);
+}
+
+function create_selection_circle(n) {
+    var c = document.createElementNS(svgns, 'circle');
+    c.setAttribute('id','_'+n);
+    c.setAttribute('r','10');
+    c.setAttribute('fill','none');
+    c.setAttribute('stroke-width','10');
+    c.setAttribute('stroke','yellow');
+    c.setAttribute('opacity','0'); 
+    return (c);
 }
 
 function create_selection_path() {
@@ -576,11 +586,21 @@ function create_visible_path() {
 function draw_path(el,n1,n2) {
   // Optimization to do: only one node transformation should be computed!
   var childs = el.childNodes;
-  var d = trunk_path_curve(nodeBox[n1],nodeBox[n2],$(n1).getCTM(),$(n2).getCTM());
+  var t1 = $(n1).getCTM();
+  var t2 = $(n2).getCTM();
+  var d = trunk_path_curve(nodeBox[n1],nodeBox[n2],t1,t2);
   for (var n=0; n<childs.length; n++) {
     if (childs[n].nodeName == 'path') {
       childs[n].setAttribute( 'd', d ); 
-    } 
+    } else if (childs[n].nodeName == 'circle') {
+	if (childs[n].id == '_'+n1) {
+	    childs[n].setAttribute( 'cx', t1.e ); 
+	    childs[n].setAttribute( 'cy', t1.f );
+	} else {
+	    childs[n].setAttribute( 'cx', t2.e ); 
+	    childs[n].setAttribute( 'cy', t2.f );
+	} 
+    }
   }
 }
 
@@ -927,30 +947,6 @@ dragDrop.prototype.background = function(e) {
     }
 }
 
-dragDrop.prototype.down_lab = function(e) {
-    var nod = e.target;
-    //$('.debug').firstChild.nodeValue = nod.nodeName;
-    if (nod.nodeName == 'svg') {
-	alert ('svg'); // open menu
-    } else if (nod.hasAttribute('class') && nod.getAttribute('class') == 'border') {
-	alert ('border'); 
-    } else {
-	while (nod.parentNode.id[0] != '.' && nod.parentNode.nodeName != 'svg') { nod = nod.parentNode; }
-	if (nod.parentNode.id == '.connectors') { 
-	    alert ('connectors'); // select connector or flip
-	} else if (nod.parentNode.id == '.nodes') {
-	    alert ('nodes'); // select node or edit content
-	} else if (nod.parentNode.id == '.menubar') {
-	    alert ('menubar'); // release menu and selections
-	} else if (nod.parentNode.nodeName == 'svg') {
-	    alert ('svg children'); // open menu
-	} else {
-	    alert ('error! ' + nod.parentNode.id);
-	}
-    }
-}
-
-
 dragDrop.prototype.down = function(e) {
   var nod = e.target;
   //$('.debug').firstChild.nodeValue = nod.nodeName + '|' + nod.id;
@@ -972,6 +968,9 @@ dragDrop.prototype.down = function(e) {
     if (this.edit) {
       $('.area').parentNode.setAttribute('visibility','hidden');
     }
+  }
+  if (nod.nodeName != 'input' && nod.id != '.name') { 
+      $('.name').nextSibling.setAttribute('display','none');
   }
   if (this.node) {
     this.node = null;
