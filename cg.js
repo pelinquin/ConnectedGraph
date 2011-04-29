@@ -64,7 +64,7 @@ function is_gecko() {
     //Mozilla/5.0 (Windows NT 5.1; rv:2.0b11pre) Gecko/20110201 Firefox/4.0b11pre
     var gecko = str.replace(/^Mozilla.*rv:|\).*$/g, '' ) || ( /^rv\:|\).*$/g, '' );
     var s = gecko.substring(0,3);
-    if ((s=='1.9') || (s=='2.0') || (s=='2.2')) { return true; } 
+    if ((s=='1.9') || (s=='2.0') || (s=='2.2') || (s=='6.0')) { return true; } 
     return false;
 }
 
