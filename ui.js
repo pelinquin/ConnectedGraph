@@ -148,7 +148,9 @@ window.onload = function () {
   init_draw();
   //$('.title').firstChild.nodeValue = stat();
   //alert (print_nodes()); // debug
-  read_doc(0);
+  if (has_did()) {
+      read_doc(0);
+  }
 }
 
 function stat() {
@@ -1003,11 +1005,6 @@ dragDrop.prototype.down = function(e) {
       $('.area').parentNode.setAttribute('visibility','hidden');
     }
   }
-  if (nod.nodeName != 'input' && nod.id != '.name') { 
-    if ($('.name')) {
-      $('.name').nextSibling.setAttribute('display','none');
-    }
-  }
   if (this.node) {
     this.node = null;
     $('.current').setAttribute('display','none');
@@ -1146,10 +1143,15 @@ dragDrop.prototype.move = function(e) {
 };
 
 dragDrop.prototype.up = function(e) {
+  var nod = e.target; 
+  if (nod.nodeName != 'input' && nod.id != '.name') { 
+      if ($('.name')) {
+	  $('.name').nextSibling.setAttribute('display','none'); 
+      }
+  }
   this.el=null;
   if (this.border) {
     var found = false;
-    var nod = e.target;
     if (nod.nodeName == 'svg' || nod.id == '.editor') {
       this.delay = true;
       show_menu(e);
@@ -1260,6 +1262,11 @@ function get_env() {
   return ('user='+document.documentElement.getAttribute('user') + '&did='+document.documentElement.getAttribute('did') + '&sid='+document.documentElement.getAttribute('sid'));
 }
 
+function has_did() {
+    return (document.documentElement.hasAttribute('did') && document.documentElement.getAttribute('did'));
+}
+
+
 function read_doc(n) {
   // This function call the server periodically 
   //$('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid') + ' ' + n;
@@ -1314,15 +1321,14 @@ function update() {
   if ($('.save')) {
       $('.save').firstChild.nodeValue = 'Save';
   }
-  // This function call the server on change event of editor content 
-  var fD = new FormData();
-  var p = get_diff_patch()
-  fD.append('patch', p);
-  //alert (p);
-  var ai = new ajax_post(true,get_base_url() + '/save_patch?'+get_env(), fD,function(res) {
-	  // resultat dans 'res' 
-  });
-  ai.doPost();   
+  if (has_did()) {
+      // This function call the server on change event of editor content 
+      var fD = new FormData();
+      fD.append('patch', get_diff_patch());
+      var ai = new ajax_post(true,get_base_url() + '/save_patch?'+get_env(), fD,function(res) {
+	  });
+      ai.doPost();
+  }   
 }
 
 function update_progress_bar() {
@@ -1386,8 +1392,8 @@ function change_name(first) {
     inp.firstChild.firstChild.value = $('.name').firstChild.nodeValue;
     inp.setAttribute('display','inline');
   } else {
-    inp.setAttribute('display','none');
     $('.name').firstChild.nodeValue = inp.firstChild.firstChild.value;
+    inp.setAttribute('display','none');
   }
 }
 
