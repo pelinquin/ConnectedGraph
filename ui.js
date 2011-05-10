@@ -138,9 +138,9 @@ window.onload = function () {
     init_menu();
     init_other();
     if ($('.editor').nodeName == 'div') {
-	init_editor(true);
+      init_editor(true);
     } else {
-	init_editor(false);
+      init_editor(false);
     }
   } else {
     // TODO; unset this property: g.connectors path:hover, .border:hover { opacity:0.3;}
@@ -170,11 +170,9 @@ function init_editor(is_ace) {
     editor.setTheme('ace/theme/twilight');
     var pMode = require('ace/mode/python').Mode;
     editor.getSession().setMode(new pMode());
-    editor.getSession().doc.on('change', change_editor);
-  } else {
-    //'.editor').addEventListener('keypress', change_editor_before, false);
-    $('.editor').addEventListener('keyup', change_editor, false);
-  }
+    //editor.getSession().doc.on('change', change_editor);
+  } 
+  $('.editor').addEventListener('keyup', change_editor, false);
   saved_doc = get_editor();
 }
 
@@ -427,10 +425,10 @@ function change_node_content(n,label) {
 }
 
 function set_editor(str) {
-  //editor.getSession().getDocument().setValue(str);
-  //editor.getSession().setValue(str);
-  //editor.detach();
   if (editor) {
+    //editor.getSession().getDocument().setValue(str);
+    //editor.getSession().setValue(str);
+    //editor.detach();
     editor.getSession().doc.setValue(str);
   } else {
     $('.editor').value = str;
@@ -472,6 +470,7 @@ function editor_change_connector(n1,n2,new_nod,way) {
 
 function change_editor(evt) {
   /////
+  //alert ('change');
   //$('.debug').firstChild.nodeValue = $('.editor').firstChild.nodeValue;
   //TODO; link editor content with current diagram!
   show_menu();
@@ -1322,9 +1321,18 @@ function logout() {
 
 function new_doc() {
   var ai = new ajax_get(true,get_base_url() + '/new_doc?'+get_user(), function(res) {
-			  document.location.href = get_base_url()+ '/edit?id='+res;
+			  var url = get_base_url()+ '/edit?id='+res;
+			  //document.location.href = url;
+			  window.open(url);
 			});
   ai.doGet();
+}
+
+function open_doc(e) {
+  if (!e.target.hasAttribute('class')) {
+    //document.location.href = get_base_url()+ '/edit?id='+e.target.firstChild.nodeValue;
+    window.open(get_base_url()+ '/edit?id='+e.target.firstChild.firstChild.nodeValue);
+  }
 }
 
 function save_doc() {
@@ -1339,6 +1347,7 @@ function save_doc() {
   var fD = new FormData();
   fD.append('content', get_editor());
   fD.append('lout', lout + '}');
+  fD.append('title', $('.name').firstChild.nodeValue);
   var ai = new ajax_post(true,get_base_url() + '/save_doc?'+get_env(), fD,function(res) {
 			   $('.save').firstChild.nodeValue = res;
 			 });
@@ -1486,6 +1495,7 @@ function change_name(first) {
   } else {
     $('.name').firstChild.nodeValue = inp.firstChild.firstChild.value;
     inp.setAttribute('display','none');
+    update();
   }
 }
 

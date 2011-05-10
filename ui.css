@@ -26,13 +26,16 @@ text,textarea {
   font-size:10pt;
 }
 
-text.tiny, text.small, text.button, .item { 
+text.tiny, text.small, text.button, text.msg,text.list, .item { 
   font-family:helvetica neue,helvetica,arial,sans-serif;
 }
 
 text.small, text.item { font-weight:bold; font-size:7pt; }
+tspan.small{ font-size:6pt; }
 text.tiny { font-size:3pt; }
 text.small tspan:hover{ font-weight:bold; stroke-width:0; fill:white;}
+text.list { font-weight:bold; stroke-width:0; fill:gray;}
+text.list tspan:hover{ fill:black;}
 text.button:hover { font-weight:bold;}
 
 .editor { top: 18px; left: 0px; right:0px; bottom:0px; }

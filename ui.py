@@ -149,8 +149,9 @@ def main_call(req=None,pfx='.',did='',uid='',edit=False,user='',msg='',mode='',n
     #sid = s.id()
     #sid = "no sessionID!"
     sid = create_window_id()
+    titledoc = 'Untitled'
     if did:
-        lout,value = load_doc(did,sid)
+        titledoc,lout,value = load_doc(did,sid)
     #msg = '%s'%lout
     #if value == '':
     #    return doc_list(req,user)
@@ -169,15 +170,17 @@ def main_call(req=None,pfx='.',did='',uid='',edit=False,user='',msg='',mode='',n
         disp = 'inline' if mode == 'both' else 'none'
         o += '<foreignObject display="%s" width="100%%" height="100%%">'%disp
         # Change here to select textarea or ace!
-        #o += '<div %s id=".editor" class="editor">%s</div>'%(_XHTMLNS,xml.sax.saxutils.escape(value))
-        o += '<textarea %s id=".editor" class="editor" spellcheck="false" rows="20" style="color:white;background-color:#444;margin:20pt;width:800px">%s</textarea>'%(_XHTMLNS,xml.sax.saxutils.escape(value))
+        o += '<div %s id=".editor" class="editor">%s</div>'%(_XHTMLNS,xml.sax.saxutils.escape(value))
+        #o += '<textarea %s id=".editor" class="editor" spellcheck="false" rows="20" style="color:white;background-color:#444;margin:20pt;width:800px">%s</textarea>'%(_XHTMLNS,xml.sax.saxutils.escape(value))
         o += '</foreignObject>'
     mygraph = cg(value)
     mygraph.set_pos(lout)
     o += mygraph.draw()    
     if edit:
-        o += menu() + gui_elements() + menubar(req,'fork',True,user,msg,newdoc,did);
+        o += menu() + gui_elements() + menubar(req,'fork',True,user,msg,newdoc,did,titledoc);
     o += '<text id=".debug" class="small" x="300" y="12"> </text>\n'
+    if newdoc:
+        o += get_doc_list(user)
     return o + '</svg>'
 
 def doc_list(req,user):
@@ -328,7 +331,7 @@ def menu():
     o += '<text class="item">Flip connector way</text>'
     return o + '</g>\n'
 
-def menubar(req,action,full=False,user='',msg='',newdoc=False,did=''):
+def menubar(req,action,full=False,user='',msg='',newdoc=False,did='',titledoc=''):
     """ top menu bar """
     o = '<g id=".menubar"><rect class="theme" width="100%" height="18"/>'
     #o += '<path id="oo" d="M100,100L0,0" stroke="red"/><text><textPath %s stroke="black" xlink:href="#oo">Hello world !</textPath></text>'%_XLINKNS
@@ -341,13 +344,13 @@ def menubar(req,action,full=False,user='',msg='',newdoc=False,did=''):
         theid = 'id=".name"'
         if newdoc:
             if user:
-                o += '<text %s fill="white" onclick="new_doc();" x="50%%" y="12" class="button">New document<title>Create a new document</title></text>\n'%theid
+                o += '<text %s fill="white" onclick="new_doc(this);" x="50%%" y="12" class="button">New document<title>Create a new document</title></text><g/>\n'%theid
         else:
-            o += '<text %s fill="white" onclick="change_name(true);" x="50%%" y="12" class="button">Untitled<title>Change name</title></text><foreignObject display="none" x="50%%" width="120" height="30"><div %s><input onchange="change_name(false);" size="10" value=""/></div></foreignObject>\n'%(theid,_XHTMLNS)
+            o += '<text %s fill="white" onclick="change_name(true);" x="50%%" y="12" class="button">%s<title>Change name</title></text><foreignObject display="none" x="50%%" width="120" height="30"><div %s><input onchange="change_name(false);" size="10" value=""/></div></foreignObject>\n'%(theid,titledoc,_XHTMLNS)
             if did:
                 o += '<text id=".save" fill="white" onclick="save_doc();" text-anchor="end" x="85%" y="12" class="button">Save</text>\n'
-        color = 'red' if msg[:5] == 'Error' else 'white'
-        o += logo(False) + '<text id=".msg" fill="%s" x="200" y="12">%s </text>'%(color,msg)
+            color = 'red' if msg[:5] == 'Error' else 'white'
+            o += logo(False) + '<text class="msg" id=".msg" fill="%s" x="200" y="12">%s </text>'%(color,msg)
         o += login_page()
     return o + '</g>\n'
 
@@ -387,6 +390,10 @@ def new_doc(req,user):
     req.content_type = 'text/plain'
     rev = dbhash.open('%s/rev.db'%base,'c')
     gid = create_id(rev)
+    if rev.has_key(user):
+        rev[user] += ':%s'%gid
+    else:
+        rev[user] = gid
     rev.close()    
     return gid
 
@@ -404,12 +411,28 @@ def create_window_id():
     rev.close()    
     return sid
 
-def save_doc(req,user,did,sid,lout,content):
+def get_doc_list(user):
+    """ Create a new window id"""
+    base='%s/cg'%__BASE__
+    o = '<text class="list" onclick="open_doc(evt);" y="20">'
+    rev = dbhash.open('%s/rev.db'%base)
+    stack = dbhash.open('%s/stack.db'%base)
+    if rev.has_key(user):
+        for did in rev[user].split(':'):
+            k = '_%s'%did
+            name = stack[k].split('\n')[0] if stack.has_key(k) else 'Untitled'
+            o += '<tspan x="10" dy="1.2em"><title>%s</title>%s</tspan>'%(did,name)
+            o += '<tspan class="small" x="100">1 user</tspan>'
+    stack.close()
+    rev.close()
+    return o + '</text>'
+
+def save_doc(req,user,did,sid,title,lout,content):
     """ Save the layout and the content of a diagram """
     base='%s/cg'%__BASE__
     req.content_type = 'text/plain'
     stack = dbhash.open('%s/stack.db'%base,'c')
-    stack['_%s'%did] = lout + '\n' + content
+    stack['_%s'%did] = title + '\n' + lout + '\n' + content
     k = '@%s'%did
     if stack.has_key(k):
         del stack[k]
@@ -421,20 +444,20 @@ def load_doc(did,sid):
     import diff_match_patch
     dmp = diff_match_patch.diff_match_patch()
     base='%s/cg'%__BASE__
-    key,content,lout = '_%s'%did,'',{}
+    key,content,lout,title = '_%s'%did,'',{},'Untitled'
     if os.path.isfile('%s/stack.db'%base):
         stack = dbhash.open('%s/stack.db'%base)
         if stack.has_key(key):
             lines =  stack[key].split('\n')
-            if len(lines) > 1:
-                lout,content = eval(lines[0]),'\n'.join(lines[1:])
+            if len(lines) > 2:
+                title,lout,content = lines[0],eval(lines[1]),'\n'.join(lines[2:])
         k = '@%s'%did
         if stack.has_key(k):
             patches = dmp.patch_fromText(stack[k])
             result = dmp.patch_apply(patches, content)
             content = result[0]
         stack.close()
-    return lout,content
+    return title,lout,content
 
 def log_add(line):
     log = open('%s/cg/cg.log'%__BASE__,'a')
