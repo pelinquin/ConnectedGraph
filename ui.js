@@ -115,7 +115,7 @@ function get_url () {
 }
 
 function get_base_url () { 
-    return (get_url().replace(/\/[^\/]*$/,''));
+  return (get_url().replace(/\/[^\/]*$/,''));
 }
 
 //---------- Globals ----------
@@ -131,9 +131,9 @@ window.onload = function () {
   if (!is_browser_compatible()) alert ('Browser not supported !');
   // Select mode (edit or readonly)
   if (document.documentElement.getAttribute('editable') == 'yes') {
-      if (!document.documentElement.hasAttribute('test')) {
-	  DD = new dragDrop();
-      }
+    if (!document.documentElement.hasAttribute('test')) {
+      DD = new dragDrop();
+    }
     //$('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid') + ' ' + document.documentElement.getAttribute('uid');
     init_menu();
     init_other();
@@ -149,8 +149,10 @@ window.onload = function () {
   //$('.title').firstChild.nodeValue = stat();
   //alert (print_nodes()); // debug
   if (has_did()) {
-      read_doc(0);
+    read_doc(0);
   }
+  // test parsing
+  
 }
 
 function stat() {
@@ -233,7 +235,8 @@ function get_init_shape(t,up) {
   } else if (isIn(t,['REQUIREMENT','CLASS','GOAL','ENTITY','OBSTACLE','EXPECTATION'])){
     form = 'rect';
   } else {
-    form = 'ellipse';
+    //form = 'ellipse';
+    form = 'rect';
   }
   var fig = document.createElementNS(svgns,form);
   if (up) {
@@ -291,11 +294,16 @@ function resize_shape(t,b,shape) {
     shape.setAttribute('width',w); 
     shape.setAttribute('height',h); 
   } else {
-    var cx = b.x+b.width/2; var cy = b.y+b.height/2; var rx = b.width/2 + m; var ry = b.height/2 + m;
-    shape.setAttribute('cx',cx); 
-    shape.setAttribute('cy',cy); 
-    shape.setAttribute('rx',rx); 
-    shape.setAttribute('ry',ry); 
+    //var cx = b.x+b.width/2; var cy = b.y+b.height/2; var rx = b.width/2 + m; var ry = b.height/2 + m;
+    //shape.setAttribute('cx',cx); 
+    //shape.setAttribute('cy',cy); 
+    //shape.setAttribute('rx',rx); 
+    //shape.setAttribute('ry',ry); 
+    var x = b.x-m; var y = b.y-m; var w = b.width + 2*m; var h = b.height + 2*m;
+    shape.setAttribute('x',x); 
+    shape.setAttribute('y',y); 
+    shape.setAttribute('width',w); 
+    shape.setAttribute('height',h); 
   }
 }
 
@@ -316,9 +324,7 @@ function init_draw() {
   var tco = $('.connectors').childNodes;
   for ( var c=0; c<tco.length; c++ ) {
     if (tco[c].nodeName[0] != '#') {
-      var n1 = tco[c].getAttribute('n1').replace('#','');
-      var n2 = tco[c].getAttribute('n2').replace('#','');
-      Connector(tco[c],n1,n2);
+      Connector(tco[c],tco[c].getAttribute('n1').replace('#',''),tco[c].getAttribute('n2').replace('#',''));
     }
   }
 }
@@ -425,9 +431,9 @@ function set_editor(str) {
   //editor.getSession().setValue(str);
   //editor.detach();
   if (editor) {
-      editor.getSession().doc.setValue(str);
+    editor.getSession().doc.setValue(str);
   } else {
-      $('.editor').value = str;
+    $('.editor').value = str;
   }
   //editor.insert("Something cool");
 }
@@ -445,13 +451,22 @@ function signin() {
 }
 
 function editor_add(txt) {
-  //alert (editor);
   var sep = '';
   var old = get_editor();
   if (old != '') {
     sep = '\n';
   }
   set_editor(old + sep + txt); 
+  update();
+}
+
+function editor_change_connector(n1,n2,new_nod,way) {
+  var re = new RegExp('\\b' + RegExp.quote(n1) +'\\s*\->\\s*' + RegExp.quote(n2) +'\\b');
+  if (way) {
+    set_editor(get_editor().replace(re,new_nod + '->' + n2));
+  } else {
+    set_editor(get_editor().replace(re,n1 + '->' + new_nod));
+  }
   update();
 }
 
@@ -501,10 +516,8 @@ function flip_connector(c) {
   var tmp = c.getAttribute('n1');
   c.setAttribute('n1',c.getAttribute('n2'));
   c.setAttribute('n2',tmp);   
-  var n1 = c.getAttribute('n1').replace('#','');
-  var n2 = c.getAttribute('n2').replace('#','');
-  draw_path(c,n1,n2);
-  editor_flip(n2,n1);
+  draw_connector(c);
+  editor_flip(c.getAttribute('n2').replace('#',''),c.getAttribute('n1').replace('#',''));
 }
 
 function flip_link(n1,n2) {
@@ -533,14 +546,17 @@ function del_link(n1,n2) {
   }
 }
 
-function del_connector(c) {
-  //alert ('del connector\n' + c.getAttribute('n1')+ ' ' +c.getAttribute('n2'));
+function pop_connector(c) {
   for (var e in nodeLink) {
     var index = nodeLink[e].indexOf(c);
     if (index != -1) {
       nodeLink[e].splice(index,1);
     }
   }
+}
+function del_connector(c) {
+  //alert ('del connector\n' + c.getAttribute('n1')+ ' ' +c.getAttribute('n2'));
+  pop_connector(c);
   c.parentNode.removeChild(c);
   // update editor:
   var n1 = c.getAttribute('n1').replace('#','');
@@ -579,10 +595,10 @@ function Connector(el,n1,n2) {
   //el.appendChild(t);
   //el.firstChild.nextSibling.setAttribute('id','ZZ');
   
-  // end path selection circles
+  // end path selection circles...not used!
   //el.appendChild(create_selection_circle(n1));
   //el.appendChild(create_selection_circle(n2));
-  draw_path(el,n1,n2);
+  draw_connector(el);
 }
 
 function create_selection_circle(n) {
@@ -615,8 +631,31 @@ function create_visible_path() {
   p.setAttribute('stroke','gray');
   //p.setAttribute('marker-start', 'url(#.simple_start)'); 
   //p.setAttribute('marker-end', 'url(#.simple_end)');
-  //p.setAttribute('marker-mid', 'url(#.conflict)');
+  p.setAttribute('marker-mid', 'url(#.conflict)');
   return (p);
+}
+
+function draw_connector(el) { 
+  // Optimization to do: only one node transformation should be computed!
+  var n1 = el.getAttribute('n1').replace('#','');
+  var n2 = el.getAttribute('n2').replace('#','');
+  var childs = el.childNodes;
+  var t1 = $(n1).getCTM();
+  var t2 = $(n2).getCTM();
+  var d = trunk_path_curve(nodeBox[n1],nodeBox[n2],t1,t2);
+  for (var n=0; n<childs.length; n++) {
+    if (childs[n].nodeName == 'path') {
+      childs[n].setAttribute( 'd', d ); 
+    } else if (childs[n].nodeName == 'circle') {
+      if (childs[n].id == '_'+n1) {
+	childs[n].setAttribute( 'cx', t1.e ); 
+	childs[n].setAttribute( 'cy', t1.f );
+      } else {
+	childs[n].setAttribute( 'cx', t2.e ); 
+	childs[n].setAttribute( 'cy', t2.f );
+      } 
+    }
+  }
 }
 
 function draw_path(el,n1,n2) { 
@@ -629,13 +668,13 @@ function draw_path(el,n1,n2) {
     if (childs[n].nodeName == 'path') {
       childs[n].setAttribute( 'd', d ); 
     } else if (childs[n].nodeName == 'circle') {
-	if (childs[n].id == '_'+n1) {
-	    childs[n].setAttribute( 'cx', t1.e ); 
-	    childs[n].setAttribute( 'cy', t1.f );
-	} else {
-	    childs[n].setAttribute( 'cx', t2.e ); 
-	    childs[n].setAttribute( 'cy', t2.f );
-	} 
+      if (childs[n].id == '_'+n1) {
+	childs[n].setAttribute( 'cx', t1.e ); 
+	childs[n].setAttribute( 'cy', t1.f );
+      } else {
+	childs[n].setAttribute( 'cx', t2.e ); 
+	childs[n].setAttribute( 'cy', t2.f );
+      } 
     }
   }
 }
@@ -716,6 +755,12 @@ function trunk_path_curve_simple(b,t,e) {
   var m = document.documentElement.createSVGMatrix()
   m.e = e.clientX; m.f = e.clientY;
   return (trunk_path_curve(b,$('.pointer').getBBox(),t,m));
+}
+
+function trunk_path_curve_reverse(b,t,e) {
+  var m = document.documentElement.createSVGMatrix()
+  m.e = e.clientX; m.f = e.clientY;
+  return (trunk_path_curve($('.pointer').getBBox(),b,m,t));
 }
 
 function trunk_path_curve(b1,b2,t1,t2) {
@@ -835,15 +880,13 @@ function trunk_path_curve(b1,b2,t1,t2) {
       cx2 = mx; cy2 = my2;
     }
   }
-  return ('M'+x1+','+y1+'C'+cx1+','+cy1+' '+cx2+','+cy2+' '+x2+','+y2);
+  return ('M'+parseInt(x1)+','+parseInt(y1)+'C'+parseInt(cx1)+','+parseInt(cy1)+' '+parseInt(cx2)+','+parseInt(cy2)+' '+parseInt(x2)+','+parseInt(y2));
 }
 
 function draw_connectors_from(el) {
   var tab = nodeLink[el];
   for (var e=0; e<tab.length; e++) {
-    var n1 = tab[e].getAttribute('n1').replace('#','');
-    var n2 = tab[e].getAttribute('n2').replace('#','');
-    draw_path(tab[e],n1,n2)
+    draw_connector(tab[e])
   }
 }
 
@@ -901,7 +944,7 @@ function onmenu(e) {
     var newid = find_id();
     add_node(newid,val,val,e.clientX,e.clientY);
     if (DD.border) {
-      finalise_connector(DD.border,newid,false);
+      finalize_connector(DD.border,newid,false);
       DD.border = false;
     }
     DD.delay = false;
@@ -910,7 +953,7 @@ function onmenu(e) {
   }
 }
 
-function finalise_connector(nod,n2,upd) {
+function finalize_connector(nod,n2,upd) {
   var n1 = nod.getAttribute('n1').replace('#','');
   nod.firstChild.setAttribute('stroke','gray');
   var p = create_selection_path();
@@ -919,7 +962,7 @@ function finalise_connector(nod,n2,upd) {
   nod.setAttribute('n2','#'+n2);
   nodeLink[n2].push(nod);
   nodeLink[n1].push(nod);
-  draw_path(nod,n1,n2);
+  draw_connector(nod);
   editor_add(n1+'->'+n2);
   if (upd) {
     //update();
@@ -960,6 +1003,7 @@ function dragDrop () {
   this.fromNode = null;
   this.margin = 15;
   this.charCode = null;
+  this.changeconnector = null;
   this.p = document.documentElement.createSVGPoint();
   this.o = document.documentElement.createSVGPoint();
   document.documentElement.addEventListener('mousedown', function(evt) {DD.down(evt);}, false);
@@ -1019,7 +1063,7 @@ dragDrop.prototype.down = function(e) {
       p.setAttribute('pointer-events','none');
       p.setAttribute('stroke','yellow'); 
       this.border.appendChild(p);
-    }
+    } 
     while (nod.parentNode.id != '.nodes' && nod.parentNode.id != '.connectors' && nod.parentNode.id != '.editor' && nod.parentNode.nodeName != 'svg') { 
       nod = nod.parentNode;
     }
@@ -1032,6 +1076,16 @@ dragDrop.prototype.down = function(e) {
       nod.firstChild.nextSibling.setAttribute('opacity','.6');
       nod.firstChild.nextSibling.setAttribute('stroke','red');
       this.connector = nod;
+      var p = /^M(\d+),(\d+).* (\d+),(\d+)$/.exec(nod.firstChild.getAttribute('d'));
+      var d1 = (p[1]-e.clientX)*(p[1]-e.clientX)+(p[2]-e.clientY)*(p[2]-e.clientY)
+      var d2 = (p[3]-e.clientX)*(p[3]-e.clientX)+(p[4]-e.clientY)*(p[4]-e.clientY)
+      if (d1<100) {
+	this.changeconnector=nod.getAttribute('n2').replace('#','');	
+	this.changeconnectordir = true;
+      } else if (d2<100) {
+	this.changeconnector=nod.getAttribute('n1').replace('#','');
+	this.changeconnectordir = false;
+      }
       if (e.detail == 2) { 
 	flip_connector(nod);
 	//show_connectormenu(e);
@@ -1140,18 +1194,57 @@ dragDrop.prototype.move = function(e) {
       draw_connectors_from(this.el.id);
     }
   }
+  if (this.changeconnector) {
+    var d = '';
+    if (this.changeconnectordir) {
+      d = trunk_path_curve_reverse(nodeBox[this.changeconnector],$(this.changeconnector).getCTM(),e);
+    } else {
+      d = trunk_path_curve_simple(nodeBox[this.changeconnector],$(this.changeconnector).getCTM(),e);
+    }
+    this.connector.firstChild.nextSibling.setAttribute('d',d);
+  }
 };
 
 dragDrop.prototype.up = function(e) {
-  var nod = e.target; 
-  if (nod.nodeName != 'input' && nod.id != '.name') { 
-      if ($('.name')) {
-	  $('.name').nextSibling.setAttribute('display','none'); 
-      }
-  }
+  // TODO: factorize nod searching  
+  var nod = e.target;
   this.el=null;
-  if (this.border) {
+  if (nod.nodeName != 'input' && nod.id != '.name') { 
+    if ($('.name')) {
+      $('.name').nextSibling.setAttribute('display','none'); 
+    }
+  }
+  var found = false;
+  if (this.changeconnector) {
     var found = false;
+    if (nod.nodeName !== 'svg' && nod.id !== '.editor') {
+      while (nod.parentNode.id != '.nodes' && nod.parentNode.id != '.editor' && nod.parentNode.nodeName != 'svg') {
+	nod = nod.parentNode;
+      }
+      if (nod.parentNode.id == '.nodes') {
+	if (test_if_connector_exist(nod.id,this.changeconnector)) {
+	  found = true;
+	  var n1 = this.connector.getAttribute('n1').replace('#','');
+	  var n2 = this.connector.getAttribute('n2').replace('#','');
+	  editor_change_connector(n1,n2,nod.id,this.changeconnectordir);
+	  pop_connector(this.connector);
+	  if (this.changeconnectordir) {
+	    this.connector.setAttribute('n1','#'+nod.id);
+	  } else {
+	    this.connector.setAttribute('n2','#'+nod.id);
+	  }
+	  draw_connector(this.connector);
+	  nodeLink[this.changeconnector].push(this.connector);
+	  nodeLink[nod.id].push(this.connector);
+	  //alert (print_nodes());
+	}
+      }
+    }
+    if (!found) {
+      draw_connector(this.connector);
+    }
+    this.changeconnector = null;    
+  } else if (this.border) {
     if (nod.nodeName == 'svg' || nod.id == '.editor') {
       this.delay = true;
       show_menu(e);
@@ -1166,7 +1259,7 @@ dragDrop.prototype.up = function(e) {
 	var n1 = this.border.getAttribute('n1').replace('#','');
 	if (test_if_connector_exist(n1,nod.id)) {
 	  found = true;
-	  finalise_connector(this.border,nod.id,true);
+	  finalize_connector(this.border,nod.id,true);
 	} else {
 	  //alert ('Connector already exists!');
 	}
@@ -1263,9 +1356,8 @@ function get_env() {
 }
 
 function has_did() {
-    return (document.documentElement.hasAttribute('did') && document.documentElement.getAttribute('did'));
+  return (document.documentElement.hasAttribute('did') && document.documentElement.getAttribute('did'));
 }
-
 
 function read_doc(n) {
   // This function call the server periodically 
@@ -1326,7 +1418,7 @@ function update() {
       var fD = new FormData();
       fD.append('patch', get_diff_patch());
       var ai = new ajax_post(true,get_base_url() + '/save_patch?'+get_env(), fD,function(res) {
-	  });
+			     });
       ai.doPost();
   }   
 }
