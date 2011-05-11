@@ -20,8 +20,8 @@
 // Look at test_server.py for testing on server side
 
 function clear_all() {
-    nodeLink = [];
-    nodeBox = [];
+  nodeLink = [];
+  nodeBox = [];
 }
 
 var tests = [ 'test_add_node',
@@ -30,56 +30,57 @@ var tests = [ 'test_add_node',
 	      'test_clear',
 	      'test_add_del',
 	      'test_add_del1',
-	      'test_flip'];
+	      'test_flip',
+	      ];
 
 function test_add_node() {
-    add_node('n1','Goal','lab1',100,100);
-    assertEquals('n1(0)lab1\n',print_nodes());
+  add_node('n1','Goal','lab1',100,100);
+  assertEquals('n1(0)lab1\n',print_nodes());
 }
 
 function test_add_connector() {
-    add_node('n2','Goal','lab2',120,120); 
-    add_connector('n1','n2');
-    assertEquals('n1(1)lab1:#n1 #n2\nn2(1)lab2:#n1 #n2\n',print_nodes());
+  add_node('n2','Goal','lab2',120,120); 
+  add_connector('n1','n2');
+  assertEquals('n1(1)lab1:#n1 #n2\nn2(1)lab2:#n1 #n2\n',print_nodes());
 }
 
 function test_editor() {
-    assertEquals('n1(lab1):Goal\nn2(lab2):Goal\nn1->n2',get_editor());
+  assertEquals('n1(lab1):Goal\nn2(lab2):Goal\nn1->n2',get_editor());
 } 
 
 function test_clear() {
-    del_node('n1');
-    del_node('n2');
-    assertEquals('',print_nodes() + get_editor());
+  del_node('n1');
+  del_node('n2');
+  assertEquals('',print_nodes() + get_editor());
 }
 
 function test_add_del() {
-    add_node('n1','Goal','lab1',120,120); 
-    add_node('n2','Goal','lab2',120,120); 
-    add_connector('n1','n2');
-    del_node('n1');
-    assertEquals('n2(lab2):Goal',get_editor());
-    del_node('n2');
+  add_node('n1','Goal','lab1',120,120); 
+  add_node('n2','Goal','lab2',120,120); 
+  add_connector('n1','n2');
+  del_node('n1');
+  assertEquals('n2(lab2):Goal',get_editor());
+  del_node('n2');
 }
 
 function test_add_del1() {
-    add_node('n1','Goal','lab1',120,120); 
-    add_node('n2','Goal','lab2',120,120); 
-    add_connector('n1','n2');
-    del_link('n1','n2');
-    assertEquals('n1(lab1):Goal\nn2(lab2):Goal',get_editor());
-    del_node('n2');
-    del_node('n1');
+  add_node('n1','Goal','lab1',120,120); 
+  add_node('n2','Goal','lab2',120,120); 
+  add_connector('n1','n2');
+  del_link('n1','n2');
+  assertEquals('n1(lab1):Goal\nn2(lab2):Goal',get_editor());
+  del_node('n2');
+  del_node('n1');
 }
 
 function test_flip() {
-    add_node('n1','Goal','lab1',10,10); 
-    add_node('n2','Requirement','lab2',10,10); 
-    add_connector('n1','n2');
-    flip_link('n1','n2');
-    assertEquals('n1(lab1):Goal\nn2(lab2):Requirement\nn2->n1',get_editor());
-    del_node('n1');
-    del_node('n2');
+  add_node('n1','Goal','lab1',10,10); 
+  add_node('n2','Requirement','lab2',10,10); 
+  add_connector('n1','n2');
+  flip_link('n1','n2');
+  assertEquals('n1(lab1):Goal\nn2(lab2):Requirement\nn2->n1',get_editor());
+  del_node('n1');
+  del_node('n2');
 }
 
 ///////////////////////////// glue ////////////////////
@@ -102,24 +103,24 @@ function assertEquals(msg, expected, actual) {
 }
 
 function add_entry(content,cas) {
-    var entry = document.createElementNS(svgns, 'tspan');
-    if (cas == undefined) {
-	entry.setAttribute('x',0);
-	entry.setAttribute('dy',18);
+  var entry = document.createElementNS(svgns, 'tspan');
+  if (cas == undefined) {
+    entry.setAttribute('x',0);
+    entry.setAttribute('dy',18);
+  } else {
+    entry.setAttribute('x',150);
+    if (cas=='ok') {
+      entry.setAttribute('fill','green');
     } else {
-	entry.setAttribute('x',150);
-	if (cas=='ok') {
-	  entry.setAttribute('fill','green');
-	} else {
-	  entry.setAttribute('fill','red');
-	}
+      entry.setAttribute('fill','red');
     }
-    entry.appendChild(document.createTextNode(content));
-    $('.results').appendChild(entry); 
+  }
+  entry.appendChild(document.createTextNode(content));
+  $('.results').appendChild(entry); 
 }
 
 function get_root_url () { 
-    return (get_base_url().replace(/\/[^\/]*$/,''));
+  return (get_base_url().replace(/\/[^\/]*$/,''));
 }
 
 
@@ -154,6 +155,15 @@ function run_tests() {
   var endTime = (new Date()).getTime();
   add_entry('Tests passed: ' + good + ' Tests failed: ' + bad + ' Total time: ' + (endTime - startTime) + ' ms');
   test_server();
+
+  var ai = new ajax_get(true,get_url() + '/test_json_connectors', function(res) {
+			  add_entry('Test JSON connectors');
+			  var tab = eval('('+res+')');
+			  for(var k in tab){
+			    assertEquals(tab[k],parse_editor(k));
+			  }
+			});
+  ai.doGet();
 }
 
 function reload() {

@@ -477,7 +477,51 @@ function change_editor(evt) {
   //Parsing on client side
   update();
   //alert (evt.data.lines);
-  //g += 'after:' + get_editor() + '|'
+  parse_editor(get_editor());
+}
+
+//__REG_EDGES__ 
+//      (\w*) #g1: name1
+//        ( #g2:label1
+//         (?<!\\)\( (?:\\\)|[^\)])+ (?<!\\)\) |
+//         (?<!\\)\[ (?:\\\]|[^\]])+ (?<!\\)\] |
+//         (?<!\\)\" (?:\\\"|[^\"])+ (?<!\\)\" |
+//         (?<!\\)<  (?:\\>|[^\->])+ (?<!\\)>  |
+//        ) 
+//        :?(\w*) #g3:typ1
+//        ( @\S{10} | ) #g4:child1
+//        \s*
+//        (->|<-|-!-|[\d\.]*-[\d\.]*) #g5 connector
+//        \s*
+//        (\w*) #g6: name2
+//        ( #g7:label2
+//         (?<!\\)\( (?:\\\)|[^\)])+ (?<!\\)\) |
+//         (?<!\\)\[ (?:\\\]|[^\]])+ (?<!\\)\] |
+//         (?<!\\)\" (?:\\\"|[^\"])+ (?<!\\)\" |
+//         (?<!\\)<  (?:\\>|[^\->])+ (?<!\\)>  |
+//        ) 
+//        :?(\w*) #g8:typ2
+//        ( @\S{10} | ) #g9:child2
+
+function parse_editor(txt) {
+  //var __REG_EDGES__ = new RegExp(/\b(\w+)\s*\->\s*(\w+)\b/g);
+  var __REG_EDGES__ = /(\w+)():?(\w*)(@\S{10}|)\s*(->|<-|-!-|[\d\.]*-[\d\.]*)\s*(\w+)():?(\w*)(@\S{10}|)/g;
+  //var __REG_EDGES__ = /(\w*)((?<!\\)\((?:\\\)|[^\)])+(?<!\\)\)|(?<!\\)\[(?:\\\]|[^\]])+(?<!\\)\]|(?<!\\)\"(?:\\\"|[^\"])+(?<!\\)\"|(?<!\\)<(?:\\>|[^\->])+(?<!\\)>|):?(\w*)(@\S{10}|)\s*(->|<-|-!-|[\d\.]*-[\d\.]*)\s*(\w*)((?<!\\)\((?:\\\)|[^\)])+(?<!\\)\)|(?<!\\)\[(?:\\\]|[^\]])+(?<!\\)\]|(?<!\\)\"(?:\\\"|[^\"])+(?<!\\)\"|(?<!\\)<(?:\\>|[^\->])+(?<!\\)>|):?(\w*)(@\S{10}|)/g;
+  
+  var o = '[';
+  var sep = '';
+  while (m = __REG_EDGES__.exec(txt)) {
+    if (m[5] === '<-') {
+      o += sep + '(\'' + m[1] + '\', \'' + m[6] + '\')';
+    } else if (m[5] === '-!-') {
+      o += sep + '(\'' + m[1] + '\', \'' + m[6] + '\', \'conflict\')';
+    } else {
+      o += sep + '(\'' + m[6] + '\', \'' + m[1] + '\')';
+    }
+    sep = ', ';
+  } 
+  o += ']';
+  return (o);
 }
 
 function add_node(n,typ,label,x,y) {
@@ -1070,7 +1114,8 @@ dragDrop.prototype.down = function(e) {
       show_menu();
     } else if (nod.parentNode.id == '.editor') { 
 	this.background(e); 
-    } else if (nod.parentNode.id == '.connectors') {
+    } else if (nod.parentNode.id == '.connectors') { 
+      e.preventDefault(); // stop Drag&drop event propagation 
       show_menu();
       nod.firstChild.nextSibling.setAttribute('opacity','.6');
       nod.firstChild.nextSibling.setAttribute('stroke','red');
@@ -1090,6 +1135,7 @@ dragDrop.prototype.down = function(e) {
 	//show_connectormenu(e);
       }
     } else if (nod.parentNode.id == '.nodes') { 
+      e.preventDefault(); // stop Drag&drop event propagation 
       show_menu();
       this.el = nod;
       var tr = nod.getCTM();

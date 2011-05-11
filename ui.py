@@ -643,7 +643,7 @@ def logo(full=True):
     return o +  '</g>\n'
 
 if __name__ == '__main__':
-    print 'end'
+    #print 'end'
     import diff_match_patch
     dmp = diff_match_patch.diff_match_patch()
     start = 'AAAAA\nCCCCC'
@@ -655,13 +655,45 @@ if __name__ == '__main__':
     #print pt
     patches = dmp.patch_fromText(pt)
     result = dmp.patch_apply(patches, start)
-    #print result[0]
-    
+    #print result[0]    
     pp = '@@ -1 +1,2 @@\n z\n+t\n\n@@ -1 +1,2 @@\n z\n+t\n'
-    pp = '@@ -1 +1,2 @@\n z\n+t\n\n@@ -1 +1,2 @@\n z\n+t\n'
-    
-    print pp
+    #print pp
     patches = dmp.patch_fromText(pp)
     result = dmp.patch_apply(patches, '')
-    print result[0]
-    print result
+    #print result
+
+    str1 = r""" # capture OR connected nodes
+        (\w*) #g1: name1
+        ( #g2:label1
+         (?<!\\)\( (?:\\\)|[^\)])+ (?<!\\)\) |
+         (?<!\\)\[ (?:\\\]|[^\]])+ (?<!\\)\] |
+         (?<!\\)\" (?:\\\"|[^\"])+ (?<!\\)\" |
+         (?<!\\)<  (?:\\>|[^\->])+ (?<!\\)>  |
+        ) 
+        :?(\w*) #g3:typ1
+        ( @\S{10} | ) #g4:child1
+        \s*
+        (->|<-|-!-|[\d\.]*-[\d\.]*) #g5 connector
+        \s*
+        (\w*) #g6: name2
+        ( #g7:label2
+         (?<!\\)\( (?:\\\)|[^\)])+ (?<!\\)\) |
+         (?<!\\)\[ (?:\\\]|[^\]])+ (?<!\\)\] |
+         (?<!\\)\" (?:\\\"|[^\"])+ (?<!\\)\" |
+         (?<!\\)<  (?:\\>|[^\->])+ (?<!\\)>  |
+        ) 
+        :?(\w*) #g8:typ2
+        ( @\S{10} | ) #g9:child2
+    """
+
+    str1 = r'\[ (  (?:(\\\]))  |   [^\]] )  + \]'
+    str1 = r'\[ (  (?:(\\\]))  |   [^\]] )  + \]'
+
+    val = re.sub('(\#[^\n]*\n|\s)','',str1)
+    REG = re.compile(val,re.X)
+    #print "var __REG_EDGES__ = /%s/g;"%val
+    #for m in REG.finditer('A->B C->D'):
+    #    print (m.group(1),m.group(2))
+    for m in REG.finditer('[A\[\]A] [B\]B] [C\[C] [D\]\[D]'):
+        print m.group()
+    

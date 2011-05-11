@@ -168,6 +168,19 @@ set_node = {
     #'A[éçè]':"{'A': 'éçè'}",
     }
 
+set1 = {
+    # spaces
+    'A->B':"[('B', 'A')]",
+    ' A ->B':"[('B', 'A')]",
+    'A-> B ':"[('B', 'A')]",
+    ' B <- A ':"[('B', 'A')]",
+    'A->B A->C':"[('B', 'A'), ('C', 'A')]",
+    'B->A C->A':"[('A', 'B'), ('A', 'C')]",
+    'A-!-B':"[('A', 'B', 'conflict')]",
+    'A--B':"[]",
+    'A---B':"[]",
+    }
+
 set_connectors = {
     # anywhere
     '{A B}>C':"[('C', 'A:B')]",
@@ -296,6 +309,10 @@ def utest(h,cpt):
     o += '\n'
     return n,o
 
+def test_json_connectors(req):
+    req.content_type = 'application/json'
+    return '%s'%set1
+
 def run_server(req=None):
     if req:
         req.content_type = 'text/plain'
@@ -360,6 +377,7 @@ def index(req):
     o += '<title id=".title">Test</title>'
     o += '<link %s rel="shortcut icon" href="logo16.png"/>\n'%ui._XHTMLNS
     o += ui.include_ace('.')
+    #o += '<script %s type="text/ecmascript" xlink:href="xregexp-min.js"></script>\n'%ui._XLINKNS
     o += '<script %s type="text/ecmascript" xlink:href="%s"></script>\n'%(ui._XLINKNS,ui.__JS__)
     o += '<script %s type="text/ecmascript" xlink:href="test_client.js"></script>\n'%ui._XLINKNS
     o += '<foreignObject display="none" width="100%%" height="100%%"><div %s id=".editor" class="editor"></div></foreignObject>'%ui._XHTMLNS
