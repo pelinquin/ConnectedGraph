@@ -91,7 +91,7 @@ function assertEquals(msg, expected, actual) {
   if (typeof actual == 'undefined') {
     actual = expected;
     expected = msg;
-    msg = 'Expected: \'' + expected + '\' Actual: \'' + actual + '\'';
+    msg = 'Expected: \'' + expected + '\' Computed: \'' + actual + '\'';
   }
   if (expected === actual) {
     add_entry('OK','ok');
@@ -159,9 +159,12 @@ function run_tests() {
   var ai = new ajax_get(true,get_url() + '/test_json_connectors', function(res) {
 			  add_entry('Test JSON connectors');
 			  var tab = eval('('+res+')');
+			  var n = 0;
 			  for(var k in tab){
+			    n += 1;
 			    assertEquals(tab[k],parse_editor(k));
 			  }
+			  add_entry(n + ' tests cases ');
 			});
   ai.doGet();
 }

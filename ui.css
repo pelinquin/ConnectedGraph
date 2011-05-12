@@ -26,12 +26,12 @@ text,textarea {
   font-size:10pt;
 }
 
-text.tiny, text.small, text.button, text.msg,text.list, .item { 
+text.tiny, text.small, text.button, text.msg,text.list, .item, tspan { 
   font-family:helvetica neue,helvetica,arial,sans-serif;
 }
 
 text.small, text.item { font-weight:bold; font-size:7pt; }
-tspan.small{ font-size:6pt; }
+tspan.small{ font-size:7pt; }
 text.tiny { font-size:3pt; }
 text.small tspan:hover{ font-weight:bold; stroke-width:0; fill:white;}
 text.list { font-weight:bold; stroke-width:0; fill:gray;}

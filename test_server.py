@@ -168,19 +168,6 @@ set_node = {
     #'A[éçè]':"{'A': 'éçè'}",
     }
 
-set1 = {
-    # spaces
-    'A->B':"[('B', 'A')]",
-    ' A ->B':"[('B', 'A')]",
-    'A-> B ':"[('B', 'A')]",
-    ' B <- A ':"[('B', 'A')]",
-    'A->B A->C':"[('B', 'A'), ('C', 'A')]",
-    'B->A C->A':"[('A', 'B'), ('A', 'C')]",
-    'A-!-B':"[('A', 'B', 'conflict')]",
-    'A--B':"[]",
-    'A---B':"[]",
-    }
-
 set_connectors = {
     # anywhere
     '{A B}>C':"[('C', 'A:B')]",
@@ -294,6 +281,26 @@ set_type = {
     'A:A':"{'A': 'AGENT'}",
     }
 
+#### TEMPORARY SETS
+
+set1 = {
+    'A->B':"[('B', 'A')]",
+    ' A ->B':"[('B', 'A')]",
+    'A-> B ':"[('B', 'A')]",
+    ' B <- A ':"[('B', 'A')]",
+    'A->B A->C':"[('B', 'A'), ('C', 'A')]",
+    'B->A C->A':"[('A', 'B'), ('A', 'C')]",
+    'A-!-B':"[('A', 'B', 'conflict')]",
+    'A--B':"[]",
+    'A---B':"[]",
+    }
+
+set2 = {
+    'AA:G':"{'AA': 'AA'}",
+    #'A[label]':"{'A': 'label'}",
+    'A B':"{'A': 'A', 'B': 'B'}",
+    'A':"{'A': 'A'}",
+    }
 ##### TEST GLUE #####
 
 def utest(h,cpt):
@@ -304,14 +311,14 @@ def utest(h,cpt):
         n+=1
         if item.get(cpt) != h[i]:
             ok += 1
-            o += 'Item %d %s Computed:%s|Expected:%s|\n'%(n, i, item.get(cpt),h[i])
+            o += 'Item %d on |%s| Computed:%s|Expected:%s|\n'%(n, i, item.get(cpt),h[i])
     o += ('Test OK (%d cases)'%n if ok==0 else 'Test KO on %d tests'%ok)
     o += '\n'
     return n,o
 
 def test_json_connectors(req):
     req.content_type = 'application/json'
-    return '%s'%set1
+    return '%s'%set2
 
 def run_server(req=None):
     if req:
@@ -322,7 +329,9 @@ def run_server(req=None):
     #...
     o += o1 + o2
     o += '%s tests cases\n'%(n1+n2)
-    return o + 'Git Commit: ' + ui.sha1_pkg(req)
+    if req:
+        o += 'Git Commit: ' + ui.sha1_pkg(req)
+    return o 
 
 def clean(req):
     from subprocess import Popen, PIPE
@@ -377,7 +386,7 @@ def index(req):
     o += '<title id=".title">Test</title>'
     o += '<link %s rel="shortcut icon" href="logo16.png"/>\n'%ui._XHTMLNS
     o += ui.include_ace('.')
-    #o += '<script %s type="text/ecmascript" xlink:href="xregexp-min.js"></script>\n'%ui._XLINKNS
+    o += '<script %s type="text/ecmascript" xlink:href="xregexp-min.js"></script>\n'%ui._XLINKNS
     o += '<script %s type="text/ecmascript" xlink:href="%s"></script>\n'%(ui._XLINKNS,ui.__JS__)
     o += '<script %s type="text/ecmascript" xlink:href="test_client.js"></script>\n'%ui._XLINKNS
     o += '<foreignObject display="none" width="100%%" height="100%%"><div %s id=".editor" class="editor"></div></foreignObject>'%ui._XHTMLNS

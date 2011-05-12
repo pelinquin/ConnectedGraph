@@ -42,44 +42,31 @@ __CSS__='ui.css'
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg"'
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
+
 ##### COMMON REGULAR EXPRESSIONS #####
+__REG_NODES__ = r""" # RegEx for capturing nodes
+    # 1:name 2:label 3:type 4:child
+    (?:                     # do not count group(name,label)
+     (\w+) |                # g1:name
+     (                      # g2:label
+      \[(?:\\.|[^\]])+\]  | # [] delimiter
+      \((?:\\.|[^\)])+\)  | # () delimiter
+      \<(?:\\.|[^\->])+\> | # <> delimiter
+      \"(?:\\.|[^\"])+\"    # \" delimiter
+     )                      # end label
+    )+                      # at least one name or label
+    (:\w+)?                 # g3:type
+    (@\S{10})?              # g4:child
+    \s*                     # leading spaces
+    (?:\#[^\n]*(?:\n|$))?   # comments
+    """
 
-__REG_NODES__ = re.compile(r""" # capture nodes
-    (\w*) #g1: name 
-    ( #g2:label
-      (?<!\\)\( (?:\\\)|[^\)])+ (?<!\\)\) | #() delimiter
-      (?<!\\)\[ (?:\\\]|[^\]])+ (?<!\\)\] | #[] delimiter
-      (?<!\\)\" (?:\\\"|[^\"])+ (?<!\\)\" | #\" delimiter
-      (?<!\\)<  (?:\\>|[^\->])+ (?<!\\)>  | #<> delimiter
-     ) 
-    :?(\w*) #g3:typ
-    ( @\S{10} | ) #g4:child
-    (\s*\#[^\n]*\n|) # g5:comment
-    """,re.X)
+__REG_EDGES__ = __REG_NODES__ + """ # RegEx for capturing connector
+    \s*                         # ignored spaces
+    (->|<-|-!-|[\d\.]*-[\d\.]*) # g5 connector
+    \s*                         # ignored spaces
+    """ + __REG_NODES__
 
-__REG_EDGES__ = re.compile(r""" # capture OR connected nodes
-        (\w*) #g1: name1
-        ( #g2:label1
-         (?<!\\)\( (?:\\\)|[^\)])+ (?<!\\)\) |
-         (?<!\\)\[ (?:\\\]|[^\]])+ (?<!\\)\] |
-         (?<!\\)\" (?:\\\"|[^\"])+ (?<!\\)\" |
-         (?<!\\)<  (?:\\>|[^\->])+ (?<!\\)>  |
-        ) 
-        :?(\w*) #g3:typ1
-        ( @\S{10} | ) #g4:child1
-        \s*
-        (->|<-|-!-|[\d\.]*-[\d\.]*) #g5 connector
-        \s*
-        (\w*) #g6: name2
-        ( #g7:label2
-         (?<!\\)\( (?:\\\)|[^\)])+ (?<!\\)\) |
-         (?<!\\)\[ (?:\\\]|[^\]])+ (?<!\\)\] |
-         (?<!\\)\" (?:\\\"|[^\"])+ (?<!\\)\" |
-         (?<!\\)<  (?:\\>|[^\->])+ (?<!\\)>  |
-        ) 
-        :?(\w*) #g8:typ2
-        ( @\S{10} | ) #g9:child2
-    """,re.X)
 
 __REG_TYPES__ = {'(\[.*|r|req|requirement)':'Requirement',
                  '(\(.*|g|goal)':'Goal',
@@ -106,7 +93,7 @@ def documents(req,login='',pw='',pw2=''):
 
 def edit(req,id='',login='',pw='',pw2='',mode='',newdoc=False):
     """ edit mode """
-    did = id # id is a reserved name in python but we want it as an URL parameter
+    did = id # 'id' is a reserved Python keyword but it is used as an URL parameter
     base='%s/cg'%__BASE__
     if not os.path.isdir(base):
         os.mkdir(base)
@@ -126,17 +113,18 @@ def edit(req,id='',login='',pw='',pw2='',mode='',newdoc=False):
                 msg = 'Error: bad login or password!'
     else:
         user,uid = load_session(req)
-    return main_call(req,'..',did,uid,True,user,msg,mode,newdoc)
+    return main_call(req,did,'..',uid,True,user,msg,mode,newdoc)
 
-def index(req):
+def index(req,id=''):
     """ readonly mode"""
-    return main_call(req)
+    did = id # 'id' is a reserved Python keyword but it is used as an URL parameter
+    return main_call(req,did)
 
 def include_ace(pfx):
     support = '%s/support/ace/build/src'%pfx
     return '<script %s type="text/ecmascript" xlink:href="%s/ace.js"></script><script %s type="text/ecmascript" xlink:href="%s/theme-twilight.js"></script><script %s type="text/ecmascript" xlink:href="%s/mode-python.js"></script>'%(_XLINKNS,support,_XLINKNS,support,_XLINKNS,support)
 
-def main_call(req=None,pfx='.',did='',uid='',edit=False,user='',msg='',mode='',newdoc=False):
+def main_call(req=None,did='',pfx='.',uid='',edit=False,user='',msg='',mode='',newdoc=False):
     """ common to readonly and edit mode"""
     value = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(req.args))) if req.args else ''
     value = re.sub('mode=[^&]*&?','',value)
@@ -158,7 +146,11 @@ def main_call(req=None,pfx='.',did='',uid='',edit=False,user='',msg='',mode='',n
     req.content_type = 'application/xhtml+xml'
     o = '<?xml version="1.0" encoding="UTF-8"?>\n'
     o += '<?xml-stylesheet href="%s/%s" type="text/css"?>\n'%(pfx,__CSS__)
-    o += '<svg %s editable="%s" user="%s" did="%s" tool="%s" sid="%s" uid="%s">\n'%(_SVGNS,'yes' if edit else 'no',user,did,__version__,sid,uid)
+    miniature = ' width="600" height="400" viewBox="0 0 2400 1600"'
+    miniature = ''
+    o += '<svg %s editable="%s" user="%s" did="%s" tool="%s" sid="%s" uid="%s"%s>\n'%(_SVGNS,'yes' if edit else 'no',user,did,__version__,sid,uid,miniature)
+    if miniature:
+        o += '<rect width="600" height="400" fill="#EEE"/>\n'
     o += '<title id=".title">%s</title>'%__TITLE__
     o += '<link %s rel="shortcut icon" href="%s/logo16.png"/>\n'%(_XHTMLNS,pfx)
     if edit:
@@ -190,49 +182,49 @@ def doc_list(req,user):
 
 def parse_type(t):
     """ parse node type """
-    for i in __REG_TYPES__:
-        if re.match(i+'$',t,re.IGNORECASE):
-            return __REG_TYPES__[i].upper()
-    return ''
+    if t:
+        for i in __REG_TYPES__:
+            if re.match(i+'$',t,re.IGNORECASE):
+                return __REG_TYPES__[i].upper()
+    return None
 
 class cg:
     """ Connected Graphs class"""
 
     def __init__(self,raw):
         """ """
-        # remove comments
-        raw = re.sub(r'#[^\n]*\n','\n',raw)
         self.lab,self.typ,self.child,self.pos = {},{},{},{}
         r,n = {},0
-        for m in __REG_NODES__.finditer(raw):
-            if m.group(1) or m.group(2):
-                nm,lb,tp,ch = m.group(1),re.sub(r'\\','',m.group(2)[1:-1]),m.group(3),m.group(4)
-                tp = parse_type(tp if tp else m.group(2))
-                if nm:
-                    if tp:
-                        self.typ[nm] = tp
-                    if ch:
-                        self.child[nm] = ch[1:]
-                    if self.lab.has_key(nm):
-                        if lb:
-                            self.lab[nm] = lb
-                    else:
-                        if lb:
-                            self.lab[nm] = lb
-                        else:
-                            self.lab[nm] = nm
+        for m in re.compile(__REG_NODES__,re.X).finditer(raw):
+            nm = m.group(1)
+            lb = re.sub(r'\\','',m.group(2)[1:-1]) if m.group(2) else None
+            tp = parse_type(m.group(3)[1:] if m.group(3) else m.group(2))
+            ch = m.group(4)
+            if nm:
+                if tp:
+                    self.typ[nm] = tp
+                if ch:
+                    self.child[nm] = ch[1:]
+                if self.lab.has_key(nm):
+                    if lb:
+                        self.lab[nm] = lb
                 else:
-                    if not r.has_key(lb):
-                        tid = '.n%d'%n
-                        self.lab[tid] = lb
-                        r[lb] = tid
-                        if tp:
-                            self.typ[tid] = tp
-                        if ch:
-                            self.child[tid] = ch[1:]
-                        n += 1
+                    if lb:
+                        self.lab[nm] = lb
+                    else:
+                        self.lab[nm] = nm
+            else:
+                if not r.has_key(lb):
+                    tid = '.n%d'%n
+                    self.lab[tid] = lb
+                    r[lb] = tid
+                    if tp:
+                        self.typ[tid] = tp
+                    if ch:
+                        self.child[tid] = ch[1:]
+                    n += 1
         self.connectors = []
-        for m in __REG_EDGES__.finditer(raw):
+        for m in re.compile(__REG_EDGES__,re.X).finditer(raw):
             k1,k2 = '',''
             if (m.group(1) or m.group(2)) and (m.group(6) or m.group(7)):
                 n1 = m.group(1)
@@ -642,8 +634,24 @@ def logo(full=True):
     o += '<path d="m 145.03,-797.14 c 0,0 -64.21,26.35 -64.21,26.35 -3.14,-7.37 -11.76,-11.49 -20.35,-9.33 -9.40,2.37 -15.20,11.35 -12.95,20.06 1.57,6.08 6.65,10.41 12.77,11.67 0,0 19.33,74.79 19.33,74.79 4.63,-0.05 9.20,-0.39 13.69,-1.00 0,0 -9.82,-38.03 -9.82,-38.03 0,0 49.83,-4.15 49.83,-4.15 3.30,4.64 9.86,6.45 15.64,4.01 6.48,-2.74 9.51,-9.81 6.77,-15.78 -2.74,-5.96 -10.22,-8.59 -16.70,-5.84 -4.14,1.75 -6.86,5.26 -7.59,9.13 0,0 -50.14,4.17 -50.14,4.17 0,0 -7.64,-29.58 -7.64,-29.58 4.05,-2.42 6.89,-6.25 7.94,-10.55 0,0 66.45,-27.28 66.45,-27.28 3.51,3.72 9.40,5.01 14.64,2.79 2.64,-1.11 4.68,-2.96 6.02,-5.16 -5.03,-5.99 -10.84,-11.29 -17.30,-15.75 -3.71,2.08 -6.05,5.65 -6.39,9.47 z"/><path d="m 109.47,-660.64 c -1.81,-7.01 -8.29,-11.71 -15.66,-12.04 0,0 -0.49,-1.90 -0.49,-1.90 -4.48,0.60 -9.05,0.94 -13.69,1.00 0,0 1.34,5.21 1.34,5.21 -4.76,4.00 -7.12,10.21 -5.55,16.29 0.04,0.19 0.12,0.37 0.17,0.56 8.05,2.54 16.61,3.95 25.49,4.03 1.95,0.01 3.89,-0.05 5.82,-0.16 2.65,-3.73 3.74,-8.40 2.55,-13.00 z"/>'
     return o +  '</g>\n'
 
-if __name__ == '__main__':
-    #print 'end'
+def compute_js_regex_offline():
+    """
+    This is to make sure that Python and Javascript parsers use the same regex
+    However javascript need some transformation since it does not support regex comments
+    If one regex change, please report the result in javascript code
+    """
+    print '// Javascript Code Start REGEX from Python'
+    print "var __REG_NODES__ = /%s/g;"%re.sub(r'((?<!\\)\#[^\n]*\n|\s)','',__REG_NODES__)
+    print "var __REG_EDGES__ = /%s/g;"%re.sub(r'((?<!\\)\#[^\n]*\n|\s)','',__REG_EDGES__)
+    print '// End REGEX'
+    """
+    // Javascript Code Start REGEX from Python
+    var __REG_NODES__ = /(\w*)(\[(?:\\.|[^\]])+\]|\((?:\\.|[^\)])+\)|\<(?:\\.|[^\->])+\>|\"(?:\\.|[^\"])+\"|):?(\w*)(@\S{10}|)(\s*\#[^\n]*\n|)/g;
+    var __REG_EDGES__ = /(\w*)(\[(?:\\.|[^\]])+\]|\((?:\\.|[^\)])+\)|\<(?:\\.|[^\->])+\>|\"(?:\\.|[^\"])+\"|):?(\w*)(@\S{10}|)\s*(->|<-|-!-|[\d\.]*-[\d\.]*)\s*(\w*)(\[(?:\\.|[^\]])+\]|\((?:\\.|[^\)])+\)|\<(?:\\.|[^\->])+\>|\"(?:\\.|[^\"])+\"|):?(\w*)(@\S{10}|)/g;
+    // End REGEX
+    """
+
+def diff_patch_test():
     import diff_match_patch
     dmp = diff_match_patch.diff_match_patch()
     start = 'AAAAA\nCCCCC'
@@ -655,45 +663,27 @@ if __name__ == '__main__':
     #print pt
     patches = dmp.patch_fromText(pt)
     result = dmp.patch_apply(patches, start)
-    #print result[0]    
+    print result[0]    
     pp = '@@ -1 +1,2 @@\n z\n+t\n\n@@ -1 +1,2 @@\n z\n+t\n'
-    #print pp
+    print pp
     patches = dmp.patch_fromText(pp)
     result = dmp.patch_apply(patches, '')
-    #print result
+    print result
 
-    str1 = r""" # capture OR connected nodes
-        (\w*) #g1: name1
-        ( #g2:label1
-         (?<!\\)\( (?:\\\)|[^\)])+ (?<!\\)\) |
-         (?<!\\)\[ (?:\\\]|[^\]])+ (?<!\\)\] |
-         (?<!\\)\" (?:\\\"|[^\"])+ (?<!\\)\" |
-         (?<!\\)<  (?:\\>|[^\->])+ (?<!\\)>  |
-        ) 
-        :?(\w*) #g3:typ1
-        ( @\S{10} | ) #g4:child1
-        \s*
-        (->|<-|-!-|[\d\.]*-[\d\.]*) #g5 connector
-        \s*
-        (\w*) #g6: name2
-        ( #g7:label2
-         (?<!\\)\( (?:\\\)|[^\)])+ (?<!\\)\) |
-         (?<!\\)\[ (?:\\\]|[^\]])+ (?<!\\)\] |
-         (?<!\\)\" (?:\\\"|[^\"])+ (?<!\\)\" |
-         (?<!\\)<  (?:\\>|[^\->])+ (?<!\\)>  |
-        ) 
-        :?(\w*) #g8:typ2
-        ( @\S{10} | ) #g9:child2
-    """
+if __name__ == '__main__':
+    """ This is not executed by the web application"""
+    compute_js_regex_offline()
+    #diff_patch_test()
+    #txt = ' - . \# $ AA - \# [B \] B] CC[D D] EE:G [F F]:G YY[U U]:H # Z\nG # L'
+    #print txt
+    #for m in re.compile(__REG_NODES__,re.X).finditer(txt):
+    #    print (m.group(1),m.group(2),m.group(3),m.group(4))    
+    #txt = 'A->B [A A]->[B B] # C->C'
+    #print txt
+    #for m in re.compile(__REG_EDGES__,re.X).finditer(txt):
+    #    print (m.group(1),m.group(2),m.group(3),m.group(4),m.group(5),m.group(6),m.group(7),m.group(8),m.group(9))
+        
+    print 'OK'
 
-    str1 = r'\[ (  (?:(\\\]))  |   [^\]] )  + \]'
-    str1 = r'\[ (  (?:(\\\]))  |   [^\]] )  + \]'
 
-    val = re.sub('(\#[^\n]*\n|\s)','',str1)
-    REG = re.compile(val,re.X)
-    #print "var __REG_EDGES__ = /%s/g;"%val
-    #for m in REG.finditer('A->B C->D'):
-    #    print (m.group(1),m.group(2))
-    for m in REG.finditer('[A\[\]A] [B\]B] [C\[C] [D\]\[D]'):
-        print m.group()
     
