@@ -406,17 +406,18 @@ def create_window_id():
 def get_doc_list(user):
     """ Create a new window id"""
     base='%s/cg'%__BASE__
-    o = '<text class="list" onclick="open_doc(evt);" y="20">'
-    rev = dbhash.open('%s/rev.db'%base)
-    stack = dbhash.open('%s/stack.db'%base)
-    if rev.has_key(user):
-        for did in rev[user].split(':'):
-            k = '_%s'%did
-            name = stack[k].split('\n')[0] if stack.has_key(k) else 'Untitled'
-            o += '<tspan x="10" dy="1.2em"><title>%s</title>%s</tspan>'%(did,name)
-            o += '<tspan class="small" x="100">1 user</tspan>'
-    stack.close()
-    rev.close()
+    o = '<text class="list" onclick="open_doc(evt);" y="20">' 
+    if os.path.isfile('%s/stack.db'%base) and os.path.isfile('%s/rev.db'%base):
+        rev = dbhash.open('%s/rev.db'%base)
+        stack = dbhash.open('%s/stack.db'%base)
+        if rev.has_key(user):
+            for did in rev[user].split(':'):
+                k = '_%s'%did
+                name = stack[k].split('\n')[0] if stack.has_key(k) else 'Untitled'
+                o += '<tspan x="10" dy="1.2em"><title>%s</title>%s</tspan>'%(did,name)
+                o += '<tspan class="small" x="100">1 user</tspan>'
+        stack.close()
+        rev.close()
     return o + '</text>'
 
 def save_doc(req,user,did,sid,title,lout,content):
@@ -511,7 +512,7 @@ def load_patch(req,user,did,sid):
     for other in stack[did].split(':'):
         if (other != sid):
             if stack.has_key('_%s'%other):
-                if int(d[:10]) - int(stack['_%s'%other][:10]) > 4:
+                if int(d[:10]) - int(stack['_%s'%other][:10]) > 400:
                     if stack.has_key(did):
                         stack[did] = re.sub(':$','',re.sub('%s:?'%other,'',stack[did]))
                     del stack['_%s'%other]
@@ -646,8 +647,8 @@ def compute_js_regex_offline():
     print '// End REGEX'
     """
     // Javascript Code Start REGEX from Python
-    var __REG_NODES__ = /(\w*)(\[(?:\\.|[^\]])+\]|\((?:\\.|[^\)])+\)|\<(?:\\.|[^\->])+\>|\"(?:\\.|[^\"])+\"|):?(\w*)(@\S{10}|)(\s*\#[^\n]*\n|)/g;
-    var __REG_EDGES__ = /(\w*)(\[(?:\\.|[^\]])+\]|\((?:\\.|[^\)])+\)|\<(?:\\.|[^\->])+\>|\"(?:\\.|[^\"])+\"|):?(\w*)(@\S{10}|)\s*(->|<-|-!-|[\d\.]*-[\d\.]*)\s*(\w*)(\[(?:\\.|[^\]])+\]|\((?:\\.|[^\)])+\)|\<(?:\\.|[^\->])+\>|\"(?:\\.|[^\"])+\"|):?(\w*)(@\S{10}|)/g;
+    var __REG_NODES__ = /(?:(\w+)|(\[(?:\\.|[^\]])+\]|\((?:\\.|[^\)])+\)|\<(?:\\.|[^\->])+\>|\"(?:\\.|[^\"])+\"))+(:\w+)?(@\S{10})?\s*(?:\#[^\n]*(?:\n|$))?/g;
+    var __REG_EDGES__ = /(?:(\w+)|(\[(?:\\.|[^\]])+\]|\((?:\\.|[^\)])+\)|\<(?:\\.|[^\->])+\>|\"(?:\\.|[^\"])+\"))+(:\w+)?(@\S{10})?\s*(?:\#[^\n]*(?:\n|$))?\s*(->|<-|-!-|[\d\.]*-[\d\.]*)\s*(?:(\w+)|(\[(?:\\.|[^\]])+\]|\((?:\\.|[^\)])+\)|\<(?:\\.|[^\->])+\>|\"(?:\\.|[^\"])+\"))+(:\w+)?(@\S{10})?\s*(?:\#[^\n]*(?:\n|$))?/g;
     // End REGEX
     """
 
@@ -663,27 +664,46 @@ def diff_patch_test():
     #print pt
     patches = dmp.patch_fromText(pt)
     result = dmp.patch_apply(patches, start)
-    print result[0]    
+    #print result[0]    
+    pp = '@@ -1 +1,2 @@\n \n+t\n\n@@ -1 +1,2 @@\n z\n+t\n'
+    print pp
+    patches = dmp.patch_fromText(pp)
+    result = dmp.patch_apply(patches, '')
+    print result
     pp = '@@ -1 +1,2 @@\n z\n+t\n\n@@ -1 +1,2 @@\n z\n+t\n'
     print pp
     patches = dmp.patch_fromText(pp)
     result = dmp.patch_apply(patches, '')
     print result
 
-if __name__ == '__main__':
-    """ This is not executed by the web application"""
-    compute_js_regex_offline()
-    #diff_patch_test()
+def regex_test():
     #txt = ' - . \# $ AA - \# [B \] B] CC[D D] EE:G [F F]:G YY[U U]:H # Z\nG # L'
+    txt = 'A[B]'
     #print txt
-    #for m in re.compile(__REG_NODES__,re.X).finditer(txt):
-    #    print (m.group(1),m.group(2),m.group(3),m.group(4))    
+
+    REG1 = r'(?:(\w+)|(\[(?:\\.|[^\]])+\]|\((?:\\.|[^\)])+\)|\<(?:\\.|[^\->])+\>|\"(?:\\.|[^\"])+\"))+(:\w+)?(@\S{10})?\s*(?:\#[^\n]*(?:\n|$))?';
+    #for m in re.compile(REG1,re.X).finditer(txt):
+    #    print (m.group(1),m.group(2))
+
+    m = re.match(r'(?:(A+)|(B+))+','AB')
+    print (m.group(),m.group(1),m.group(2))
+    #('AB', 'A', 'B')
+    """
+    var m = /(?:(A+)|(B+))+/.exec('AB');
+    alert (m[0] + ',' + m[1] + ',' + m[2]);
+    //   AB,undefined,B
+    """
+
     #txt = 'A->B [A A]->[B B] # C->C'
     #print txt
     #for m in re.compile(__REG_EDGES__,re.X).finditer(txt):
     #    print (m.group(1),m.group(2),m.group(3),m.group(4),m.group(5),m.group(6),m.group(7),m.group(8),m.group(9))
-        
-    print 'OK'
 
+if __name__ == '__main__':
+    """ This is not executed by the web application"""
+    #compute_js_regex_offline()
+    diff_patch_test()
+    #regex_test()
+    print 'OK'
 
     

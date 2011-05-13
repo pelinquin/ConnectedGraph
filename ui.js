@@ -125,7 +125,10 @@ var nodeBox  = [];   // Hash key:nodes, value: node bouding box
 var editor   = null; // Pointer to ACE editor
 var saved_doc = '';  // Old editor content
 var log = '';
-			       
+var UPDATE_DURATION = 1000; // millisecondes 
+var SLEEP_DURATION = 20;  // 60*UPDATE_DURATION before spleeping
+var sleepCount = SLEEP_DURATION; 
+
 //---------- Init ----------
 window.onload = function () {  
   if (!is_browser_compatible()) alert ('Browser not supported !');
@@ -486,7 +489,7 @@ function change_editor(evt) {
   //Parsing on client side
   update();
   //alert (evt.data.lines);
-  parse_editor(get_editor());
+  //parse_editor(get_editor());
 }
 
 function parse_editor(txt) {
@@ -1260,6 +1263,7 @@ dragDrop.prototype.change = function(e) {
 };
 
 dragDrop.prototype.move = function(e) {
+  sleepCount = SLEEP_DURATION;
   if (this.el) {
     if (this.border) {
       var d = trunk_path_curve_simple(nodeBox[this.el.id],this.fromNode.getCTM(),e);
@@ -1354,7 +1358,8 @@ dragDrop.prototype.up = function(e) {
   } 
 };
 
-dragDrop.prototype.key = function(e) {
+dragDrop.prototype.key = function(e) { 
+  sleepCount = SLEEP_DURATION;
   if (e.type == 'keydown') {
     if (e.charCode) { var charCode = e.charCode; }
     else { var charCode = e.keyCode; }
@@ -1452,31 +1457,37 @@ function has_did() {
 function read_doc(n) {
   // This function call the server periodically 
   //$('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid') + ' ' + n;
-  if (n == 1000) {
-    alert ('fin'); // just for testing
-  } else {
+  if (sleepCount>0) {
+    sleepCount--;
+    $('.debug').firstChild.nodeValue = sleepCount+ '|'+n;
     //alert (get_base_url() + '/read_doc?'+get_env());
     var ai = new ajax_get(true,get_base_url() + '/load_patch?'+get_env(), function(res) {
-			    if (res != '') {
-			      //$('.debug').firstChild.nodeValue = res; // debug
-			      apply_patch(res); 
-			      saved_doc = get_editor();
-			    }
-			  });
+	    if (res != '') {
+		//$('.debug').firstChild.nodeValue = res; // debug
+		apply_patch(res); 
+		saved_doc = get_editor();
+	    }
+	});
     ai.doGet();
     var ai1 = new ajax_get(true,get_base_url() + '/get_shared?'+get_env(), function(res) {
-			     var msg = '';
-			     if (res !== '') {
-			       msg += 'Shared with:'+res;
-			     } 
-			     $('.debug').firstChild.nodeValue = msg;
-			  });
+	    var msg = '';
+	    if (res !== '') {
+		msg += 'Shared with:'+res;
+	    } 
+	    //$('.debug').firstChild.nodeValue = msg;
+	});
     if (n>2) {
-      ai1.doGet();
+	ai1.doGet();
     }
-    n += 1;
-    setTimeout('read_doc('+n+')', 2000);
+  } else {
+      n++;
+      if (n > 30) {
+	  sleepCount = SLEEP_DURATION;
+	  n = 0;
+      }
+    $('.debug').firstChild.nodeValue = '...Sleeping ' + n;
   }
+  setTimeout('read_doc('+n+')', 2000);
 }
 
 function apply_patch(patches_txt) {
@@ -1497,7 +1508,7 @@ function get_diff_patch() {
   return (dmp.patch_toText(patch_list));
 }
 
-function update() {
+function save_patch() {
   // update page title to "unsaved" 
   $('.title').firstChild.nodeValue = '* '+stat();
   if ($('.save')) {
@@ -1508,9 +1519,24 @@ function update() {
       var fD = new FormData();
       fD.append('patch', get_diff_patch());
       var ai = new ajax_post(true,get_base_url() + '/save_patch?'+get_env(), fD,function(res) {
-			     });
+	  });
       ai.doPost();
   }   
+}
+
+function update(real) {
+    if (typeof(this.local_update) == 'undefined') { this.local_update = false;}
+    if (typeof(this.timer_update) == 'undefined') { this.timer_update = null;}
+    if (typeof(real) == 'undefined') {
+	if (this.local_update) { // re-arm timer
+	    clearTimeout(this.timer_update);
+	}
+	this.local_update = true;
+	this.timer_update = setTimeout('update(true)', 1000);
+    } else {
+	save_patch();
+	this.local_update = false;
+    }
 }
 
 function update_progress_bar() {
