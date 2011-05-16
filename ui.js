@@ -18,8 +18,15 @@
 
 // Use the compressed version: uimin.js
 
+//---------- constants ----------
+
 const svgns   = 'http://www.w3.org/2000/svg';
 const xlinkns = 'http://www.w3.org/1999/xlink';
+
+const READ_PERIOD_MS = 1000;
+const WRITE_DELAY_MS = 1000;
+const SLEEP_COUNTER = 20;
+const KEEP_ALIVE_COUNTER = 30;
 
 //---------- Utilities ----------
 if (typeof($)=='undefined') { 
@@ -125,9 +132,7 @@ var nodeBox  = [];   // Hash key:nodes, value: node bouding box
 var editor   = null; // Pointer to ACE editor
 var saved_doc = '';  // Old editor content
 var log = '';
-var UPDATE_DURATION = 1000; // millisecondes 
-var SLEEP_DURATION = 20;  // 60*UPDATE_DURATION before spleeping
-var sleepCount = SLEEP_DURATION; 
+var sleepCount = SLEEP_COUNTER; 
 
 //---------- Init ----------
 window.onload = function () {  
@@ -1263,7 +1268,7 @@ dragDrop.prototype.change = function(e) {
 };
 
 dragDrop.prototype.move = function(e) {
-  sleepCount = SLEEP_DURATION;
+  sleepCount = SLEEP_COUNTER;
   if (this.el) {
     if (this.border) {
       var d = trunk_path_curve_simple(nodeBox[this.el.id],this.fromNode.getCTM(),e);
@@ -1359,7 +1364,7 @@ dragDrop.prototype.up = function(e) {
 };
 
 dragDrop.prototype.key = function(e) { 
-  sleepCount = SLEEP_DURATION;
+  sleepCount = SLEEP_COUNTER;
   if (e.type == 'keydown') {
     if (e.charCode) { var charCode = e.charCode; }
     else { var charCode = e.keyCode; }
@@ -1457,11 +1462,12 @@ function has_did() {
 function read_doc(n) {
   // This function call the server periodically 
   //$('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid') + ' ' + n;
+  $('.debug').firstChild.nodeValue = sleepCount+ '|'+n;
   if (sleepCount>0) {
     sleepCount--;
-    $('.debug').firstChild.nodeValue = sleepCount+ '|'+n;
     //alert (get_base_url() + '/read_doc?'+get_env());
-    var ai = new ajax_get(true,get_base_url() + '/load_patch?'+get_env(), function(res) {
+    var ct = '&clear_timeout='+(4+KEEP_ALIVE_COUNTER*READ_PERIOD_MS/1000);
+    var ai = new ajax_get(true,get_base_url() + '/load_patch?'+get_env()+ct, function(res) {
 	    if (res != '') {
 		//$('.debug').firstChild.nodeValue = res; // debug
 		apply_patch(res); 
@@ -1481,13 +1487,12 @@ function read_doc(n) {
     }
   } else {
       n++;
-      if (n > 30) {
-	  sleepCount = SLEEP_DURATION;
+      if (n > KEEP_ALIVE_COUNTER) {
+	  sleepCount = 1;
 	  n = 0;
       }
-    $('.debug').firstChild.nodeValue = '...Sleeping ' + n;
   }
-  setTimeout('read_doc('+n+')', 2000);
+  setTimeout('read_doc('+n+')', READ_PERIOD_MS);
 }
 
 function apply_patch(patches_txt) {
@@ -1532,7 +1537,7 @@ function update(real) {
 	    clearTimeout(this.timer_update);
 	}
 	this.local_update = true;
-	this.timer_update = setTimeout('update(true)', 1000);
+	this.timer_update = setTimeout('update(true)', WRITE_DELAY_MS);
     } else {
 	save_patch();
 	this.local_update = false;

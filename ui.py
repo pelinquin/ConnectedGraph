@@ -495,7 +495,7 @@ def get_shared(req,user,did,sid):
     stack.close()
     return o 
     
-def load_patch(req,user,did,sid):
+def load_patch(req,user,did,sid,clear_timeout):
     """ Periodic patch stack read"""
     import time
     base='%s/cg'%__BASE__
@@ -512,7 +512,7 @@ def load_patch(req,user,did,sid):
     for other in stack[did].split(':'):
         if (other != sid):
             if stack.has_key('_%s'%other):
-                if int(d[:10]) - int(stack['_%s'%other][:10]) > 400:
+                if int(d[:10]) - int(stack['_%s'%other][:10]) > int(clear_timeout):
                     if stack.has_key(did):
                         stack[did] = re.sub(':$','',re.sub('%s:?'%other,'',stack[did]))
                     del stack['_%s'%other]
