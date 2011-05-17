@@ -130,7 +130,7 @@ def main_call(req=None,did='',pfx='.',uid='',edit=False,user='',msg='',mode='',n
     value = re.sub('mode=[^&]*&?','',value)
     value = re.sub('id=[^&]*&?','',value)
     lout = {}
-    from mod_python import Session
+    #from mod_python import Session
     #s = Session.MemorySession(req)
     #s = Session.DbmSession(req)
     #s.load()
@@ -330,7 +330,8 @@ def menubar(req,action,full=False,user='',msg='',newdoc=False,did='',titledoc=''
     if full:
         (txt,act) = (user,'logout') if user else ('Sign in','signin')
         o += '<text class="button" onclick="%s();" fill="white" text-anchor="end" x="95%%" y="12">%s<title>%s</title></text>'%(act,txt,act)
-    o += '<text class="button" fill="white" onclick="help();" text-anchor="end" x="99%%" y="12">?<title>Version %s [%s]</title></text>'%(__version__,sha1_pkg(req))
+    num,dat = get_id_pkg(req)
+    o += '<text class="button" fill="white" onclick="help();" text-anchor="end" x="99%%" y="12">?<title>Version %s [%s] Installed on %s</title></text>'%(__version__,num,dat)
     o += '<text class="button" fill="white" onclick="%s();" x="46" y="12">%s<title>Fork me on Github!</title></text>'%(action,__TITLE__)
     if full:
         theid = 'id=".name"'
@@ -357,8 +358,8 @@ def gui_elements():
 ##### AJAX CALL ####
 
 def update(req,user,value=''):
-    from mod_python import Session
-    session = Session.DbmSession(req)
+    #from mod_python import Session
+    #session = Session.DbmSession(req)
     #session.save()
     #session.load()
     #sid = session.id()
@@ -366,8 +367,6 @@ def update(req,user,value=''):
     tex = open('%s/test.tex'%__BASE__,'a')
     tex.write(value.encode('utf-8'))
     tex.close()
-    #if not os.path.isfile('%s/toto.lock'%__BASE__):
-    #    Popen(('echo "%s">%s/toto.lock'%(sid,__BASE__)),shell=True).communicate()
     return '<ok/>'
 
 def read(req,user):
@@ -542,15 +541,30 @@ def load_session(req):
     from mod_python import Session
     s = Session.DbmSession(req)    
     s.load()
+    uid = s.id()
     user = s['user'] if s.has_key('user') else ''
-    return user,s.id()
+    #base='%s/cg'%__BASE__
+    #user,uid = '','user_id_toto'
+    #if os.path.isfile('%s/session.db'%base):
+    #    s = dbhash.open('%s/session.db'%base)
+    #    user = s['user'] if s.has_key('user') else ''
+    #s.close()  
+    return user,uid
 
 def save_session(req,user=''):
     """ """
     from mod_python import Session
     s = Session.DbmSession(req) 
-    s['user'] = user
+    if user:
+        s['user'] = user
     s.save()
+    #base='%s/cg'%__BASE__
+    #s = dbhash.open('%s/session.db'%base,'c')
+    #s['_'] = '%d'%(long(rev['_'])+1) if s.has_key('_') else '0'
+    #gid = base64.urlsafe_b64encode(hashlib.sha1(s['_']).digest())[:-18]
+    #if user:
+    #    s[user] = gid
+    #s.close()    
     req.content_type = 'text/plain'
     return 'ok'
 
@@ -590,17 +604,19 @@ def check_user(login,pw):
 
 ##### SHA1 #####
 
-def sha1_pkg(r):
+def get_id_pkg(r):
     """ pkg commit sha1 """
     r.add_common_vars()
     env = r.subprocess_env.copy()
     e = os.environ.copy()
     e['GIT_DIR'] = '%s/.git'%os.path.dirname(env['SCRIPT_FILENAME'])
     out,err = Popen(('git', 'log','--pretty=oneline','-1'), env=e,stdout=PIPE).communicate()
+    dat = os.path.getmtime('%s/.git'%os.path.dirname(env['SCRIPT_FILENAME']))
+    dat_str = '%s'%datetime.datetime.fromtimestamp(dat)
     if err:
-        return 'error'
+        return 'error','error'
     else:
-        return out[:7]
+        return out[:7],dat_str[:19]
 
 def login_page():
     """ + FORMOSE logo """

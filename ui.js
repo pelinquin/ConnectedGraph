@@ -160,16 +160,35 @@ window.onload = function () {
     read_doc(0);
   }
   // test parsing
-  
-
   var REG = /(\w+)/g; 
   var s = 'A->B'
   for ( var i=0; i<5; i++ ) {
     var m = REG.exec(s);
     //if (m != []) { alert ('<' + m + '>' + m.length + ',' + m.index); } 
   }
+  // test cookie
+  //setCookie('username',document.documentElement.getAttribute('uid'));
+  //var username=getCookie("username");
 
+}
 
+function setCookie(c_name,value,exdays) {
+  var exdate=new Date();
+  exdate.setDate(exdate.getDate() + exdays);
+  var c_value=escape(value) + ((exdays==null) ? "" : "; expires="+exdate.toUTCString());
+  document.cookie=c_name + "=" + c_value;
+}
+
+function getCookie(c_name) {
+  var i,x,y,ARRcookies=document.cookie.split(";");
+  for (i=0;i<ARRcookies.length;i++) {
+    x=ARRcookies[i].substr(0,ARRcookies[i].indexOf("="));
+    y=ARRcookies[i].substr(ARRcookies[i].indexOf("=")+1);
+    x=x.replace(/^\s+|\s+$/g,"");
+    if (x==c_name) {
+      return unescape(y);
+    }
+  }
 }
 
 function stat() {
@@ -1462,7 +1481,7 @@ function has_did() {
 function read_doc(n) {
   // This function call the server periodically 
   //$('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid') + ' ' + n;
-  $('.debug').firstChild.nodeValue = sleepCount+ '|'+n;
+  $('.debug').firstChild.nodeValue = 'debug: ' + sleepCount+ '|'+n;
   if (sleepCount>0) {
     sleepCount--;
     //alert (get_base_url() + '/read_doc?'+get_env());
@@ -1544,7 +1563,7 @@ function update(real) {
     }
 }
 
-function update_progress_bar() {
+function update_progress_bar() { // not used
   // update page title to "unsaved" 
   $('.title').firstChild.nodeValue = '* '+stat();
   // This function call the server on change event of editor content 
