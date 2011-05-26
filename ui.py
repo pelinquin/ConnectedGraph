@@ -139,7 +139,7 @@ def main_call(req=None,did='',pfx='.',uid='',edit=False,user='',msg='',mode='',n
     sid = create_window_id()
     titledoc = 'Untitled'
     if did:
-        titledoc,lout,value = load_doc(did,sid)
+        titledoc,lout,value = load_doc(did)
     #msg = '%s'%lout
     #if value == '':
     #    return doc_list(req,user)
@@ -431,7 +431,7 @@ def save_doc(req,user,did,sid,title,lout,content):
     stack.close()
     return 'Saved'
 
-def load_doc(did,sid):
+def load_doc(did):
     """ Load layout and content of a diagram """
     import diff_match_patch
     dmp = diff_match_patch.diff_match_patch()
@@ -463,12 +463,13 @@ def save_patch(req,user,did,sid,patch):
     req.content_type = 'text/plain'
     stack = dbhash.open('%s/stack.db'%base,'c')
     patch = re.sub('\r','',patch)
-    for other in stack[did].split(':'):
-        if (other != sid):
-            if stack.has_key(other):
-                stack[other] += patch
-            else :
-                stack[other] = patch
+    if stack.has_key(did):
+        for other in stack[did].split(':'):
+            if (other != sid):
+                if stack.has_key(other):
+                    stack[other] += patch
+                else :
+                    stack[other] = patch
     k = '@%s'%did
     if stack.has_key(k):
         stack[k] += patch
