@@ -91,12 +91,12 @@ class collab:
         ####
         titledoc,lout,value = load_doc(did)
         o = '<title id=".title">%s</title>'%__TITLE__
-        o += '<link %s rel="shortcut icon" href="img/logo16.png"/>\n'%_XHTMLNS
+        o += '<link %s rel="shortcut icon" href="/img/logo16.png"/>\n'%_XHTMLNS
         if edit_mode:
             sid = create_window_id()
-            o += '<script %s type="text/ecmascript" xlink:href="js/collab.js"/>\n'%_XLINKNS 
-            o += '<script %s type="text/ecmascript" xlink:href="js/diff_match_patch.js"/>\n'%_XLINKNS
-            o += '<script %s type="text/ecmascript" xlink:href="ace/ace.js"></script><script %s type="text/ecmascript" xlink:href="ace/theme-twilight.js"></script><script %s type="text/ecmascript" xlink:href="ace/mode-python.js"></script>\n'%(_XLINKNS,_XLINKNS,_XLINKNS)
+            o += '<script %s type="text/ecmascript" xlink:href="/js/collab.js"/>\n'%_XLINKNS 
+            o += '<script %s type="text/ecmascript" xlink:href="/js/diff_match_patch.js"/>\n'%_XLINKNS
+            o += '<script %s type="text/ecmascript" xlink:href="/ace/ace.js"/><script %s type="text/ecmascript" xlink:href="/ace/theme-twilight.js"/><script %s type="text/ecmascript" xlink:href="/ace/mode-python.js"/>\n'%(_XLINKNS,_XLINKNS,_XLINKNS)
             disp = 'inline'
             o += '<foreignObject display="%s" width="100%%" height="100%%">'%disp
             # Change here to select textarea or ace!

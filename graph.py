@@ -198,7 +198,7 @@ class graph:
         edit_mode,view_mode = environ['PATH_INFO'] == '/edit', environ['PATH_INFO'] == ''
         if not edit_mode and not view_mode:
             return self.app(environ, start_response)
-        o = '<script %s type="text/ecmascript" xlink:href="js/graph.js"/>\n'%_XLINKNS 
+        o = '<script %s type="text/ecmascript" xlink:href="/js/graph.js"/>\n'%_XLINKNS 
         a = ''
         if edit_mode:
             a += svgapp.logo(False) 

@@ -229,7 +229,7 @@ class svg_app:
             o += '<?xml version="1.0" encoding="UTF-8"?>\n'
             o += '<?xml-stylesheet href="css/svgapp.css" type="text/css"?>\n'
             o += '<svg %s editable="%s"%s>\n'%(_SVGNS, 'yes' if edit_mode else 'no',' user="%s"'%user if user else '')
-            o += '<script %s type="text/ecmascript" xlink:href="js/svgapp.js"/>\n'%(_XLINKNS) 
+            o += '<script %s type="text/ecmascript" xlink:href="/js/svgapp.js"/>\n'%(_XLINKNS) 
             o += defs()
             if edit_mode:
                 o += '<rect class="theme" width="100%" height="18"/>\n'

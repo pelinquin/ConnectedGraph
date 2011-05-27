@@ -79,7 +79,7 @@ class update:
             return [self.update_tool(environ)]
         elif (environ['PATH_INFO'] != '/edit') and (environ['PATH_INFO'] != '/'):
             return self.app(environ, start_response)
-        o = '<script %s type="text/ecmascript" xlink:href="js/update.js"/>\n'%_XLINKNS 
+        o = '<script %s type="text/ecmascript" xlink:href="/js/update.js"/>\n'%_XLINKNS 
         a = '<text class="button" onclick="update_tool();" fill="white" text-anchor="end" x="98%" y="12">U<title>Update tool from Github</title></text>'     
         start_response('200 OK',[])
         def custom_start_response(status, header):
