@@ -18,12 +18,6 @@
 
 // Use the compressed version: uimin.js
 
-//---------- constants ----------
-
-function isIn(val, li) {
-  for(var i=0; i < li.length; i++) { if((li[i] == val)) { return true; }}
-  return false;  
-}
 
 //---------- Globals ----------
 var DD       = null; // DragAndDrop object
@@ -31,6 +25,7 @@ var nodeLink = [];   // Hash key:nodes id, value:array of connectors
 var nodeBox  = [];   // Hash key:nodes, value: node bouding box
 var editor   = null; // Pointer to ACE editor
 var log = '';
+
 //---------- Init ----------
 
 if (typeof(addLoadEvent)=='undefined') { 
@@ -52,14 +47,19 @@ if (typeof(addLoadEvent)=='undefined') {
 addLoadEvent (function init_graph () {  
 	if (document.documentElement.getAttribute('editable') == 'yes') {
 	    DD = new dragDrop();
+	    init_menu();
+	    init_other();
 	}
-	init_menu();
-	init_other();
 	init_draw();
     });
 
 function stat() {
   return ($('.nodes').childNodes.length + ' nodes ' + $('.connectors').childNodes.length + ' links')
+}
+
+function isIn(val, li) {
+  for(var i=0; i < li.length; i++) { if((li[i] == val)) { return true; }}
+  return false;  
 }
 
 function init_editor(is_ace) {
@@ -1292,56 +1292,8 @@ function logout() {
   aj.doGet(); 
 }
 
-//---------- New Document ----------
-
-function new_doc() {
-  var ai = new ajax_get(true,get_base_url() + '/new_doc?'+get_user(), function(res) {
-			  var url = get_base_url()+ '/edit?id='+res;
-			  //document.location.href = url;
-			  window.open(url);
-			});
-  ai.doGet();
-}
-
-function open_doc(e) {
-  if (!e.target.hasAttribute('class')) {
-    //document.location.href = get_base_url()+ '/edit?id='+e.target.firstChild.nodeValue;
-    window.open(get_base_url()+ '/edit?id='+e.target.firstChild.firstChild.nodeValue);
-  }
-}
-
-function save_doc() {
-  //$('.debug').firstChild.nodeValue = document.documentElement.getAttribute('sid');
-  var lout = '{';
-  var sep = '';
-  for (var n in nodeLink) {
-    var tt = $(n).getCTM();
-    lout += sep + '"' + n + '":(' + tt.e + ',' + tt.f+')';
-    sep = ',';
-  }
-  var fD = new FormData();
-  fD.append('content', get_editor());
-  fD.append('lout', lout + '}');
-  fD.append('title', $('.name').firstChild.nodeValue);
-  var ai = new ajax_post(true,get_base_url() + '/save_doc?'+get_env(), fD,function(res) {
-			   $('.save').firstChild.nodeValue = res;
-			 });
-  ai.doPost();
-}
 
 //---------- Server Synchronization ----------
-
-function get_user() {
-  return ('user='+document.documentElement.getAttribute('user'));
-}
-
-function get_env() {
-  return ('user='+document.documentElement.getAttribute('user') + '&did='+document.documentElement.getAttribute('did') + '&sid='+document.documentElement.getAttribute('sid'));
-}
-
-function has_did() {
-  return (document.documentElement.hasAttribute('did') && document.documentElement.getAttribute('did'));
-}
 
 function fork(flag) {
   document.location.href = 'https://github.com/pelinquin/ConnectedGraph';
@@ -1349,18 +1301,6 @@ function fork(flag) {
 
 function help() {
   alert ('Help window soon!\n see https://github.com/pelinquin/ConnectedGraph');
-}
-
-function change_name(first) {
-  var inp = $('.name').nextSibling;
-  if (first) {
-    inp.firstChild.firstChild.value = $('.name').firstChild.nodeValue;
-    inp.setAttribute('display','inline');
-  } else {
-    $('.name').firstChild.nodeValue = inp.firstChild.firstChild.value;
-    inp.setAttribute('display','none');
-    update();
-  }
 }
 
 // This should move to test_ui.js

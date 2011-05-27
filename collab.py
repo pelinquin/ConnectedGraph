@@ -52,6 +52,7 @@ class collab:
 
     def __call__(self,environ, start_response):
         """ app """
+        edit_mode,view_mode = environ['PATH_INFO'] == '/edit', environ['PATH_INFO'] == ''
         if not os.path.isdir(__BASE__):
             os.mkdir(__BASE__)
         user = environ['svgapp.user']
@@ -91,7 +92,7 @@ class collab:
         titledoc,lout,value = load_doc(did)
         o = '<title id=".title">%s</title>'%__TITLE__
         o += '<link %s rel="shortcut icon" href="img/logo16.png"/>\n'%_XHTMLNS
-        if environ['PATH_INFO'] == "/edit":
+        if edit_mode:
             sid = create_window_id()
             o += '<script %s type="text/ecmascript" xlink:href="js/collab.js"/>\n'%_XLINKNS 
             o += '<script %s type="text/ecmascript" xlink:href="js/diff_match_patch.js"/>\n'%_XLINKNS
@@ -110,8 +111,6 @@ class collab:
                     action,ttl = 'new_doc(this)','Create a new document'
                     titledoc = 'New document'
                 o += '<text id=".name" fill="white" onclick="%s;" x="50%%" y="12" class="button">%s<title>%s</title></text><foreignObject display="none" x="50%%" width="120" height="30"><div %s><input onchange="change_name(false);" size="10" value=""/></div></foreignObject>\n'%(action,titledoc,ttl,_XHTMLNS)
-        else:
-            o = '<text x="100" y="100">View mode %s</text>\n'%(user)
         
         start_response('200 OK',[])
         def custom_start_response(status, header):

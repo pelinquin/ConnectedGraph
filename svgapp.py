@@ -97,40 +97,6 @@ def set_cook(user,header,sid,hpw):
         header.append(('Set-Cookie','hpw=; Expires=Thu, 01-Jan-1970 00:00:01 GMT;'))
         header.append(('Set-Cookie','dat=; Expires=Thu, 01-Jan-1970 00:00:01 GMT;'))
 
-def js():
-    """ javascript glue """
-    o = """
-if (typeof($)=='undefined') { function $(id) { return document.getElementById(id.replace(/^#/,'')); } }
-//window.onunload = function () { alert ('quit!'); };
-function signin() { $('.loginpage').setAttribute('display','inline'); }
-function create_account(obj) {
-  $('pw2').setAttribute('style','display:inline');
-  $('pw2').setAttribute('onchange','submit();');
-  $('pw').removeAttribute('onchange');
-  $('msg').setAttribute('display','inline');
-  obj.setAttribute('display','none');
-  $('.cp').setAttribute('display','none');
-}
-function change_pw(obj) {
-  $('pw2').setAttribute('style','display:inline');
-  $('pw2').setAttribute('onchange','submit();');
-  $('pw').removeAttribute('onchange');
-  obj.setAttribute('display','none');
-  $('.ca').setAttribute('display','none');
-  $('pw').setAttribute('title','Old password');
-  $('pw2').setAttribute('title','New password');
-  $('lout').setAttribute('value','change');
-  $('msg').firstChild.nodeValue = 'New password:';
-  $('msg').setAttribute('x','102');
-  $('msg').setAttribute('y','260');
-  $('msg').setAttribute('display','inline');
-}
-function check() { $('myform').submit(); }
-function logout() { $('lout').setAttribute('value','yes'); $('myform').submit(); }
-function help() { alert('help');}
-"""
-    return o
-
 def change_pw_user(login,pw,pw2):
     """ Change password for a registered user"""
     result, base = False, '/tmp/pw.db'
@@ -245,8 +211,7 @@ class svg_app:
 
     def __call__(self,environ, start_response):
         user = ''
-        edit_mode = environ['PATH_INFO'] == "/edit"
-        view_mode = environ['PATH_INFO'] == ""
+        edit_mode,view_mode = environ['PATH_INFO'] == '/edit', environ['PATH_INFO'] == ''
         user,msg,logout,sid,hpw = get_user(environ)
         environ['svgapp.user'] = user
         environ['svgapp.hpw'] = hpw
@@ -264,12 +229,11 @@ class svg_app:
             o += '<?xml version="1.0" encoding="UTF-8"?>\n'
             o += '<?xml-stylesheet href="css/svgapp.css" type="text/css"?>\n'
             o += '<svg %s editable="%s"%s>\n'%(_SVGNS, 'yes' if edit_mode else 'no',' user="%s"'%user if user else '')
-            o += '<script %s type="text/ecmascript">%s</script>\n'%(_XLINKNS,js()) 
+            o += '<script %s type="text/ecmascript" xlink:href="js/svgapp.js"/>\n'%(_XLINKNS) 
             o += defs()
             if edit_mode:
-                o += '<rect class="theme" width="100%" height="18"/>'
-                a = self.menubar(user,msg)
-                a += '<text id=".debug" class="small" x="300" y="12"> </text>\n'
+                o += '<rect class="theme" width="100%" height="18"/>\n'
+                a += self.menubar(user,msg) + '<text id=".debug" class="small" x="300" y="12"> </text>\n'
                 #a += '<text x="300" y="32">%s|%s </text>\n'%(user,hpw)
             a += '</svg>'            
         response_string = o + ''.join(response_iter) + a 

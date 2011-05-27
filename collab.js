@@ -20,18 +20,12 @@
 
 //---------- constants ----------
 
-const svgns   = 'http://www.w3.org/2000/svg';
-const xlinkns = 'http://www.w3.org/1999/xlink';
-
 const READ_PERIOD_MS = 1000;
 const WRITE_DELAY_MS = 1000;
 const SLEEP_COUNTER = 20;
 const KEEP_ALIVE_COUNTER = 30;
 
 //---------- Utilities ----------
-if (typeof($)=='undefined') { 
-  function $(id) { return document.getElementById(id.replace(/^#/,'')); } 
-}
     
 function ajax_get(txt,url,cb) {
   var req = new XMLHttpRequest();

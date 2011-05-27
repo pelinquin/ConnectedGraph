@@ -4,7 +4,7 @@ text,textarea {
   font-size:10pt;
 }
 
-textarea { color:white; background-color:#444; margin:20pt; width:800px; }
+textarea.editor { color:white; background-color:#444; margin:20pt; width:800px; }
 text.tiny, text.small, text.button, text.msg,text.list, .item, tspan { 
   font-family:helvetica neue,helvetica,arial,sans-serif;
 }

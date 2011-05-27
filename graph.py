@@ -183,9 +183,6 @@ class cg:
         else:
             return '%s'%self.connectors
 
-
-
-
 def my_app(environ,start_response):
     """ app """
     start_response('200 OK',[])
@@ -198,10 +195,13 @@ class graph:
 
     def __call__(self,environ, start_response):
         """ app """
-        if (environ['PATH_INFO'] != '/edit') and (environ['PATH_INFO'] != '/'):
+        edit_mode,view_mode = environ['PATH_INFO'] == '/edit', environ['PATH_INFO'] == ''
+        if not edit_mode and not view_mode:
             return self.app(environ, start_response)
         o = '<script %s type="text/ecmascript" xlink:href="js/graph.js"/>\n'%_XLINKNS 
-        a = svgapp.logo(False) 
+        a = ''
+        if edit_mode:
+            a += svgapp.logo(False) 
         value = 'A->B'
         value = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(environ['QUERY_STRING'])))
         value = re.sub('mode=[^&]*&?','',value)
@@ -211,7 +211,8 @@ class graph:
         mygraph = cg(value)
         mygraph.set_pos(lout)
         a += mygraph.draw()    
-        a += menu() + gui_elements()
+        if edit_mode:
+            a += menu() + gui_elements()
         def custom_start_response(status, header):
             return start_response(status, header)
         response_iter = self.app(environ, custom_start_response)
