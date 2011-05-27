@@ -330,7 +330,7 @@ def run_server(req=None):
     o += o1 + o2
     o += '%s tests cases\n'%(n1+n2)
     if req:
-        o += 'Git Commit: ' + ui.sha1_pkg(req)
+        o += 'Git Commit: %s %s'%ui.get_id_pkg(req)
     return o 
 
 def clean(req):
