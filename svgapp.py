@@ -4,6 +4,8 @@
 import os,re,dbhash,base64,hashlib,Cookie
 import time,datetime
 
+__BASE__='/db'
+
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg"'
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
@@ -50,20 +52,22 @@ def get_user(environ):
                 user,msg = login,'Hi!:%s, welcome!'%login
             else:
                 msg = 'Error:Bad login or password!'
-    f = '/tmp/pw.db'
+    f = '%s/pw.db'%__BASE__
     if user:
         s = dbhash.open(f,'c')
         sid = hashlib.sha1(os.urandom(10)).hexdigest()
         # find a way to delete old sid !
+        ip = get_ip(environ)
         dat = '%s'%time.mktime(datetime.datetime.now().timetuple())
-        s[sid] = '%s:%s:%s'%(user,get_ip(environ),dat[:-2])
+        sid = hashlib.sha1('%s:%s:%s:%s'%(user,ip,dat[:-2],os.urandom(10))).hexdigest()
+        s[sid] = '%s:%s:%s'%(user,ip,dat[:-2])
         s.close()   
     elif environ.has_key('HTTP_COOKIE') and not logout:
         co = Cookie.SimpleCookie(environ['HTTP_COOKIE'])  
         if co.has_key('id'):
             sid = co['id'].value
             if os.path.isfile(f):
-                s = dbhash.open('/tmp/pw.db')
+                s = dbhash.open(f)
                 if s.has_key(sid):
                     d = s[sid].split(':')
                     if d[1] == get_ip(environ):
@@ -72,7 +76,7 @@ def get_user(environ):
     if environ.has_key('HTTP_COOKIE') and logout:
         co = Cookie.SimpleCookie(environ['HTTP_COOKIE'])  
         if co.has_key('id') and os.path.isfile(f):
-            s = dbhash.open('/tmp/pw.db','c')
+            s = dbhash.open(f,'c')
             del s[co['id'].value]
             s.close()       
     if user and pw:
@@ -99,7 +103,7 @@ def set_cook(user,header,sid,hpw):
 
 def change_pw_user(login,pw,pw2):
     """ Change password for a registered user"""
-    result, base = False, '/tmp/pw.db'
+    result, base = False, '%s/pw.db'%__BASE__
     if login and pw and pw2 and os.path.isfile(base):
         db = dbhash.open(base,'c')
         if db.has_key(login):
@@ -112,7 +116,7 @@ def change_pw_user(login,pw,pw2):
 def register_user(login,pw1,pw2,ip):
     """ Store up to 10 login/pw per ip"""
     import hmac
-    result, base = False, '/tmp/pw.db'
+    result, base = False, '%s/pw.db'%__BASE__
     db = dbhash.open(base,'c')
     if not db.has_key(ip):
         db[ip] = '%d'%0
@@ -130,7 +134,7 @@ def register_user(login,pw1,pw2,ip):
 
 def check_user(login,pw):
     """ check if user registered with good password """
-    result, base = False, '/tmp/pw.db'
+    result, base = False, '%s/pw.db'%__BASE__
     if login and pw:
         if os.path.isfile(base):
             db = dbhash.open(base)
@@ -172,7 +176,9 @@ class svg_app:
 
     def __init__(self,app,withlogo=True):
         self.app = app
-        self.withlogo = withlogo
+        self.withlogo = withlogo 
+        if not os.path.isdir(__BASE__):
+            os.mkdir (__BASE__)
 
     def menubar(self,user,msg):
         """ """
