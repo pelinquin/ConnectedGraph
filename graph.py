@@ -5,7 +5,6 @@ import os,sys,re,dbhash,base64,hashlib,datetime,random
 import xml.sax.saxutils, urllib
 import Cookie
 from subprocess import Popen, PIPE
-sys.path.append('/home/laurent/formose/ConnectedGraph')
 import svgapp
 
 __version__='0.2.1'
@@ -219,6 +218,7 @@ class graph:
         response_string = o + ''.join(response_iter) + a 
         return [response_string]
 
-
+if __name__ == '__main__':
+    print 'test'
 
 

@@ -96,7 +96,7 @@ if (typeof(addLoadEvent)=='undefined') {
 	    } 
 	} 
     } 
-}
+};
 
 addLoadEvent ( function () {  
 	if ($('.editor').nodeName == 'div') {

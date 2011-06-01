@@ -4,7 +4,6 @@
 import os,sys,re,dbhash,base64,hashlib,datetime
 import xml.sax.saxutils, urllib
 from subprocess import Popen, PIPE
-sys.path.append('/home/laurent/formose/ConnectedGraph')
 import svgapp
 
 __version__='0.2.1'
@@ -90,8 +89,10 @@ class collab:
             return [reset(mp.group(1) if mp else '')]
         ####
         titledoc,lout,value = load_doc(did)
-        o = '<title id=".title">%s</title>'%__TITLE__
-        o += '<link %s rel="shortcut icon" href="/img/logo16.png"/>\n'%_XHTMLNS
+        o = ''
+        if edit_mode or view_mode:
+            o += '<title id=".title">%s</title>'%__TITLE__
+            o += '<link %s rel="shortcut icon" href="/img/logo16.png"/>\n'%_XHTMLNS
         if edit_mode:
             sid = create_window_id()
             o += '<script %s type="text/ecmascript" xlink:href="/js/collab.js"/>\n'%_XLINKNS 

@@ -58,18 +58,19 @@ def update_tool1():
 
 class update:
     """ """
-    def __init__(self,app,url=''):
+    def __init__(self,app,prj=''):
         self.app = app
-        self.url = url
+        self.prj = prj
 
     def update_tool(self,environ):
         """ update the tool from github """
         d = time.mktime(datetime.datetime.now().timetuple())
         out,err = '',''
-        #dname = os.path.dirname(env['SCRIPT_FILENAME'])
+        dname = os.path.dirname(env['SCRIPT_FILENAME'])
         #bname = os.path.basename(env['SCRIPT_FILENAME'])
         o = 'Application Updating from commit...\n'
-        o += 'Message:%s\nUpdate OK %s %s\n'%(d,self.url, environ['SCRIPT_FILENAME'])
+        cmd = 'cd %s/..; rm -rf %s; git clone git://github.com/pelinquin/%s.git; cd %s; git submodule update --init'%(self.prj,dname,self.prj,self.prj)
+        o += 'Message:%s\nUpdate OK %s\n%s\n'%(d, environ['SCRIPT_FILENAME'],cmd)
         return o 
 
     def __call__(self,environ, start_response):

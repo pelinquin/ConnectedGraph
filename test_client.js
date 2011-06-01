@@ -156,7 +156,7 @@ function run_tests() {
   add_entry('Tests passed: ' + good + ' Tests failed: ' + bad + ' Total time: ' + (endTime - startTime) + ' ms');
   test_server();
 
-  var ai = new ajax_get(true,get_url() + '/test_json_connectors', function(res) {
+  var ai = new ajax_get(true,get_url() + '/json', function(res) {
 			  add_entry('Test JSON connectors');
 			  var tab = eval('('+res+')');
 			  var n = 0;

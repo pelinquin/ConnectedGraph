@@ -3,7 +3,6 @@
 
 import os,sys,re,dbhash,base64,hashlib,datetime
 import xml.sax.saxutils, urllib
-sys.path.append('/home/laurent/formose/ConnectedGraph')
 import svgapp, collab, update, graph
 
 __version__='0.2'
