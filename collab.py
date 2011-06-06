@@ -87,8 +87,15 @@ class collab:
             mp = re.search(r'pw=(\w+)$',urllib.unquote(environ['QUERY_STRING']))
             start_response('200 OK',[])
             return [reset(mp.group(1) if mp else '')]
-        ####
-        titledoc,lout,value = load_doc(did)
+        if did:
+            titledoc,lout,value = load_doc(did)
+        else:
+            #### DUPLICATE FROM graph ! ######
+            value = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(environ['QUERY_STRING'])))
+            value = re.sub('mode=[^&]*&?','',value)
+            value = re.sub('id=[^&]*&?','',value)
+            ####
+            titledoc,lout = '',{}
         o = ''
         if edit_mode or view_mode:
             o += '<title id=".title">%s</title>'%__TITLE__

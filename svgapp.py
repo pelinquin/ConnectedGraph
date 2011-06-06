@@ -199,7 +199,7 @@ class svg_app:
         o += '<rect x="0" y="0" width="100%" height="100%" opacity=".9" fill="#DDD"/>'
         o += '<text x="130" y="220">Login:</text>'
         o += '<text x="130" y="240">Password:</text>'
-        o += '<text id=".ca" class="button" onclick="create_account(this);" x="200" y="170">Create a new account<title>...if you are new user</title></text>'
+        o += '<text id=".ca" class="button" onclick="create_new_account(this);" x="200" y="170">Create a new account<title>...if you are new user</title></text>'
         o += '<text id=".cp" class="button" onclick="change_pw(this);" x="200" y="190">Change password<title>...if you already have an account</title></text>'
         o += '<text id="msg" display="none" x="200" y="190" fill="red">New account:</text>'
         o += '<foreignObject display="inline" y="200" x="200" width="120" height="80">' 

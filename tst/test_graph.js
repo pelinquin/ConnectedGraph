@@ -20,6 +20,7 @@
 
 var good = 0;
 var bad = 0;
+
 function assertEquals(msg, expected, actual) {
   if (typeof actual == 'undefined') {
     actual = expected;
@@ -38,9 +39,8 @@ function assertEquals(msg, expected, actual) {
 
 //---------- Init ----------
 
-
 addLoadEvent (function init_graph () {  
-	var ai = new ajax_get(true,document.location + '/test_json_connectors', function(res) {
+	var ai = new ajax_get(true,document.location + '/json', function(res) {
 		add_entry('Test JSON connectors');
 		var tab = eval('('+res+')');
 		var n = 0;

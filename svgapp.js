@@ -89,7 +89,7 @@ function signin() {
     $('.loginpage').setAttribute('display','inline'); 
 }
 
-function create_account(obj) {
+function create_new_account(obj) { 
     $('pw2').setAttribute('style','display:inline');
     $('pw2').setAttribute('onchange','submit();');
     $('pw').removeAttribute('onchange');
@@ -97,6 +97,7 @@ function create_account(obj) {
     obj.setAttribute('display','none');
     $('.cp').setAttribute('display','none');
 }
+
 function change_pw(obj) {
     $('pw2').setAttribute('style','display:inline');
     $('pw2').setAttribute('onchange','submit();');

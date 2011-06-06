@@ -5,8 +5,7 @@ import os,sys,re,dbhash,base64,hashlib,datetime,time
 import xml.sax.saxutils, urllib
 from subprocess import Popen, PIPE
 
-__version__='0.2.1'
-__TITLE__='Connected Graph'
+__version__='0.1'
 
 _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg"'
@@ -66,11 +65,14 @@ class update:
         """ update the tool from github """
         d = time.mktime(datetime.datetime.now().timetuple())
         out,err = '',''
-        dname = os.path.dirname(env['SCRIPT_FILENAME'])
-        #bname = os.path.basename(env['SCRIPT_FILENAME'])
-        o = 'Application Updating from commit...\n'
-        cmd = 'cd %s/..; rm -rf %s; git clone git://github.com/pelinquin/%s.git; cd %s; git submodule update --init'%(self.prj,dname,self.prj,self.prj)
-        o += 'Message:%s\nUpdate OK %s\n%s\n'%(d, environ['SCRIPT_FILENAME'],cmd)
+        dname = os.path.dirname(environ['SCRIPT_FILENAME'])
+        ddname = os.path.dirname(dname)
+        o = 'Application Updating from GitHub project: %s\n'%(self.prj)
+        import shutil
+        #shutil.rmtree(os.path.dirname(environ['SCRIPT_FILENAME']))
+        #o1,e1 = Popen(('\\git','clone','git://github.com/pelinquin/%s.git'%self.prj),cwd=ddname,stdout=PIPE, stderr=PIPE).communicate()
+        #o2,e2 = Popen(('\\git','submodule','--init'),cwd=ddname,stdout=PIPE, stderr=PIPE).communicate()
+        o += 'Message:%s\nUpdate OK\n'%(d)
         return o 
 
     def __call__(self,environ, start_response):
@@ -78,7 +80,7 @@ class update:
         if environ['PATH_INFO'] == "/update_tool":
             start_response('200 OK',[])
             return [self.update_tool(environ)]
-        elif (environ['PATH_INFO'] != '/edit') and (environ['PATH_INFO'] != '/'):
+        elif (environ['PATH_INFO'] != '/edit') and (environ['PATH_INFO'] != ''):
             return self.app(environ, start_response)
         o = '<script %s type="text/ecmascript" xlink:href="/js/update.js"/>\n'%_XLINKNS 
         a = '<text class="button" onclick="update_tool();" fill="white" text-anchor="end" x="98%" y="12">U<title>Update tool from Github</title></text>'     
