@@ -11,6 +11,16 @@ _XHTMLNS  = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS    = 'xmlns="http://www.w3.org/2000/svg"'
 _XLINKNS  = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
 
+def get_digest():
+    """ """
+    o1,e1 = Popen(('ls'),cwd=r'/etc/apache2/conf.d',stdout=PIPE, stderr=PIPE).communicate()
+    o2,e2 = Popen(('cat','formose.conf'),cwd=r'/etc/apache2/conf.d',stdout=PIPE, stderr=PIPE).communicate()
+    t = datetime.datetime.now()
+    d = time.mktime(t.timetuple())
+    if not e1 and not e2:
+        sha1 = hashlib.sha1('%s:%s:%s'%(o1,o2,d)).hexdigest()
+    return sha1
+
 def get_id_pkg(r):
     """ pkg commit sha1 """
     r.add_common_vars()
@@ -39,13 +49,13 @@ def update_tool1():
     allow,delta = False,0
     if rev.has_key('_update_'):
         delta = d - float(rev['_update_'])
-        if delta > 120:
+        if delta > 60:
             rev['_update_'],allow = '%s'%d,True
     if not rev.has_key('_update_'):
         rev['_update_'] = '%s'%d
     rev.close()
     if not allow:
-        return 'Error: Time since last update is %d secondes; should be greater than 2 minutes!'%int(delta)
+        return 'Error: Time since last update is %d secondes; should be greater than 1 minute!'%int(delta)
     cmd = 'cd %s/..; rm -rf ConnectedGraph; git clone git://github.com/pelinquin/ConnectedGraph.git; cd ConnectedGraph; git submodule update --init'%pwd
     out,err = Popen((cmd), shell=True,stdout=PIPE, stderr=PIPE).communicate()
     o = 'Application Updating from %s commit...\n'%(ui.sha1_pkg())
@@ -70,9 +80,10 @@ class update:
         o = 'Application Updating from GitHub project: %s\n'%(self.prj)
         import shutil
         #shutil.rmtree(os.path.dirname(environ['SCRIPT_FILENAME']))
-        #o1,e1 = Popen(('\\git','clone','git://github.com/pelinquin/%s.git'%self.prj),cwd=ddname,stdout=PIPE, stderr=PIPE).communicate()
-        #o2,e2 = Popen(('\\git','submodule','--init'),cwd=ddname,stdout=PIPE, stderr=PIPE).communicate()
-        o += 'Message:%s\nUpdate OK\n'%(d)
+        #o1,e1 = Popen(('git','clone','git://github.com/pelinquin/%s.git'%self.prj),cwd=ddname,stdout=PIPE, stderr=PIPE).communicate()
+        #o2,e2 = Popen(('git','submodule','--init'),cwd=ddname,stdout=PIPE, stderr=PIPE).communicate()
+        sha1 = get_digest()
+        o += 'Message:%s\nUpdate OK\nSHA1:%s'%(d,sha1)
         return o 
 
     def __call__(self,environ, start_response):

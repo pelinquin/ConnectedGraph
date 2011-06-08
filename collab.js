@@ -111,7 +111,15 @@ addLoadEvent ( function () {
 	}
     });
     
+function is_webkit() {
+  if (navigator.userAgent.match('AppleWebKit')) { return true; }
+  return false;
+}
+
 function init_editor(is_ace) {
+  if (is_webkit()) {
+      $('.editor').style.setProperty('position','fixed','');
+  }
   if (is_ace) {
       $('.editor').parentNode.setAttribute('display','none');
     editor = ace.edit('.editor'); 

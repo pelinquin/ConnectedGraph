@@ -201,6 +201,7 @@ class graph:
         a = ''
         if edit_mode:
             a += svgapp.logo(False) 
+            #a += '<rect width="1" height="1"/>' #bug WEBkit
         value = 'A->B'
         value = re.sub('\$','#',re.sub('\\\\n','\n',urllib.unquote(environ['QUERY_STRING'])))
         value = re.sub('mode=[^&]*&?','',value)
